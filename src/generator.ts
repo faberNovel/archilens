@@ -17,15 +17,30 @@ import {
   RelationType,
 } from "./models"
 
-function debugFn(fn: () => any): void {
-  if (process.env.DEBUG === "true") {
-    fn()
+function debugFn(fn: () => unknown): void {
+  if (process.env.DEBUG !== "true") {
+    return
   }
+  fn()
 }
-function debug(...args: any): void {
-  if (args.length === 1 && typeof args[0] === "function")
-    return debugFn(args[0])
-  debugFn(() => console.warn(...args))
+function debug(...args: unknown[]): void {
+  if (process.env.DEBUG !== "true") {
+    return
+  }
+  const computedArgs = args.map((arg: unknown) => {
+    if (typeof arg === "function") {
+      return arg()
+    } else {
+      return arg
+    }
+  })
+  console.warn(...computedArgs)
+}
+
+function truesFromMap<A>(map: ReadonlyMap<A, boolean>): readonly A[] {
+  return Array.from(map.entries()).flatMap(([key, value]) =>
+    value ? [key] : []
+  )
 }
 
 export enum GenerationLevel {
@@ -127,25 +142,39 @@ function prepareDiagram(
     children.set(domain.id, domainChildren)
     descent.set(domain.id, domainDescent)
   })
+  const isDisplayed = (part: Part): boolean => {
+    return (
+      focused.get(part.id) ||
+      descent.get(part.id)?.find((d) => focused.get(d.id)) !== undefined
+    )
+  }
   const relations: GeneratedRelation[] = allRelations.flatMap(
     ({ source, relation }) => {
-      const firstSource: Part | undefined = getFirstRelationTaget(
+      const sourceAncestors = ancestors.get(source.id) || []
+      const targetAncestors = ancestors.get(relation.target.id) || []
+      const commonDisplayedAncestors = sourceAncestors.filter(
+        (a) => targetAncestors.includes(a) && isDisplayed(a)
+      )
+      const firstSource: Part | undefined = getFirstRelationSource(
         opts,
         parents,
         focused,
+        commonDisplayedAncestors,
         source
       )
+      if (firstSource && targetAncestors.includes(firstSource)) {
+        return []
+      }
       const firstTarget: Part | undefined = getFirstRelationTaget(
         opts,
         parents,
         focused,
+        commonDisplayedAncestors,
         relation.target
       )
       if (!firstSource || !firstTarget || firstSource === firstTarget) {
         return []
       }
-      focused.set(firstSource.id, true)
-      focused.set(firstTarget.id, true)
       return [
         {
           source: relation.reverse ? firstTarget : firstSource,
@@ -156,6 +185,10 @@ function prepareDiagram(
       ]
     }
   )
+  relations.forEach((relation) => {
+    focused.set(relation.source.id, true)
+    focused.set(relation.target.id, true)
+  })
   const containsFocused = Array.from(ids.keys()).reduce((acc, partId): Map<
     string,
     boolean
@@ -207,6 +240,32 @@ const computeHasFocus = (opts: GenerationOptions, part: Part): boolean => {
   if (isExternalModule(part)) return focusAcceptModule(opts)
   return focusAcceptComponent(opts)
 }
+
+const getFirstRelationSource = (
+  opts: GenerationOptions,
+  parents: ReadonlyMap<string, Part>,
+  focused: ReadonlyMap<string, boolean>,
+  commonDisplayedAncestors: readonly Part[],
+  part: Part
+): Part | undefined => {
+  if (focused.get(part.id)) {
+    return part
+  }
+  const parent = parents.get(part.id)
+  if (!parent) {
+    return undefined
+  }
+  // if (commonDisplayedAncestors.includes(parent)) {
+  //   return part
+  // }
+  return getFirstRelationSource(
+    opts,
+    parents,
+    focused,
+    commonDisplayedAncestors,
+    parent
+  )
+}
 const computeIsRelationTarget = (
   opts: GenerationOptions,
   focused: ReadonlyMap<string, boolean>,
@@ -224,13 +283,26 @@ const getFirstRelationTaget = (
   opts: GenerationOptions,
   parents: ReadonlyMap<string, Part>,
   focused: ReadonlyMap<string, boolean>,
+  commonFocusedAncestors: readonly Part[],
   part: Part
 ): Part | undefined => {
   if (computeIsRelationTarget(opts, focused, part)) {
     return part
   }
   const parent = parents.get(part.id)
-  return parent && getFirstRelationTaget(opts, parents, focused, parent)
+  if (!parent) {
+    return undefined
+  }
+  if (commonFocusedAncestors.includes(parent)) {
+    return part
+  }
+  return getFirstRelationTaget(
+    opts,
+    parents,
+    focused,
+    commonFocusedAncestors,
+    parent
+  )
 }
 
 const partHasFocus = (infos: DiagramInfos, part: Part): boolean =>
@@ -341,7 +413,7 @@ export const generateRelation = (relation: GeneratedRelation): string => {
       )
   }
   let desc: string = ""
-  if (relation.description !== undefined) {
+  if (relation.description) {
     desc = ` : ${relation.description}`
   }
   const sourceId = relation.source.id

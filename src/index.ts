@@ -40,8 +40,6 @@ function main(): void {
       "Level",
       (value: string, previous: GenerationLevel): GenerationLevel => {
         switch (value) {
-          case "nothing":
-            return GenerationLevel.Nothing
           case "domain":
             return GenerationLevel.Domain
           case "module":
@@ -52,7 +50,7 @@ function main(): void {
             return die(`Invalid level: ${value}`)
         }
       },
-      GenerationLevel.Nothing as GenerationLevel
+      GenerationLevel.Domain as GenerationLevel
     )
     .option(
       "-f,--focus <id>",

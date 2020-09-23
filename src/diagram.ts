@@ -12,7 +12,7 @@ import {
 export function diagram(): Diagram {
   const service1APIGW = component({
     id: "Service1APIGW",
-    name: "API",
+    name: "API GW",
     type: ComponentType.APIGW,
   })
   const service1 = module({
