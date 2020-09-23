@@ -1,4 +1,6 @@
 import { program } from "commander"
+import YAML from "yaml"
+import fs from "fs"
 
 import { component } from "./models"
 import {
@@ -6,7 +8,10 @@ import {
   GenerationLevel,
   GenerationOptions,
 } from "./generator"
-import { diagram } from "./diagram"
+import { DiagramImport, importDiagram } from "./import"
+import { Either, fold, Left, Right } from "fp-ts/Either"
+import { Errors } from "io-ts"
+import { pipe } from "fp-ts/pipeable"
 
 function die(message: string): never {
   console.error(message)
@@ -79,7 +84,20 @@ function main(): void {
     exclude: cliOpts.exclude,
     open: cliOpts.open,
   }
-  const generated = generateDiagram(options, diagram())
+  const raw = fs.readFileSync(0, "utf-8")
+  const content = YAML.parse(raw)
+  const imported: DiagramImport = pipe(
+    DiagramImport.decode(content),
+    fold(
+      (errs) => {
+        console.warn(`Errors`, JSON.stringify(errs))
+        process.exit(1)
+      },
+      (diagram) => diagram
+    )
+  )
+  const diagram = importDiagram(imported)
+  const generated = generateDiagram(options, diagram)
   console.log(generated)
 }
 main()

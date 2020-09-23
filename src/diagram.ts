@@ -51,11 +51,11 @@ export function diagram(): Diagram {
     type: ComponentType.ECS,
     relations: [
       relation({
-        target: service1APIGW,
+        target: "service1APIGW",
         description: "Get thing",
       }),
       relation({
-        target: articlesDB,
+        target: "articlesDB",
       }),
     ],
   })
@@ -65,10 +65,10 @@ export function diagram(): Diagram {
     type: ComponentType.Lambda,
     relations: [
       relation({
-        target: articlesDB,
+        target: "articlesDB",
       }),
       relation({
-        target: articlesBucketImport,
+        target: "articlesBucketImport",
         description: "Watches",
       }),
     ],
@@ -79,13 +79,13 @@ export function diagram(): Diagram {
     type: ComponentType.Lambda,
     relations: [
       relation({
-        target: service2KDSStuff,
+        target: "service2KDSStuff",
         type: RelationType.Async,
         reverse: true,
         description: "Stuff",
       }),
       relation({
-        target: articlesDB,
+        target: "articlesDB",
       }),
     ],
   })
@@ -95,11 +95,11 @@ export function diagram(): Diagram {
     type: ComponentType.Lambda,
     relations: [
       relation({
-        target: articlesDB,
+        target: "articlesDB",
         description: "Fetches events",
       }),
       relation({
-        target: articlesKDSupdate,
+        target: "articlesKDSupdate",
         description: "Publishes events",
       }),
     ],
@@ -110,7 +110,7 @@ export function diagram(): Diagram {
     type: ComponentType.APIGW,
     relations: [
       relation({
-        target: articlesAPI,
+        target: "articlesAPI",
       }),
     ],
   })
@@ -132,7 +132,7 @@ export function diagram(): Diagram {
     id: "App",
     relations: [
       relation({
-        target: articlesAPIGW,
+        target: "articlesAPIGW",
       }),
     ],
   })

@@ -2,7 +2,6 @@ import {
   Component,
   ComponentType,
   Diagram,
-  domain,
   Domain,
   Entity,
   ExternalModule,
@@ -13,7 +12,6 @@ import {
   Module,
   Part,
   Relation,
-  RelationTarget,
   RelationType,
 } from "./models"
 
@@ -150,8 +148,12 @@ function prepareDiagram(
   }
   const relations: GeneratedRelation[] = allRelations.flatMap(
     ({ source, relation }) => {
+      const target = ids.get(relation.targetId)
+      if (!target) {
+        return []
+      }
       const sourceAncestors = ancestors.get(source.id) || []
-      const targetAncestors = ancestors.get(relation.target.id) || []
+      const targetAncestors = ancestors.get(target.id) || []
       const commonDisplayedAncestors = sourceAncestors.filter(
         (a) => targetAncestors.includes(a) && isDisplayed(a)
       )
@@ -170,7 +172,7 @@ function prepareDiagram(
         parents,
         focused,
         commonDisplayedAncestors,
-        relation.target
+        target
       )
       if (!firstSource || !firstTarget || firstSource === firstTarget) {
         return []
