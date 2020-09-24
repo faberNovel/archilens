@@ -14,32 +14,7 @@ import {
   Relation,
   RelationType,
 } from "./models"
-
-function debugFn(fn: () => unknown): void {
-  if (process.env.DEBUG !== "true") {
-    return
-  }
-  fn()
-}
-function debug(...args: unknown[]): void {
-  if (process.env.DEBUG !== "true") {
-    return
-  }
-  const computedArgs = args.map((arg: unknown) => {
-    if (typeof arg === "function") {
-      return arg()
-    } else {
-      return arg
-    }
-  })
-  console.warn(...computedArgs)
-}
-
-function truesFromMap<A>(map: ReadonlyMap<A, boolean>): readonly A[] {
-  return Array.from(map.entries()).flatMap(([key, value]) =>
-    value ? [key] : []
-  )
-}
+import { debug } from "./debug"
 
 export enum GenerationLevel {
   Nothing = "nothing",
@@ -53,6 +28,7 @@ export type GenerationOptions = {
   readonly focus: string[]
   readonly exclude: string[]
   readonly open: string[]
+  readonly reverseRelationTypes: RelationType[]
 }
 
 export type GeneratedRelation = {
@@ -146,6 +122,7 @@ function prepareDiagram(
       descent.get(part.id)?.find((d) => focused.get(d.id)) !== undefined
     )
   }
+  debug("reverseRelationTypes", opts.reverseRelationTypes)
   const relations: GeneratedRelation[] = allRelations.flatMap(
     ({ source, relation }) => {
       const target = ids.get(relation.targetId)
@@ -157,23 +134,37 @@ function prepareDiagram(
       const commonDisplayedAncestors = sourceAncestors.filter(
         (a) => targetAncestors.includes(a) && isDisplayed(a)
       )
-      const firstSource: Part | undefined = getFirstRelationSource(
+      let firstSource: Part | undefined = getFirstRelationSource(
         opts,
         parents,
         focused,
-        commonDisplayedAncestors,
         source
       )
-      if (firstSource && targetAncestors.includes(firstSource)) {
-        return []
-      }
-      const firstTarget: Part | undefined = getFirstRelationTaget(
+      let firstTarget: Part | undefined = getFirstRelationTaget(
         opts,
         parents,
         focused,
         commonDisplayedAncestors,
         target
       )
+      if (
+        !firstSource &&
+        firstTarget &&
+        opts.reverseRelationTypes.includes(relation.type)
+      ) {
+        firstSource = getFirstRelationTaget(
+          opts,
+          parents,
+          focused,
+          commonDisplayedAncestors,
+          source
+        )
+        firstTarget = getFirstRelationSource(opts, parents, focused, target)
+        debug("firstSource", firstSource, "firstTarget", firstTarget)
+      }
+      if (firstSource && targetAncestors.includes(firstSource)) {
+        return []
+      }
       if (!firstSource || !firstTarget || firstSource === firstTarget) {
         return []
       }
@@ -247,7 +238,6 @@ const getFirstRelationSource = (
   opts: GenerationOptions,
   parents: ReadonlyMap<string, Part>,
   focused: ReadonlyMap<string, boolean>,
-  commonDisplayedAncestors: readonly Part[],
   part: Part
 ): Part | undefined => {
   if (focused.get(part.id)) {
@@ -257,16 +247,7 @@ const getFirstRelationSource = (
   if (!parent) {
     return undefined
   }
-  // if (commonDisplayedAncestors.includes(parent)) {
-  //   return part
-  // }
-  return getFirstRelationSource(
-    opts,
-    parents,
-    focused,
-    commonDisplayedAncestors,
-    parent
-  )
+  return getFirstRelationSource(opts, parents, focused, parent)
 }
 const computeIsRelationTarget = (
   opts: GenerationOptions,

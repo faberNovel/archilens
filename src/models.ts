@@ -11,38 +11,12 @@ export type ExternalModule = {
   readonly name: string
   readonly relations: readonly Relation[]
 }
-export type ExternalModuleOptions = {
-  id: string
-  name?: string
-  relations?: Relation[]
-}
-export function externalModule(opts: ExternalModuleOptions): ExternalModule {
-  return {
-    partType: PartType.ExternalModule,
-    id: opts.id,
-    name: opts.name ?? opts.id,
-    relations: opts.relations ?? [],
-  }
-}
 
 export type Module = {
   readonly partType: PartType.Module
   readonly id: string
   readonly name: string
   readonly components: readonly Component[]
-}
-export type ModuleOptions = {
-  id: string
-  name?: string
-  components?: Component[]
-}
-export function module(opts: ModuleOptions): Module {
-  return {
-    partType: PartType.Module,
-    id: opts.id,
-    name: opts.name ?? opts.id,
-    components: opts.components ?? [],
-  }
 }
 
 export enum ComponentType {
@@ -79,21 +53,6 @@ export type Component = {
   readonly type: ComponentType
   readonly relations: readonly Relation[]
 }
-export type ComponentOptions = {
-  id: string
-  name?: string
-  type: ComponentType
-  relations?: Relation[]
-}
-export function component(opts: ComponentOptions): Component {
-  return {
-    partType: PartType.Component,
-    id: opts.id,
-    name: opts.name ?? opts.id,
-    type: opts.type,
-    relations: opts.relations ?? [],
-  }
-}
 
 export enum RelationType {
   Ask = "Ask",
@@ -118,18 +77,6 @@ export type Relation = {
   readonly type: RelationType
   readonly description?: string
 }
-export type RelationOptions = {
-  target: string
-  type?: RelationType
-  description?: string
-}
-export function relation(opts: RelationOptions): Relation {
-  return {
-    targetId: opts.target,
-    type: opts.type ?? RelationType.Ask,
-    description: opts.description,
-  }
-}
 
 export type Entity = Module | ExternalModule | Component
 
@@ -138,19 +85,6 @@ export type Domain = {
   readonly id: string
   readonly name: string
   readonly entities: readonly Entity[]
-}
-export type DomainOptions = {
-  id: string
-  name?: string
-  entities?: Entity[]
-}
-export function domain(opts: DomainOptions): Domain {
-  return {
-    partType: PartType.Domain,
-    id: opts.id,
-    name: opts.name ?? opts.id,
-    entities: opts.entities ?? [],
-  }
 }
 
 export type Diagram = {

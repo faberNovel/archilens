@@ -2,16 +2,17 @@ import { program } from "commander"
 import YAML from "yaml"
 import fs from "fs"
 
-import { component } from "./models"
+import { RelationType } from "./models"
 import {
   generateDiagram,
   GenerationLevel,
   GenerationOptions,
 } from "./generator"
 import { DiagramImport, importDiagram } from "./import"
-import { fold, left } from "fp-ts/Either"
+import { fold } from "fp-ts/Either"
 import { pipe } from "fp-ts/pipeable"
 import { failure as reportFailure } from "io-ts/PathReporter"
+import { debug } from "./debug"
 
 function die(message: string): never {
   console.error(message)
@@ -43,7 +44,10 @@ function main(): void {
     .option(
       "-rl,--relation-level <level>",
       "Level",
-      (value: string, previous: GenerationLevel): GenerationLevel => {
+      (
+        value: string,
+        previous: GenerationLevel | undefined
+      ): GenerationLevel | undefined => {
         switch (value) {
           case "domain":
             return GenerationLevel.Domain
@@ -55,7 +59,7 @@ function main(): void {
             return die(`Invalid level: ${value}`)
         }
       },
-      GenerationLevel.Domain as GenerationLevel
+      undefined
     )
     .option(
       "-f,--focus <id>",
@@ -75,14 +79,49 @@ function main(): void {
       (value: string, previous: string[]) => [...previous, value],
       []
     )
+    .option(
+      "-rrt,--reverse-relation-type <level>",
+      "Level",
+      (value: string, previous: RelationType[]): RelationType[] => {
+        switch (value) {
+          case "none":
+            return []
+          case "all":
+            return [
+              ...previous,
+              RelationType.Ask,
+              RelationType.Tell,
+              RelationType.Listen,
+            ]
+          case "ask":
+            return [...previous, RelationType.Ask]
+          case "tell":
+            return [...previous, RelationType.Tell]
+          case "listen":
+            return [...previous, RelationType.Listen]
+          default:
+            return die(`Invalid level: ${value}`)
+        }
+      },
+      [] as RelationType[]
+    )
   program.parse(process.argv)
   const cliOpts = program.opts()
+  debug("cliOpts", cliOpts)
+  debug("cliOpts.reverseRelationType", cliOpts.reverseRelationType)
   const options: GenerationOptions = {
     level: cliOpts.level,
-    relationLevel: cliOpts.relationLevel,
+    relationLevel:
+      cliOpts.relationLevel ??
+      (cliOpts.level === GenerationLevel.Domain
+        ? GenerationLevel.Domain
+        : GenerationLevel.Module),
     focus: cliOpts.focus,
     exclude: cliOpts.exclude,
     open: cliOpts.open,
+    reverseRelationTypes: [
+      ...new Set(cliOpts.reverseRelationType as RelationType[]),
+    ],
   }
   const raw = fs.readFileSync(0, "utf-8")
   const content = YAML.parse(raw)
