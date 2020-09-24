@@ -1,4 +1,5 @@
 export enum PartType {
+  Zone = "Zone",
   Domain = "Domain",
   Module = "Module",
   ExternalModule = "ExternalModule",
@@ -87,12 +88,21 @@ export type Domain = {
   readonly entities: readonly Entity[]
 }
 
-export type Diagram = {
-  readonly domains: Domain[]
+export type Zone = {
+  readonly partType: PartType.Zone
+  readonly id: string
+  readonly name: string
+  readonly domains: readonly Domain[]
 }
 
-export type Part = Domain | Module | ExternalModule | Component
+export type Diagram = {
+  readonly zones: Zone[]
+}
 
+export type Part = Zone | Domain | Module | ExternalModule | Component
+
+export const isZone = (part: Part): part is Zone =>
+  part.partType === PartType.Zone
 export const isDomain = (part: Part): part is Domain =>
   part.partType === PartType.Domain
 export const isModule = (part: Part): part is Module =>

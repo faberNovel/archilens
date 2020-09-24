@@ -9,18 +9,21 @@ import {
   isDomain,
   isExternalModule,
   isModule,
+  isZone,
   Module,
   Part,
   Relation,
   RelationType,
+  Zone,
 } from "./models"
 import { debug } from "./debug"
 
 export enum GenerationLevel {
-  Nothing = "nothing",
-  Domain = "domain",
-  Module = "module",
-  Component = "component",
+  Nothing = "Nothing",
+  Zone = "Zone",
+  Domain = "Domain",
+  Module = "Module",
+  Component = "Component",
 }
 export type GenerationOptions = {
   readonly level: GenerationLevel
@@ -66,9 +69,11 @@ function prepareDiagram(
   const complete = (part: Part, parent?: Part): boolean => {
     if (ids.get(part.id)) {
       throw new Error(
-        `Trying to add a part with a duplicate id.\nNew: ${JSON.stringify(
-          part
-        )}\nExisting: ${JSON.stringify(ids.get(part.id))}`
+        `Trying to add a part with a duplicate id '${
+          part.id
+        }'.\nNew: ${JSON.stringify(part)}\nExisting: ${JSON.stringify(
+          ids.get(part.id)
+        )}`
       )
     }
     ids.set(part.id, part)
@@ -78,43 +83,59 @@ function prepareDiagram(
     focused.set(part.id, hasFocus)
     return hasFocus
   }
-  diagram.domains.forEach((domain) => {
-    complete(domain)
-    const domainChildren: Entity[] = []
-    const domainDescent: Entity[] = []
-    domain.entities.forEach((entity) => {
-      complete(entity, domain)
-      parents.set(entity.id, domain)
-      ancestors.set(entity.id, [domain])
-      domainChildren.push(entity)
-      domainDescent.push(entity)
-      if (isModule(entity)) {
-        const moduleChildren: Component[] = []
-        const moduleDescent: Component[] = []
-        entity.components.forEach((component) => {
-          complete(component, entity)
-          parents.set(component.id, entity)
-          ancestors.set(component.id, [domain, entity])
-          moduleChildren.push(component)
-          moduleDescent.push(component)
-          domainDescent.push(component)
+  diagram.zones.forEach((zone) => {
+    complete(zone)
+    const zoneChildren: Domain[] = []
+    const zoneDescent: Part[] = []
+    zone.domains.forEach((domain) => {
+      complete(domain, zone)
+      parents.set(domain.id, zone)
+      ancestors.set(domain.id, [zone])
+      zoneChildren.push(domain)
+      zoneDescent.push(domain)
+      const domainChildren: Entity[] = []
+      const domainDescent: Part[] = []
+      domain.entities.forEach((entity) => {
+        complete(entity, domain)
+        parents.set(entity.id, domain)
+        ancestors.set(entity.id, [zone, domain])
+        zoneDescent.push(entity)
+        domainChildren.push(entity)
+        domainDescent.push(entity)
+        if (isModule(entity)) {
+          const moduleChildren: Component[] = []
+          const moduleDescent: Part[] = []
+          entity.components.forEach((component) => {
+            complete(component, entity)
+            parents.set(component.id, entity)
+            ancestors.set(component.id, [zone, domain, entity])
+            zoneDescent.push(component)
+            domainDescent.push(component)
+            moduleChildren.push(component)
+            moduleDescent.push(component)
+            allRelations.push(
+              ...component.relations.map((relation) => ({
+                source: component,
+                relation,
+              }))
+            )
+          })
+          children.set(entity.id, moduleChildren)
+          descent.set(entity.id, moduleDescent)
+        } else if (isExternalModule(entity)) {
           allRelations.push(
-            ...component.relations.map((relation) => ({
-              source: component,
+            ...entity.relations.map((relation) => ({
+              source: entity,
               relation,
             }))
           )
-        })
-        children.set(entity.id, moduleChildren)
-        descent.set(entity.id, moduleDescent)
-      } else if (isExternalModule(entity)) {
-        allRelations.push(
-          ...entity.relations.map((relation) => ({ source: entity, relation }))
-        )
-      }
+        }
+      })
+      children.set(domain.id, domainChildren)
+      descent.set(domain.id, domainDescent)
     })
-    children.set(domain.id, domainChildren)
-    descent.set(domain.id, domainDescent)
+    children.set(zone.id, zoneChildren)
+    descent.set(zone.id, zoneDescent)
   })
   const isDisplayed = (part: Part): boolean => {
     return (
@@ -213,6 +234,8 @@ const focusAcceptModule = (opts: GenerationOptions): boolean =>
   opts.level === GenerationLevel.Module || focusAcceptComponent(opts)
 const focusAcceptDomain = (opts: GenerationOptions): boolean =>
   opts.level === GenerationLevel.Domain || focusAcceptModule(opts)
+const focusAcceptZone = (opts: GenerationOptions): boolean =>
+  opts.level === GenerationLevel.Zone || focusAcceptDomain(opts)
 
 const relationAcceptComponent = (opts: GenerationOptions): boolean =>
   opts.relationLevel === GenerationLevel.Component
@@ -220,6 +243,8 @@ const relationAcceptModule = (opts: GenerationOptions): boolean =>
   opts.relationLevel === GenerationLevel.Module || relationAcceptComponent(opts)
 const relationAcceptDomain = (opts: GenerationOptions): boolean =>
   opts.relationLevel === GenerationLevel.Domain || relationAcceptModule(opts)
+const relationAcceptZone = (opts: GenerationOptions): boolean =>
+  opts.relationLevel === GenerationLevel.Zone || relationAcceptDomain(opts)
 
 const computeHasFocus = (opts: GenerationOptions, part: Part): boolean => {
   if (opts.exclude.includes(part.id)) {
@@ -228,6 +253,7 @@ const computeHasFocus = (opts: GenerationOptions, part: Part): boolean => {
   if (opts.focus.includes(part.id)) {
     return true
   }
+  if (isZone(part)) return focusAcceptZone(opts)
   if (isDomain(part)) return focusAcceptDomain(opts)
   if (isModule(part)) return focusAcceptModule(opts)
   if (isExternalModule(part)) return focusAcceptModule(opts)
@@ -257,6 +283,7 @@ const computeIsRelationTarget = (
   if (focused.get(part.id)) {
     return true
   }
+  if (isZone(part)) return relationAcceptZone(opts)
   if (isDomain(part)) return relationAcceptDomain(opts)
   if (isModule(part)) return relationAcceptModule(opts)
   if (isExternalModule(part)) return relationAcceptModule(opts)
@@ -381,6 +408,22 @@ export const generateDomain = (infos: DiagramInfos) => (
   ]
 }
 
+export const generateZone = (infos: DiagramInfos) => (zone: Zone): string[] => {
+  const definitions = zone.domains.flatMap((domain) => {
+    if (partContainsFocused(infos, domain)) {
+      return generateDomain(infos)(domain)
+    }
+    return []
+  })
+  const open = definitions.length > 0 ? " {" : ""
+  const close = definitions.length > 0 ? ["}"] : []
+  return [
+    `rectangle "${zone.name}" as ${zone.id}${open}`,
+    ...definitions.map((s) => `  ${s}`),
+    ...close,
+  ]
+}
+
 export const generateRelation = (relation: GeneratedRelation): string => {
   let arrow: string
   switch (relation.type) {
@@ -415,14 +458,13 @@ export function generateDiagram(
   diagram: Diagram
 ): string {
   const infos = prepareDiagram(opts, diagram)
-  const domains = diagram.domains.flatMap((domain) => {
-    if (partContainsFocused(infos, domain)) {
-      return generateDomain(infos)(domain)
+  debug("infos:", infos)
+  const zones = diagram.zones.flatMap((zone) => {
+    if (partContainsFocused(infos, zone)) {
+      return generateZone(infos)(zone)
     }
     return []
   })
   const relations = generateRelations(infos)
-  return ["@startuml", "", ...domains, "", ...relations, "", "@enduml"].join(
-    "\n"
-  )
+  return ["@startuml", "", ...zones, "", ...relations, "", "@enduml"].join("\n")
 }

@@ -9,10 +9,10 @@ import {
   getComponentTypeOrFail,
   getRelationTypeOrFail,
   Module,
-  Part,
   PartType,
   Relation,
   RelationType,
+  Zone,
 } from "./models"
 
 export const RelationImport = t.intersection(
@@ -155,9 +155,32 @@ export function importDomain(opts: DomainImport): Domain {
   }
 }
 
+export const ZoneImport = t.intersection(
+  [
+    t.type({
+      id: t.string,
+    }),
+    t.partial({
+      name: t.string,
+      domains: t.array(DomainImport),
+    }),
+  ],
+  "Zone"
+)
+export type ZoneImport = t.TypeOf<typeof ZoneImport>
+
+export function importZone(zone: ZoneImport): Zone {
+  return {
+    partType: PartType.Zone,
+    id: zone.id,
+    name: zone.name ?? zone.id,
+    domains: zone.domains?.map(importDomain) ?? [],
+  }
+}
+
 export const DiagramImport = t.type(
   {
-    domains: t.array(DomainImport),
+    zones: t.array(ZoneImport),
   },
   "DiagramImport"
 )
@@ -165,6 +188,6 @@ export type DiagramImport = t.TypeOf<typeof DiagramImport>
 
 export function importDiagram(diagram: DiagramImport): Diagram {
   return {
-    domains: diagram.domains.map(importDomain),
+    zones: diagram.zones.map(importZone),
   }
 }

@@ -25,10 +25,15 @@ function main(): void {
     .option(
       "-l,--level <level>",
       "Level",
-      (value: string, previous: GenerationLevel): GenerationLevel => {
+      (
+        value: string,
+        previous: GenerationLevel | undefined
+      ): GenerationLevel | undefined => {
         switch (value) {
           case "nothing":
             return GenerationLevel.Nothing
+          case "zone":
+            return GenerationLevel.Zone
           case "domain":
             return GenerationLevel.Domain
           case "module":
@@ -39,7 +44,7 @@ function main(): void {
             return die(`Invalid level: ${value}`)
         }
       },
-      GenerationLevel.Nothing as GenerationLevel
+      undefined
     )
     .option(
       "-rl,--relation-level <level>",
@@ -49,6 +54,8 @@ function main(): void {
         previous: GenerationLevel | undefined
       ): GenerationLevel | undefined => {
         switch (value) {
+          case "zone":
+            return GenerationLevel.Zone
           case "domain":
             return GenerationLevel.Domain
           case "module":
@@ -107,15 +114,10 @@ function main(): void {
     )
   program.parse(process.argv)
   const cliOpts = program.opts()
-  debug("cliOpts", cliOpts)
-  debug("cliOpts.reverseRelationType", cliOpts.reverseRelationType)
   const options: GenerationOptions = {
-    level: cliOpts.level,
+    level: cliOpts.level || GenerationLevel.Nothing,
     relationLevel:
-      cliOpts.relationLevel ??
-      (cliOpts.level === GenerationLevel.Domain
-        ? GenerationLevel.Domain
-        : GenerationLevel.Module),
+      cliOpts.relationLevel ?? cliOpts.level ?? GenerationLevel.Module,
     focus: cliOpts.focus,
     exclude: cliOpts.exclude,
     open: cliOpts.open,
@@ -136,6 +138,7 @@ function main(): void {
     )
   )
   const diagram = importDiagram(imported)
+  debug("options:", options)
   const generated = generateDiagram(options, diagram)
   console.log(generated)
 }
