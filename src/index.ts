@@ -54,6 +54,8 @@ function main(): void {
         previous: GenerationLevel | undefined
       ): GenerationLevel | undefined => {
         switch (value) {
+          case "nothing":
+            return GenerationLevel.Nothing
           case "zone":
             return GenerationLevel.Zone
           case "domain":

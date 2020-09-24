@@ -465,6 +465,9 @@ export function generateDiagram(
     }
     return []
   })
-  const relations = generateRelations(infos)
+  const relations =
+    opts.relationLevel === GenerationLevel.Nothing
+      ? []
+      : generateRelations(infos)
   return ["@startuml", "", ...zones, "", ...relations, "", "@enduml"].join("\n")
 }
