@@ -15,37 +15,42 @@ import {
   RelationType,
 } from "./models"
 
-export const RelationImport = t.intersection([
-  t.type({
-    target: t.string,
-  }),
-  t.partial({
-    type: t.string,
-    reverse: t.boolean,
-    description: t.string,
-  }),
-])
+export const RelationImport = t.intersection(
+  [
+    t.type({
+      target: t.string,
+    }),
+    t.partial({
+      type: t.string,
+      reverse: t.boolean,
+      description: t.string,
+    }),
+  ],
+  "RelationImport"
+)
 export type RelationImport = t.TypeOf<typeof RelationImport>
 
 export function importRelation(opts: RelationImport): Relation {
   return {
     targetId: opts.target,
-    type: opts.type ? getRelationTypeOrFail(opts.type) : RelationType.Sync,
-    reverse: opts.reverse ?? false,
+    type: opts.type ? getRelationTypeOrFail(opts.type) : RelationType.Ask,
     description: opts.description,
   }
 }
 
-export const ComponentImport = t.intersection([
-  t.type({
-    id: t.string,
-    type: t.string,
-  }),
-  t.partial({
-    name: t.string,
-    relations: t.array(RelationImport),
-  }),
-])
+export const ComponentImport = t.intersection(
+  [
+    t.type({
+      id: t.string,
+      type: t.string,
+    }),
+    t.partial({
+      name: t.string,
+      relations: t.array(RelationImport),
+    }),
+  ],
+  "ComponentImport"
+)
 export type ComponentImport = t.TypeOf<typeof ComponentImport>
 
 export function importComponent(opts: ComponentImport): Component {
@@ -58,15 +63,18 @@ export function importComponent(opts: ComponentImport): Component {
   }
 }
 
-export const ModuleImport = t.intersection([
-  t.type({
-    id: t.string,
-  }),
-  t.partial({
-    name: t.string,
-    components: t.array(ComponentImport),
-  }),
-])
+export const ModuleImport = t.intersection(
+  [
+    t.type({
+      id: t.string,
+    }),
+    t.partial({
+      name: t.string,
+      components: t.array(ComponentImport),
+    }),
+  ],
+  "ModuleImport"
+)
 export type ModuleImport = t.TypeOf<typeof ModuleImport>
 
 export function importModule(opts: ModuleImport): Module {
@@ -78,15 +86,18 @@ export function importModule(opts: ModuleImport): Module {
   }
 }
 
-export const ExternalModuleImport = t.intersection([
-  t.type({
-    id: t.string,
-    relations: t.array(RelationImport),
-  }),
-  t.partial({
-    name: t.string,
-  }),
-])
+export const ExternalModuleImport = t.intersection(
+  [
+    t.type({
+      id: t.string,
+      relations: t.array(RelationImport),
+    }),
+    t.partial({
+      name: t.string,
+    }),
+  ],
+  "ExternalModuleImport"
+)
 export type ExternalModuleImport = t.TypeOf<typeof ExternalModuleImport>
 
 export function importExternalModule(
@@ -100,11 +111,10 @@ export function importExternalModule(
   }
 }
 
-export const EntityImport = t.union([
-  ModuleImport,
-  ComponentImport,
-  ExternalModuleImport,
-])
+export const EntityImport = t.union(
+  [ModuleImport, ComponentImport, ExternalModuleImport],
+  "EntityImport"
+)
 export type EntityImport = t.TypeOf<typeof EntityImport>
 
 export const isModule = (entity: EntityImport): entity is ModuleImport =>
@@ -122,15 +132,18 @@ export function importEntity(entity: EntityImport): Entity {
   throw new Error(`Can't import entity: ${entity}`)
 }
 
-export const DomainImport = t.intersection([
-  t.type({
-    id: t.string,
-  }),
-  t.partial({
-    name: t.string,
-    entities: t.array(EntityImport),
-  }),
-])
+export const DomainImport = t.intersection(
+  [
+    t.type({
+      id: t.string,
+    }),
+    t.partial({
+      name: t.string,
+      entities: t.array(EntityImport),
+    }),
+  ],
+  "DomainImport"
+)
 export type DomainImport = t.TypeOf<typeof DomainImport>
 
 export function importDomain(opts: DomainImport): Domain {
@@ -142,9 +155,12 @@ export function importDomain(opts: DomainImport): Domain {
   }
 }
 
-export const DiagramImport = t.type({
-  domains: t.array(DomainImport),
-})
+export const DiagramImport = t.type(
+  {
+    domains: t.array(DomainImport),
+  },
+  "DiagramImport"
+)
 export type DiagramImport = t.TypeOf<typeof DiagramImport>
 
 export function importDiagram(diagram: DiagramImport): Diagram {

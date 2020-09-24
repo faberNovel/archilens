@@ -179,8 +179,8 @@ function prepareDiagram(
       }
       return [
         {
-          source: relation.reverse ? firstTarget : firstSource,
-          target: relation.reverse ? firstSource : firstTarget,
+          source: firstSource,
+          target: firstTarget,
           type: relation.type,
           description: relation.description,
         },
@@ -403,11 +403,14 @@ export const generateDomain = (infos: DiagramInfos) => (
 export const generateRelation = (relation: GeneratedRelation): string => {
   let arrow: string
   switch (relation.type) {
-    case RelationType.Sync:
+    case RelationType.Ask:
       arrow = "-->"
       break
-    case RelationType.Async:
+    case RelationType.Tell:
       arrow = "..>"
+      break
+    case RelationType.Listen:
+      arrow = "<.."
       break
     default:
       throw new Error(

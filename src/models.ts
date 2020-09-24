@@ -96,15 +96,18 @@ export function component(opts: ComponentOptions): Component {
 }
 
 export enum RelationType {
-  Sync = "sync",
-  Async = "async",
+  Ask = "Ask",
+  Tell = "Tell",
+  Listen = "Listen",
 }
 export function getRelationTypeOrFail(id: string): RelationType {
   switch (id.toLowerCase()) {
-    case "sync":
-      return RelationType.Sync
-    case "async":
-      return RelationType.Async
+    case "ask":
+      return RelationType.Ask
+    case "tell":
+      return RelationType.Tell
+    case "listen":
+      return RelationType.Listen
     default:
       throw new Error(`Unknown RelationType '${id}'`)
   }
@@ -114,19 +117,16 @@ export type Relation = {
   readonly targetId: string
   readonly type: RelationType
   readonly description?: string
-  readonly reverse: boolean
 }
 export type RelationOptions = {
   target: string
   type?: RelationType
-  reverse?: boolean
   description?: string
 }
 export function relation(opts: RelationOptions): Relation {
   return {
     targetId: opts.target,
-    type: opts.type ?? RelationType.Sync,
-    reverse: opts.reverse ?? false,
+    type: opts.type ?? RelationType.Ask,
     description: opts.description,
   }
 }

@@ -80,8 +80,7 @@ export function diagram(): Diagram {
     relations: [
       relation({
         target: "service2KDSStuff",
-        type: RelationType.Async,
-        reverse: true,
+        type: RelationType.Listen,
         description: "Stuff",
       }),
       relation({

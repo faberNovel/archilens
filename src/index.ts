@@ -9,9 +9,9 @@ import {
   GenerationOptions,
 } from "./generator"
 import { DiagramImport, importDiagram } from "./import"
-import { Either, fold, Left, Right } from "fp-ts/Either"
-import { Errors } from "io-ts"
+import { fold, left } from "fp-ts/Either"
 import { pipe } from "fp-ts/pipeable"
+import { failure as reportFailure } from "io-ts/PathReporter"
 
 function die(message: string): never {
   console.error(message)
@@ -90,7 +90,7 @@ function main(): void {
     DiagramImport.decode(content),
     fold(
       (errs) => {
-        console.warn(`Errors`, JSON.stringify(errs))
+        console.warn(`Errors`, reportFailure(errs))
         process.exit(1)
       },
       (diagram) => diagram
