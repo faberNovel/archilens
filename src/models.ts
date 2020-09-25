@@ -6,10 +6,29 @@ export const enum PartType {
   Component = "Component",
 }
 
+export const enum ExternalModuleType {
+  Generic = "Generic",
+  Legacy = "Legacy",
+  App = "App",
+}
+export function getExternalModuleTypeOrFail(id: string): ExternalModuleType {
+  switch (id.toLowerCase()) {
+    case "generic":
+      return ExternalModuleType.Generic
+    case "legacy":
+      return ExternalModuleType.Legacy
+    case "app":
+      return ExternalModuleType.App
+    default:
+      throw new Error(`Unknown ExternalModuleType '${id}'`)
+  }
+}
+
 export type ExternalModule = {
   readonly partType: PartType.ExternalModule
   readonly id: string
   readonly name: string
+  readonly type: ExternalModuleType
   readonly relations: readonly Relation[]
 }
 
@@ -21,27 +40,30 @@ export type Module = {
 }
 
 export const enum ComponentType {
-  ECS = "ecs",
-  Lambda = "Lambda",
-  DB = "DB",
-  KDS = "KDS",
-  S3 = "S3",
   APIGW = "APIGW",
+  DB = "DB",
+  ECS = "ECS",
+  KDS = "KDS",
+  Lambda = "Lambda",
+  S3 = "S3",
+  SNS = "SNS",
 }
 export function getComponentTypeOrFail(id: string): ComponentType {
   switch (id.toLowerCase()) {
-    case "ecs":
-      return ComponentType.ECS
-    case "lambda":
-      return ComponentType.Lambda
-    case "db":
-      return ComponentType.DB
-    case "kds":
-      return ComponentType.KDS
-    case "s3":
-      return ComponentType.S3
     case "apigw":
       return ComponentType.APIGW
+    case "db":
+      return ComponentType.DB
+    case "ecs":
+      return ComponentType.ECS
+    case "kds":
+      return ComponentType.KDS
+    case "lambda":
+      return ComponentType.Lambda
+    case "s3":
+      return ComponentType.S3
+    case "sns":
+      return ComponentType.SNS
     default:
       throw new Error(`Unknown ComponentType '${id}'`)
   }

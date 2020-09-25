@@ -1,6 +1,6 @@
 import { program } from "commander"
-import { GenerationLevel, GenerationOptions } from "./generator"
 import { RelationType } from "./models"
+import { PruneLevel, PruneOptions } from "./prune"
 
 function die(message: string): never {
   console.error(message)
@@ -14,19 +14,19 @@ program
     "Level",
     (
       value: string,
-      previous: GenerationLevel | undefined
-    ): GenerationLevel | undefined => {
+      previous: PruneLevel | undefined
+    ): PruneLevel | undefined => {
       switch (value) {
         case "nothing":
-          return GenerationLevel.Nothing
+          return PruneLevel.Nothing
         case "zone":
-          return GenerationLevel.Zone
+          return PruneLevel.Zone
         case "domain":
-          return GenerationLevel.Domain
+          return PruneLevel.Domain
         case "module":
-          return GenerationLevel.Module
+          return PruneLevel.Module
         case "component":
-          return GenerationLevel.Component
+          return PruneLevel.Component
         default:
           return die(`Invalid level: ${value}`)
       }
@@ -38,19 +38,19 @@ program
     "Level",
     (
       value: string,
-      previous: GenerationLevel | undefined
-    ): GenerationLevel | undefined => {
+      previous: PruneLevel | undefined
+    ): PruneLevel | undefined => {
       switch (value) {
         case "nothing":
-          return GenerationLevel.Nothing
+          return PruneLevel.Nothing
         case "zone":
-          return GenerationLevel.Zone
+          return PruneLevel.Zone
         case "domain":
-          return GenerationLevel.Domain
+          return PruneLevel.Domain
         case "module":
-          return GenerationLevel.Module
+          return PruneLevel.Module
         case "component":
-          return GenerationLevel.Component
+          return PruneLevel.Component
         default:
           return die(`Invalid level: ${value}`)
       }
@@ -102,13 +102,12 @@ program
     [] as RelationType[]
   )
 
-export function parseCli(args: string[]): GenerationOptions {
+export function parseCli(args: string[]): PruneOptions {
   program.parse(args)
   const cliOpts = program.opts()
   return {
-    level: cliOpts.level || GenerationLevel.Nothing,
-    relationLevel:
-      cliOpts.relationLevel ?? cliOpts.level ?? GenerationLevel.Module,
+    level: cliOpts.level || PruneLevel.Nothing,
+    relationLevel: cliOpts.relationLevel ?? cliOpts.level ?? PruneLevel.Module,
     focus: cliOpts.focus,
     exclude: cliOpts.exclude,
     open: cliOpts.open,

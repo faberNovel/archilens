@@ -1,22 +1,17 @@
 import {
   Component,
   ComponentType,
-  Diagram,
   Domain,
   Entity,
   ExternalModule,
+  ExternalModuleType,
   isComponent,
-  isDomain,
   isExternalModule,
   isModule,
-  isZone,
   Module,
-  Part,
-  Relation,
   RelationType,
   Zone,
 } from "../models"
-import { debug } from "../debug"
 import { PrunedDiagram, PrunedRelation } from "../prune"
 
 export type PlantumlOptions = {}
@@ -24,38 +19,39 @@ export type PlantumlOptions = {}
 export const generateComponent = (opts: PlantumlOptions) => (
   component: Component
 ): string[] => {
-  let declaration: string
+  let shape
   switch (component.type) {
     case ComponentType.APIGW:
-      declaration = "rectangle"
+      shape = "rectangle"
       break
     case ComponentType.DB:
-      declaration = "database"
+      shape = "database"
       break
     case ComponentType.ECS:
-      declaration = "component"
+      shape = "rectangle"
       break
     case ComponentType.KDS:
-      declaration = "queue"
+      shape = "queue"
       break
     case ComponentType.Lambda:
-      declaration = "component"
+      shape = "rectangle"
       break
     case ComponentType.S3:
-      declaration = "storage"
+      shape = "database"
       break
-    default:
-      throw new Error(
-        `Unknown type '${component.type}' for component ${component}`
-      )
+    case ComponentType.SNS:
+      shape = "rectangle"
+      break
   }
-  return [`${declaration} "${component.name}" as ${component.id}`]
+  return [
+    `${shape} "${component.name}" <<${component.type}>> as ${component.id}`,
+  ]
 }
 
 export const generateModule = (opts: PlantumlOptions) => (
   module: Module
 ): string[] => {
-  const part = `rectangle "${module.name}" as ${module.id}`
+  const part = `rectangle "${module.name}" <<Module>> as ${module.id}`
   if (module.components.length === 0) {
     return [part]
   }
@@ -69,7 +65,23 @@ export const generateModule = (opts: PlantumlOptions) => (
 export const generateExternalModule = (opts: PlantumlOptions) => (
   module: ExternalModule
 ): string[] => {
-  return [`rectangle "${module.name}" as ${module.id}`]
+  let skin
+  switch (module.type) {
+    case ExternalModuleType.Generic:
+      skin = "ExternalModule"
+      break
+    case ExternalModuleType.App:
+      skin = "App"
+      break
+    case ExternalModuleType.Legacy:
+      skin = "LegacyModule"
+      break
+    default:
+      throw new Error(
+        `Unknown ExternalModuleType '${module.type}' for module ${module}`
+      )
+  }
+  return [`rectangle "${module.name}" <<${skin}>> as ${module.id}`]
 }
 
 export const generateEntity = (opts: PlantumlOptions) => (
@@ -90,7 +102,7 @@ export const generateEntity = (opts: PlantumlOptions) => (
 export const generateDomain = (opts: PlantumlOptions) => (
   domain: Domain
 ): string[] => {
-  const part = `rectangle "${domain.name}" as ${domain.id}`
+  const part = `rectangle "${domain.name}" <<Domain>> as ${domain.id}`
   if (domain.entities.length === 0) {
     return [part]
   }
@@ -104,7 +116,7 @@ export const generateDomain = (opts: PlantumlOptions) => (
 export const generateZone = (opts: PlantumlOptions) => (
   zone: Zone
 ): string[] => {
-  const part = `rectangle "${zone.name}" as ${zone.id}`
+  const part = `rectangle "${zone.name}" <<Zone>> as ${zone.id}`
   if (zone.domains.length === 0) {
     return [part]
   }
@@ -147,7 +159,64 @@ export function generateDiagram(
   opts: PlantumlOptions,
   diagram: PrunedDiagram
 ): string {
+  const header = `
+    skinparam {
+      BorderColor black
+    }
+    skinparam rectangle<<Zone>> {
+      BackgroundColor #DAE8FC
+    }
+    skinparam rectangle<<Domain>> {
+      BackgroundColor #D5E8D4
+    }
+    skinparam rectangle<<Module>> {
+      BackgroundColor #FFE6CC
+    }
+    skinparam rectangle<<ExternalModule>> {
+      BackgroundColor #F5F5F5
+    }
+    skinparam rectangle<<App>> {
+      BackgroundColor #F5F5F5
+    }
+    skinparam rectangle<<LegacyModule>> {
+      BackgroundColor #F8CECC
+    }
+    skinparam rectangle<<ECS>> {
+      BackgroundColor #E1D5E7
+    }
+    skinparam rectangle<<Lambda>> {
+      BackgroundColor #E1D5E7
+    }
+    skinparam database<<DB>> {
+      BackgroundColor #E1D5E7
+    }
+    skinparam queue {
+      BorderColor black
+    }
+    skinparam queue<<KDS>> {
+      BackgroundColor #E1D5E7
+    }
+    skinparam database<<S3>> {
+      BackgroundColor #E1D5E7
+    }
+    skinparam rectangle<<APIGW>> {
+      BackgroundColor #E1D5E7
+    }
+    skinparam rectangle<<SNS>> {
+      BackgroundColor #E1D5E7
+    }
+  `
   const zones = diagram.zones.flatMap(generateZone(opts))
   const relations = diagram.relations.flatMap(generateRelation(opts))
-  return ["@startuml", "", ...zones, "", ...relations, "", "@enduml"].join("\n")
+  return [
+    "@startuml",
+    "",
+    header,
+    "",
+    ...zones,
+    "",
+    ...relations,
+    "",
+    "@enduml",
+  ].join("\n")
 }

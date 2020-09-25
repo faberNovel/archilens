@@ -6,7 +6,9 @@ import {
   Domain,
   Entity,
   ExternalModule,
+  ExternalModuleType,
   getComponentTypeOrFail,
+  getExternalModuleTypeOrFail,
   getRelationTypeOrFail,
   Module,
   PartType,
@@ -21,7 +23,7 @@ export const RelationImport = t.intersection(
       target: t.string,
     }),
     t.partial({
-      type: t.string,
+      rtype: t.string,
       reverse: t.boolean,
       description: t.string,
     }),
@@ -33,7 +35,7 @@ export type RelationImport = t.TypeOf<typeof RelationImport>
 export function importRelation(opts: RelationImport): Relation {
   return {
     targetId: opts.target,
-    type: opts.type ? getRelationTypeOrFail(opts.type) : RelationType.Ask,
+    type: opts.rtype ? getRelationTypeOrFail(opts.rtype) : RelationType.Ask,
     description: opts.description,
   }
 }
@@ -42,7 +44,7 @@ export const ComponentImport = t.intersection(
   [
     t.type({
       id: t.string,
-      type: t.string,
+      ctype: t.string,
     }),
     t.partial({
       name: t.string,
@@ -58,7 +60,7 @@ export function importComponent(opts: ComponentImport): Component {
     partType: PartType.Component,
     id: opts.id,
     name: opts.name ?? opts.id,
-    type: getComponentTypeOrFail(opts.type),
+    type: getComponentTypeOrFail(opts.ctype),
     relations: opts.relations?.map(importRelation) ?? [],
   }
 }
@@ -90,10 +92,11 @@ export const ExternalModuleImport = t.intersection(
   [
     t.type({
       id: t.string,
-      relations: t.array(RelationImport),
     }),
     t.partial({
       name: t.string,
+      mtype: t.string,
+      relations: t.array(RelationImport),
     }),
   ],
   "ExternalModuleImport"
@@ -107,6 +110,9 @@ export function importExternalModule(
     partType: PartType.ExternalModule,
     id: opts.id,
     name: opts.name ?? opts.id,
+    type: opts.mtype
+      ? getExternalModuleTypeOrFail(opts.mtype)
+      : ExternalModuleType.Generic,
     relations: opts.relations?.map(importRelation) ?? [],
   }
 }
@@ -120,7 +126,7 @@ export type EntityImport = t.TypeOf<typeof EntityImport>
 export const isModule = (entity: EntityImport): entity is ModuleImport =>
   (entity as ModuleImport).components !== undefined
 export const isComponent = (entity: EntityImport): entity is ComponentImport =>
-  (entity as ComponentImport).type !== undefined
+  (entity as ComponentImport).ctype !== undefined
 export const isExternalModule = (
   entity: EntityImport
 ): entity is ExternalModuleImport => !isModule(entity) && !isComponent(entity)
