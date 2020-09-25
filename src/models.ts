@@ -1,4 +1,4 @@
-export enum PartType {
+export const enum PartType {
   Zone = "Zone",
   Domain = "Domain",
   Module = "Module",
@@ -20,7 +20,7 @@ export type Module = {
   readonly components: readonly Component[]
 }
 
-export enum ComponentType {
+export const enum ComponentType {
   ECS = "ecs",
   Lambda = "Lambda",
   DB = "DB",
@@ -55,7 +55,7 @@ export type Component = {
   readonly relations: readonly Relation[]
 }
 
-export enum RelationType {
+export const enum RelationType {
   Ask = "Ask",
   Tell = "Tell",
   Listen = "Listen",

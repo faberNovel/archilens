@@ -1,6 +1,5 @@
 import {
   Component,
-  ComponentType,
   Diagram,
   Domain,
   Entity,
@@ -12,29 +11,30 @@ import {
   isZone,
   Module,
   Part,
+  PartType,
   Relation,
   RelationType,
   Zone,
 } from "./models"
 import { debug } from "./debug"
 
-export enum GenerationLevel {
+export const enum PruneLevel {
   Nothing = "Nothing",
   Zone = "Zone",
   Domain = "Domain",
   Module = "Module",
   Component = "Component",
 }
-export type GenerationOptions = {
-  readonly level: GenerationLevel
-  readonly relationLevel: GenerationLevel
+export type PruneOptions = {
+  readonly level: PruneLevel
+  readonly relationLevel: PruneLevel
   readonly focus: string[]
   readonly exclude: string[]
   readonly open: string[]
   readonly reverseRelationTypes: RelationType[]
 }
 
-export type GeneratedRelation = {
+export type PrunedRelation = {
   readonly source: Part
   readonly target: Part
   readonly type: RelationType
@@ -43,7 +43,7 @@ export type GeneratedRelation = {
 
 type DiagramInfos = {
   readonly diagram: Diagram
-  readonly opts: GenerationOptions
+  readonly opts: PruneOptions
   readonly ids: ReadonlyMap<string, Part>
   readonly focused: ReadonlyMap<string, boolean>
   readonly containsFocused: ReadonlyMap<string, boolean>
@@ -51,13 +51,10 @@ type DiagramInfos = {
   readonly ancestors: ReadonlyMap<string, readonly Part[]>
   readonly children: ReadonlyMap<string, readonly Part[]>
   readonly descent: ReadonlyMap<string, readonly Part[]>
-  readonly relations: ReadonlyArray<GeneratedRelation>
+  readonly relations: ReadonlyArray<PrunedRelation>
 }
 
-function prepareDiagram(
-  opts: GenerationOptions,
-  diagram: Diagram
-): DiagramInfos {
+function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
   const ids: Map<string, Part> = new Map()
   const focused: Map<string, boolean> = new Map()
   const parents: Map<string, Part> = new Map()
@@ -144,61 +141,62 @@ function prepareDiagram(
     )
   }
   debug("reverseRelationTypes", opts.reverseRelationTypes)
-  const relations: GeneratedRelation[] = allRelations.flatMap(
-    ({ source, relation }) => {
-      const target = ids.get(relation.targetId)
-      if (!target) {
-        return []
-      }
-      const sourceAncestors = ancestors.get(source.id) || []
-      const targetAncestors = ancestors.get(target.id) || []
-      const commonDisplayedAncestors = sourceAncestors.filter(
-        (a) => targetAncestors.includes(a) && isDisplayed(a)
-      )
-      let firstSource: Part | undefined = getFirstRelationSource(
-        opts,
-        parents,
-        focused,
-        source
-      )
-      let firstTarget: Part | undefined = getFirstRelationTaget(
-        opts,
-        parents,
-        focused,
-        commonDisplayedAncestors,
-        target
-      )
-      if (
-        !firstSource &&
-        firstTarget &&
-        opts.reverseRelationTypes.includes(relation.type)
-      ) {
-        firstSource = getFirstRelationTaget(
-          opts,
-          parents,
-          focused,
-          commonDisplayedAncestors,
-          source
-        )
-        firstTarget = getFirstRelationSource(opts, parents, focused, target)
-        debug("firstSource", firstSource, "firstTarget", firstTarget)
-      }
-      if (firstSource && targetAncestors.includes(firstSource)) {
-        return []
-      }
-      if (!firstSource || !firstTarget || firstSource === firstTarget) {
-        return []
-      }
-      return [
-        {
-          source: firstSource,
-          target: firstTarget,
-          type: relation.type,
-          description: relation.description,
-        },
-      ]
-    }
-  )
+  const relations: PrunedRelation[] =
+    opts.relationLevel === PruneLevel.Nothing
+      ? []
+      : allRelations.flatMap(({ source, relation }) => {
+          const target = ids.get(relation.targetId)
+          if (!target) {
+            return []
+          }
+          const sourceAncestors = ancestors.get(source.id) || []
+          const targetAncestors = ancestors.get(target.id) || []
+          const commonDisplayedAncestors = sourceAncestors.filter(
+            (a) => targetAncestors.includes(a) && isDisplayed(a)
+          )
+          let firstSource: Part | undefined = getFirstRelationSource(
+            opts,
+            parents,
+            focused,
+            source
+          )
+          let firstTarget: Part | undefined = getFirstRelationTaget(
+            opts,
+            parents,
+            focused,
+            commonDisplayedAncestors,
+            target
+          )
+          if (
+            !firstSource &&
+            firstTarget &&
+            opts.reverseRelationTypes.includes(relation.type)
+          ) {
+            firstSource = getFirstRelationTaget(
+              opts,
+              parents,
+              focused,
+              commonDisplayedAncestors,
+              source
+            )
+            firstTarget = getFirstRelationSource(opts, parents, focused, target)
+            debug("firstSource", firstSource, "firstTarget", firstTarget)
+          }
+          if (firstSource && targetAncestors.includes(firstSource)) {
+            return []
+          }
+          if (!firstSource || !firstTarget || firstSource === firstTarget) {
+            return []
+          }
+          return [
+            {
+              source: firstSource,
+              target: firstTarget,
+              type: relation.type,
+              description: relation.description,
+            },
+          ]
+        })
   relations.forEach((relation) => {
     focused.set(relation.source.id, true)
     focused.set(relation.target.id, true)
@@ -228,25 +226,25 @@ function prepareDiagram(
   }
 }
 
-const focusAcceptComponent = (opts: GenerationOptions): boolean =>
-  opts.level === GenerationLevel.Component
-const focusAcceptModule = (opts: GenerationOptions): boolean =>
-  opts.level === GenerationLevel.Module || focusAcceptComponent(opts)
-const focusAcceptDomain = (opts: GenerationOptions): boolean =>
-  opts.level === GenerationLevel.Domain || focusAcceptModule(opts)
-const focusAcceptZone = (opts: GenerationOptions): boolean =>
-  opts.level === GenerationLevel.Zone || focusAcceptDomain(opts)
+const focusAcceptComponent = (opts: PruneOptions): boolean =>
+  opts.level === PruneLevel.Component
+const focusAcceptModule = (opts: PruneOptions): boolean =>
+  opts.level === PruneLevel.Module || focusAcceptComponent(opts)
+const focusAcceptDomain = (opts: PruneOptions): boolean =>
+  opts.level === PruneLevel.Domain || focusAcceptModule(opts)
+const focusAcceptZone = (opts: PruneOptions): boolean =>
+  opts.level === PruneLevel.Zone || focusAcceptDomain(opts)
 
-const relationAcceptComponent = (opts: GenerationOptions): boolean =>
-  opts.relationLevel === GenerationLevel.Component
-const relationAcceptModule = (opts: GenerationOptions): boolean =>
-  opts.relationLevel === GenerationLevel.Module || relationAcceptComponent(opts)
-const relationAcceptDomain = (opts: GenerationOptions): boolean =>
-  opts.relationLevel === GenerationLevel.Domain || relationAcceptModule(opts)
-const relationAcceptZone = (opts: GenerationOptions): boolean =>
-  opts.relationLevel === GenerationLevel.Zone || relationAcceptDomain(opts)
+const relationAcceptComponent = (opts: PruneOptions): boolean =>
+  opts.relationLevel === PruneLevel.Component
+const relationAcceptModule = (opts: PruneOptions): boolean =>
+  opts.relationLevel === PruneLevel.Module || relationAcceptComponent(opts)
+const relationAcceptDomain = (opts: PruneOptions): boolean =>
+  opts.relationLevel === PruneLevel.Domain || relationAcceptModule(opts)
+const relationAcceptZone = (opts: PruneOptions): boolean =>
+  opts.relationLevel === PruneLevel.Zone || relationAcceptDomain(opts)
 
-const computeHasFocus = (opts: GenerationOptions, part: Part): boolean => {
+const computeHasFocus = (opts: PruneOptions, part: Part): boolean => {
   if (opts.exclude.includes(part.id)) {
     return false
   }
@@ -261,7 +259,7 @@ const computeHasFocus = (opts: GenerationOptions, part: Part): boolean => {
 }
 
 const getFirstRelationSource = (
-  opts: GenerationOptions,
+  opts: PruneOptions,
   parents: ReadonlyMap<string, Part>,
   focused: ReadonlyMap<string, boolean>,
   part: Part
@@ -276,7 +274,7 @@ const getFirstRelationSource = (
   return getFirstRelationSource(opts, parents, focused, parent)
 }
 const computeIsRelationTarget = (
-  opts: GenerationOptions,
+  opts: PruneOptions,
   focused: ReadonlyMap<string, boolean>,
   part: Part
 ): boolean => {
@@ -290,7 +288,7 @@ const computeIsRelationTarget = (
   return relationAcceptComponent(opts)
 }
 const getFirstRelationTaget = (
-  opts: GenerationOptions,
+  opts: PruneOptions,
   parents: ReadonlyMap<string, Part>,
   focused: ReadonlyMap<string, boolean>,
   commonFocusedAncestors: readonly Part[],
@@ -315,159 +313,104 @@ const getFirstRelationTaget = (
   )
 }
 
-const partHasFocus = (infos: DiagramInfos, part: Part): boolean =>
-  infos.focused.get(part.id) ?? false
 const partContainsFocused = (infos: DiagramInfos, part: Part): boolean =>
   infos.containsFocused.get(part.id) ?? false
 
-export const generateComponent = (infos: DiagramInfos) => (
+export const pruneComponent = (infos: DiagramInfos) => (
   component: Component
-): string[] => {
-  let declaration: string
-  switch (component.type) {
-    case ComponentType.APIGW:
-      declaration = "rectangle"
-      break
-    case ComponentType.DB:
-      declaration = "database"
-      break
-    case ComponentType.ECS:
-      declaration = "component"
-      break
-    case ComponentType.KDS:
-      declaration = "queue"
-      break
-    case ComponentType.Lambda:
-      declaration = "component"
-      break
-    case ComponentType.S3:
-      declaration = "storage"
-      break
-    default:
-      throw new Error(
-        `Unknown type '${component.type}' for component ${component}`
-      )
-  }
-  return [`${declaration} "${component.name}" as ${component.id}`]
+): Component => {
+  return component
 }
 
-export const generateModule = (infos: DiagramInfos) => (
+export const pruneModule = (infos: DiagramInfos) => (
   module: Module
-): string[] => {
-  const definitions = module.components.flatMap((component) => {
+): Module => {
+  const components = module.components.flatMap((component) => {
     if (partContainsFocused(infos, component)) {
-      return generateComponent(infos)(component)
+      return pruneComponent(infos)(component)
     }
     return []
   })
-  const open = definitions.length > 0 ? " {" : ""
-  const close = definitions.length > 0 ? ["}"] : []
-  return [
-    `rectangle "${module.name}" as ${module.id}${open}`,
-    ...definitions.map((s) => `  ${s}`),
-    ...close,
-  ]
+  return {
+    partType: PartType.Module,
+    id: module.id,
+    name: module.name,
+    components,
+  }
 }
 
-export const generateExternalModule = (infos: DiagramInfos) => (
-  module: ExternalModule
-): string[] => {
-  return [`rectangle "${module.name}" as ${module.id}`]
+export const pruneExternalModule = (infos: DiagramInfos) => (
+  externalModule: ExternalModule
+): ExternalModule => {
+  return externalModule
 }
 
-export const generateEntity = (infos: DiagramInfos) => (
+export const pruneEntity = (infos: DiagramInfos) => (
   entity: Entity
-): string[] => {
+): Entity => {
   if (isModule(entity)) {
-    return generateModule(infos)(entity)
+    return pruneModule(infos)(entity)
   }
   if (isComponent(entity)) {
-    return generateComponent(infos)(entity)
+    return pruneComponent(infos)(entity)
   }
   if (isExternalModule(entity)) {
-    return generateExternalModule(infos)(entity)
+    return pruneExternalModule(infos)(entity)
   }
   throw new Error(`Unknown entity type: ${entity}`)
 }
 
-export const generateDomain = (infos: DiagramInfos) => (
+export const pruneDomain = (infos: DiagramInfos) => (
   domain: Domain
-): string[] => {
-  const definitions = domain.entities.flatMap((entity) => {
+): Domain => {
+  const entities = domain.entities.flatMap((entity) => {
     if (partContainsFocused(infos, entity)) {
-      return generateEntity(infos)(entity)
+      return pruneEntity(infos)(entity)
     }
     return []
   })
-  const open = definitions.length > 0 ? " {" : ""
-  const close = definitions.length > 0 ? ["}"] : []
-  return [
-    `rectangle "${domain.name}" as ${domain.id}${open}`,
-    ...definitions.map((s) => `  ${s}`),
-    ...close,
-  ]
+  return {
+    partType: PartType.Domain,
+    id: domain.id,
+    name: domain.name,
+    entities,
+  }
 }
 
-export const generateZone = (infos: DiagramInfos) => (zone: Zone): string[] => {
-  const definitions = zone.domains.flatMap((domain) => {
+export const pruneZone = (infos: DiagramInfos) => (zone: Zone): Zone => {
+  const domains = zone.domains.flatMap((domain) => {
     if (partContainsFocused(infos, domain)) {
-      return generateDomain(infos)(domain)
+      return pruneDomain(infos)(domain)
     }
     return []
   })
-  const open = definitions.length > 0 ? " {" : ""
-  const close = definitions.length > 0 ? ["}"] : []
-  return [
-    `rectangle "${zone.name}" as ${zone.id}${open}`,
-    ...definitions.map((s) => `  ${s}`),
-    ...close,
-  ]
+  return {
+    partType: PartType.Zone,
+    id: zone.id,
+    name: zone.name,
+    domains,
+  }
 }
 
-export const generateRelation = (relation: GeneratedRelation): string => {
-  let arrow: string
-  switch (relation.type) {
-    case RelationType.Ask:
-      arrow = "-->"
-      break
-    case RelationType.Tell:
-      arrow = "..>"
-      break
-    case RelationType.Listen:
-      arrow = "<.."
-      break
-    default:
-      throw new Error(
-        `Unknown relation type '${relation.type}' for relation ${relation}`
-      )
-  }
-  let desc: string = ""
-  if (relation.description) {
-    desc = ` : ${relation.description}`
-  }
-  const sourceId = relation.source.id
-  const targetId = relation.target.id
-  return `${sourceId} ${arrow} ${targetId}${desc}`
-}
-const generateRelations = (infos: DiagramInfos): string[] => {
-  return infos.relations.map(generateRelation)
+export type PrunedDiagram = {
+  readonly zones: readonly Zone[]
+  readonly relations: readonly PrunedRelation[]
 }
 
-export function generateDiagram(
-  opts: GenerationOptions,
+export function pruneDiagram(
+  opts: PruneOptions,
   diagram: Diagram
-): string {
+): PrunedDiagram {
   const infos = prepareDiagram(opts, diagram)
   debug("infos:", infos)
   const zones = diagram.zones.flatMap((zone) => {
     if (partContainsFocused(infos, zone)) {
-      return generateZone(infos)(zone)
+      return pruneZone(infos)(zone)
     }
     return []
   })
-  const relations =
-    opts.relationLevel === GenerationLevel.Nothing
-      ? []
-      : generateRelations(infos)
-  return ["@startuml", "", ...zones, "", ...relations, "", "@enduml"].join("\n")
+  return {
+    zones: zones,
+    relations: infos.relations,
+  }
 }

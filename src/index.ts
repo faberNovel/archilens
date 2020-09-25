@@ -1,135 +1,20 @@
-import { program } from "commander"
 import YAML from "yaml"
 import fs from "fs"
-
-import { RelationType } from "./models"
-import {
-  generateDiagram,
-  GenerationLevel,
-  GenerationOptions,
-} from "./generator"
-import { DiagramImport, importDiagram } from "./import"
 import { fold } from "fp-ts/Either"
 import { pipe } from "fp-ts/pipeable"
 import { failure as reportFailure } from "io-ts/PathReporter"
-import { debug } from "./debug"
 
-function die(message: string): never {
-  console.error(message)
-  return process.exit(1)
-}
+import { debug } from "./debug"
+import { parseCli } from "./cli"
+import { DiagramImport, importDiagram } from "./import"
+import { pruneDiagram, PruneOptions } from "./prune"
+import { generateDiagram } from "./generator/plantuml"
 
 function main(): void {
-  program
-    .version("0.1.0")
-    .option(
-      "-l,--level <level>",
-      "Level",
-      (
-        value: string,
-        previous: GenerationLevel | undefined
-      ): GenerationLevel | undefined => {
-        switch (value) {
-          case "nothing":
-            return GenerationLevel.Nothing
-          case "zone":
-            return GenerationLevel.Zone
-          case "domain":
-            return GenerationLevel.Domain
-          case "module":
-            return GenerationLevel.Module
-          case "component":
-            return GenerationLevel.Component
-          default:
-            return die(`Invalid level: ${value}`)
-        }
-      },
-      undefined
-    )
-    .option(
-      "-rl,--relation-level <level>",
-      "Level",
-      (
-        value: string,
-        previous: GenerationLevel | undefined
-      ): GenerationLevel | undefined => {
-        switch (value) {
-          case "nothing":
-            return GenerationLevel.Nothing
-          case "zone":
-            return GenerationLevel.Zone
-          case "domain":
-            return GenerationLevel.Domain
-          case "module":
-            return GenerationLevel.Module
-          case "component":
-            return GenerationLevel.Component
-          default:
-            return die(`Invalid level: ${value}`)
-        }
-      },
-      undefined
-    )
-    .option(
-      "-f,--focus <id>",
-      "Focus on part",
-      (value: string, previous: string[]) => [...previous, value],
-      []
-    )
-    .option(
-      "-e,--exclude <id>",
-      "Exclude part",
-      (value: string, previous: string[]) => [...previous, value],
-      []
-    )
-    .option(
-      "-o,--open <id>",
-      "Open part",
-      (value: string, previous: string[]) => [...previous, value],
-      []
-    )
-    .option(
-      "-rrt,--reverse-relation-type <level>",
-      "Level",
-      (value: string, previous: RelationType[]): RelationType[] => {
-        switch (value) {
-          case "none":
-            return []
-          case "all":
-            return [
-              ...previous,
-              RelationType.Ask,
-              RelationType.Tell,
-              RelationType.Listen,
-            ]
-          case "ask":
-            return [...previous, RelationType.Ask]
-          case "tell":
-            return [...previous, RelationType.Tell]
-          case "listen":
-            return [...previous, RelationType.Listen]
-          default:
-            return die(`Invalid level: ${value}`)
-        }
-      },
-      [] as RelationType[]
-    )
-  program.parse(process.argv)
-  const cliOpts = program.opts()
-  const options: GenerationOptions = {
-    level: cliOpts.level || GenerationLevel.Nothing,
-    relationLevel:
-      cliOpts.relationLevel ?? cliOpts.level ?? GenerationLevel.Module,
-    focus: cliOpts.focus,
-    exclude: cliOpts.exclude,
-    open: cliOpts.open,
-    reverseRelationTypes: [
-      ...new Set(cliOpts.reverseRelationType as RelationType[]),
-    ],
-  }
+  const options = parseCli(process.argv)
   const raw = fs.readFileSync(0, "utf-8")
   const content = YAML.parse(raw)
-  const imported: DiagramImport = pipe(
+  const parsed: DiagramImport = pipe(
     DiagramImport.decode(content),
     fold(
       (errs) => {
@@ -139,9 +24,11 @@ function main(): void {
       (diagram) => diagram
     )
   )
-  const diagram = importDiagram(imported)
+  const imported = importDiagram(parsed)
   debug("options:", options)
-  const generated = generateDiagram(options, diagram)
+  const pruned = pruneDiagram((options as unknown) as PruneOptions, imported)
+
+  const generated = generateDiagram(options, pruned)
   console.log(generated)
 }
 main()
