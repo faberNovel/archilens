@@ -14,6 +14,7 @@ import {
   PartType,
   Relation,
   RelationType,
+  Resource,
   Zone,
 } from "./models"
 
@@ -65,6 +66,26 @@ export function importComponent(opts: ComponentImport): Component {
   }
 }
 
+export const ResourceImport = t.intersection(
+  [
+    t.type({
+      id: t.string,
+    }),
+    t.partial({
+      name: t.string,
+    }),
+  ],
+  "Resource"
+)
+export type ResourceImport = t.TypeOf<typeof ResourceImport>
+
+export function importResource(opts: ResourceImport): Resource {
+  return {
+    id: opts.id,
+    name: opts.name ?? opts.id,
+  }
+}
+
 export const ModuleImport = t.intersection(
   [
     t.type({
@@ -73,6 +94,8 @@ export const ModuleImport = t.intersection(
     t.partial({
       name: t.string,
       components: t.array(ComponentImport),
+      api: t.boolean,
+      resources: t.array(ResourceImport),
     }),
   ],
   "ModuleImport"
@@ -80,11 +103,15 @@ export const ModuleImport = t.intersection(
 export type ModuleImport = t.TypeOf<typeof ModuleImport>
 
 export function importModule(opts: ModuleImport): Module {
+  const api = (opts.api !== undefined ? opts.api : opts.resources !== undefined)
+    ? { resources: opts.resources?.map(importResource) ?? [] }
+    : undefined
   return {
     partType: PartType.Module,
     id: opts.id,
     name: opts.name ?? opts.id,
     components: opts.components?.map(importComponent) ?? [],
+    api,
   }
 }
 

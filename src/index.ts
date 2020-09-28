@@ -7,8 +7,11 @@ import { failure as reportFailure } from "io-ts/PathReporter"
 import { debug } from "./debug"
 import { parseCli } from "./cli"
 import { DiagramImport, importDiagram } from "./import"
-import { pruneDiagram, PruneOptions } from "./prune"
-import { generateDiagram } from "./generator/plantuml"
+import { PruneType } from "./prune/index"
+import { pruneDiagram as pruneModuleDiagram } from "./prune/module"
+import { pruneDiagram as pruneApiDiagram } from "./prune/api"
+import { generateDiagram as generateApiDiagram } from "./generator/plantuml/api"
+import { generateDiagram as generateModuleDiagram } from "./generator/plantuml/module"
 
 function main(): void {
   const options = parseCli(process.argv)
@@ -26,9 +29,16 @@ function main(): void {
   )
   const imported = importDiagram(parsed)
   debug("options:", options)
-  const pruned = pruneDiagram((options as unknown) as PruneOptions, imported)
-
-  const generated = generateDiagram(options, pruned)
-  console.log(generated)
+  if (options.type === PruneType.Api) {
+    debug("Generate API")
+    const pruned = pruneApiDiagram(options, imported)
+    const generated = generateApiDiagram(options, pruned)
+    console.log(generated)
+  } else {
+    debug("Generate Archi")
+    const pruned = pruneModuleDiagram(options, imported)
+    const generated = generateModuleDiagram(options, pruned)
+    console.log(generated)
+  }
 }
 main()

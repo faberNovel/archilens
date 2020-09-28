@@ -32,11 +32,21 @@ export type ExternalModule = {
   readonly relations: readonly Relation[]
 }
 
+export type Resource = {
+  readonly id: string
+  readonly name: string
+}
+
+export type Api = {
+  readonly resources: readonly Resource[]
+}
+
 export type Module = {
   readonly partType: PartType.Module
   readonly id: string
   readonly name: string
   readonly components: readonly Component[]
+  readonly api?: Api
 }
 
 export const enum ComponentType {
@@ -96,6 +106,13 @@ export function getRelationTypeOrFail(id: string): RelationType {
 }
 
 export type Relation = {
+  readonly targetId: string
+  readonly type: RelationType
+  readonly description?: string
+}
+
+export type CompleteRelation = {
+  readonly sourceId: string
   readonly targetId: string
   readonly type: RelationType
   readonly description?: string

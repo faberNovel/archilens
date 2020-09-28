@@ -1,4 +1,5 @@
 import {
+  CompleteRelation,
   Component,
   Diagram,
   Domain,
@@ -13,33 +14,10 @@ import {
   Part,
   PartType,
   Relation,
-  RelationType,
   Zone,
-} from "./models"
-import { debug } from "./debug"
-
-export const enum PruneLevel {
-  Nothing = "Nothing",
-  Zone = "Zone",
-  Domain = "Domain",
-  Module = "Module",
-  Component = "Component",
-}
-export type PruneOptions = {
-  readonly level: PruneLevel
-  readonly relationLevel: PruneLevel
-  readonly focus: string[]
-  readonly exclude: string[]
-  readonly open: string[]
-  readonly reverseRelationTypes: RelationType[]
-}
-
-export type PrunedRelation = {
-  readonly source: Part
-  readonly target: Part
-  readonly type: RelationType
-  readonly description?: string
-}
+} from "../models"
+import { debug } from "../debug"
+import { PruneLevel, PruneOptions } from "./index"
 
 type DiagramInfos = {
   readonly diagram: Diagram
@@ -51,7 +29,7 @@ type DiagramInfos = {
   readonly ancestors: ReadonlyMap<string, readonly Part[]>
   readonly children: ReadonlyMap<string, readonly Part[]>
   readonly descent: ReadonlyMap<string, readonly Part[]>
-  readonly relations: ReadonlyArray<PrunedRelation>
+  readonly relations: ReadonlyArray<CompleteRelation>
 }
 
 function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
@@ -96,9 +74,9 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
         complete(entity, domain)
         parents.set(entity.id, domain)
         ancestors.set(entity.id, [zone, domain])
-        zoneDescent.push(entity)
         domainChildren.push(entity)
         domainDescent.push(entity)
+        zoneDescent.push(entity)
         if (isModule(entity)) {
           const moduleChildren: Component[] = []
           const moduleDescent: Part[] = []
@@ -106,10 +84,10 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
             complete(component, entity)
             parents.set(component.id, entity)
             ancestors.set(component.id, [zone, domain, entity])
-            zoneDescent.push(component)
-            domainDescent.push(component)
             moduleChildren.push(component)
             moduleDescent.push(component)
+            domainDescent.push(component)
+            zoneDescent.push(component)
             allRelations.push(
               ...component.relations.map((relation) => ({
                 source: component,
@@ -141,7 +119,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     )
   }
   debug("reverseRelationTypes", opts.reverseRelationTypes)
-  const relations: PrunedRelation[] =
+  const relations: CompleteRelation[] =
     opts.relationLevel === PruneLevel.Nothing
       ? []
       : allRelations.flatMap(({ source, relation }) => {
@@ -190,16 +168,16 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
           }
           return [
             {
-              source: firstSource,
-              target: firstTarget,
+              sourceId: firstSource.id,
+              targetId: firstTarget.id,
               type: relation.type,
               description: relation.description,
             },
           ]
         })
   relations.forEach((relation) => {
-    focused.set(relation.source.id, true)
-    focused.set(relation.target.id, true)
+    focused.set(relation.sourceId, true)
+    focused.set(relation.targetId, true)
   })
   const containsFocused = Array.from(ids.keys()).reduce((acc, partId): Map<
     string,
@@ -394,7 +372,7 @@ export const pruneZone = (infos: DiagramInfos) => (zone: Zone): Zone => {
 
 export type PrunedDiagram = {
   readonly zones: readonly Zone[]
-  readonly relations: readonly PrunedRelation[]
+  readonly relations: readonly CompleteRelation[]
 }
 
 export function pruneDiagram(

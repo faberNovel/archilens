@@ -1,6 +1,7 @@
 import { program } from "commander"
+
 import { RelationType } from "./models"
-import { PruneLevel, PruneOptions } from "./prune"
+import { PruneLevel, PruneOptions, PruneType } from "./prune/index"
 
 function die(message: string): never {
   console.error(message)
@@ -11,7 +12,7 @@ program
   .version("0.1.0")
   .option(
     "-l,--level <level>",
-    "Level",
+    "Level (nothing|zone|domain|module|component)",
     (
       value: string,
       previous: PruneLevel | undefined
@@ -24,8 +25,10 @@ program
         case "domain":
           return PruneLevel.Domain
         case "module":
+        case "api":
           return PruneLevel.Module
         case "component":
+        case "resource":
           return PruneLevel.Component
         default:
           return die(`Invalid level: ${value}`)
@@ -35,11 +38,8 @@ program
   )
   .option(
     "-rl,--relation-level <level>",
-    "Level",
-    (
-      value: string,
-      previous: PruneLevel | undefined
-    ): PruneLevel | undefined => {
+    "Relation level (nothing|zone|domain|module|component)",
+    (value: string): PruneLevel => {
       switch (value) {
         case "nothing":
           return PruneLevel.Nothing
@@ -77,7 +77,7 @@ program
   )
   .option(
     "-rrt,--reverse-relation-type <level>",
-    "Level",
+    "Reverse relation level (none|all|ask|tell|listen)",
     (value: string, previous: RelationType[]): RelationType[] => {
       switch (value) {
         case "none":
@@ -101,18 +101,43 @@ program
     },
     [] as RelationType[]
   )
+  .option(
+    "-t,--type <type>",
+    "Schema type (api | module)",
+    (value: string): PruneType => {
+      switch (value) {
+        case "api":
+          return PruneType.Api
+        case "archi":
+        case "architecture":
+          return PruneType.Architecture
+        default:
+          return die(`Invalid type: ${value}`)
+      }
+    },
+    PruneType.Architecture as PruneType
+  )
 
 export function parseCli(args: string[]): PruneOptions {
   program.parse(args)
   const cliOpts = program.opts()
   return {
-    level: cliOpts.level || PruneLevel.Nothing,
-    relationLevel: cliOpts.relationLevel ?? cliOpts.level ?? PruneLevel.Module,
+    level: cliOpts.level ?? PruneLevel.Nothing,
+    relationLevel:
+      cliOpts.type === PruneType.Api
+        ? PruneLevel.Nothing
+        : cliOpts.relationLevel ??
+          (cliOpts.level
+            ? [PruneLevel.Module, PruneLevel.Component].includes(cliOpts.level)
+              ? PruneLevel.Module
+              : PruneLevel.Nothing
+            : PruneLevel.Module),
     focus: cliOpts.focus,
     exclude: cliOpts.exclude,
     open: cliOpts.open,
     reverseRelationTypes: [
       ...new Set(cliOpts.reverseRelationType as RelationType[]),
     ],
+    type: cliOpts.type,
   }
 }

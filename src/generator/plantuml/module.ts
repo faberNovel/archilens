@@ -1,4 +1,5 @@
 import {
+  CompleteRelation,
   Component,
   ComponentType,
   Domain,
@@ -11,8 +12,8 @@ import {
   Module,
   RelationType,
   Zone,
-} from "../models"
-import { PrunedDiagram, PrunedRelation } from "../prune"
+} from "../../models"
+import { PrunedDiagram } from "../../prune/module"
 
 export type PlantumlOptions = {}
 
@@ -128,7 +129,7 @@ export const generateZone = (opts: PlantumlOptions) => (
 }
 
 export const generateRelation = (opts: PlantumlOptions) => (
-  relation: PrunedRelation
+  relation: CompleteRelation
 ): string => {
   let arrow: string
   switch (relation.type) {
@@ -150,8 +151,8 @@ export const generateRelation = (opts: PlantumlOptions) => (
   if (relation.description) {
     desc = ` : ${relation.description}`
   }
-  const sourceId = relation.source.id
-  const targetId = relation.target.id
+  const sourceId = relation.sourceId
+  const targetId = relation.targetId
   return `${sourceId} ${arrow} ${targetId}${desc}`
 }
 
