@@ -1,7 +1,6 @@
 import {
   CompleteRelation,
   Component,
-  ComponentType,
   Domain,
   Entity,
   ExternalModule,
@@ -17,33 +16,22 @@ import { PrunedDiagram } from "../../prune/module"
 
 export type PlantumlOptions = {}
 
+const getShapreForComponentType = (componentType: string): string => {
+  switch (componentType.toLowerCase()) {
+    case "DB":
+    case "S3":
+      return "database"
+    case "KDS":
+      return "queue"
+    default:
+      return "rectangle"
+  }
+}
+
 export const generateComponent = (opts: PlantumlOptions) => (
   component: Component
 ): string[] => {
-  let shape
-  switch (component.type) {
-    case ComponentType.APIGW:
-      shape = "rectangle"
-      break
-    case ComponentType.DB:
-      shape = "database"
-      break
-    case ComponentType.ECS:
-      shape = "rectangle"
-      break
-    case ComponentType.KDS:
-      shape = "queue"
-      break
-    case ComponentType.Lambda:
-      shape = "rectangle"
-      break
-    case ComponentType.S3:
-      shape = "database"
-      break
-    case ComponentType.SNS:
-      shape = "rectangle"
-      break
-  }
+  const shape = getShapreForComponentType(component.type)
   return [
     `${shape} "${component.name}" <<${component.type}>> as ${component.id}`,
   ]
@@ -160,59 +148,31 @@ export function generateDiagram(
   opts: PlantumlOptions,
   diagram: PrunedDiagram
 ): string {
-  const header = `
-    skinparam {
-      BorderColor black
-    }
-    skinparam rectangle<<Zone>> {
-      BackgroundColor #DAE8FC
-    }
-    skinparam rectangle<<Domain>> {
-      BackgroundColor #D5E8D4
-    }
-    skinparam rectangle<<Module>> {
-      BackgroundColor #FFE6CC
-    }
-    skinparam rectangle<<ExternalModule>> {
-      BackgroundColor #F5F5F5
-    }
-    skinparam rectangle<<App>> {
-      BackgroundColor #F5F5F5
-    }
-    skinparam rectangle<<LegacyModule>> {
-      BackgroundColor #F8CECC
-    }
-    skinparam rectangle<<ECS>> {
-      BackgroundColor #E1D5E7
-    }
-    skinparam rectangle<<Lambda>> {
-      BackgroundColor #E1D5E7
-    }
-    skinparam database<<DB>> {
-      BackgroundColor #E1D5E7
-    }
-    skinparam queue {
-      BorderColor black
-    }
-    skinparam queue<<KDS>> {
-      BackgroundColor #E1D5E7
-    }
-    skinparam database<<S3>> {
-      BackgroundColor #E1D5E7
-    }
-    skinparam rectangle<<APIGW>> {
-      BackgroundColor #E1D5E7
-    }
-    skinparam rectangle<<SNS>> {
-      BackgroundColor #E1D5E7
-    }
-  `
+  const skinparam = (name: string, ...values: string[]): string[] => {
+    return [`skinparam ${name} {`, ...values.map((v) => `  ${v}`), "}"]
+  }
+  const componentSkinparams = diagram.componentTypes.flatMap((ctype) => {
+    const shape = getShapreForComponentType(ctype)
+    return skinparam(`${shape}<<${ctype}>>`, "BackgroundColor #E1D5E7")
+  })
+
+  const skinParams = [
+    ...skinparam("", "BorderColor black"),
+    ...skinparam("rectangle<<Zone>>", "BackgroundColor #DAE8FC"),
+    ...skinparam("rectangle<<Domain>>", "BackgroundColor #D5E8D4"),
+    ...skinparam("rectangle<<Module>>", "BackgroundColor #FFE6CC"),
+    ...skinparam("rectangle<<ExternalModule>>", "BackgroundColor #F5F5F5"),
+    ...skinparam("rectangle<<App>>", "BackgroundColor #F5F5F5"),
+    ...skinparam("rectangle<<LegacyModule>>", "BackgroundColor #F8CECC"),
+    ...skinparam("queue", "BorderColor black"),
+    ...componentSkinparams,
+  ]
   const zones = diagram.zones.flatMap(generateZone(opts))
   const relations = diagram.relations.flatMap(generateRelation(opts))
   return [
     "@startuml",
     "",
-    header,
+    ...skinParams,
     "",
     ...zones,
     "",

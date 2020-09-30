@@ -49,41 +49,11 @@ export type Module = {
   readonly api?: Api
 }
 
-export const enum ComponentType {
-  APIGW = "APIGW",
-  DB = "DB",
-  ECS = "ECS",
-  KDS = "KDS",
-  Lambda = "Lambda",
-  S3 = "S3",
-  SNS = "SNS",
-}
-export function getComponentTypeOrFail(id: string): ComponentType {
-  switch (id.toLowerCase()) {
-    case "apigw":
-      return ComponentType.APIGW
-    case "db":
-      return ComponentType.DB
-    case "ecs":
-      return ComponentType.ECS
-    case "kds":
-      return ComponentType.KDS
-    case "lambda":
-      return ComponentType.Lambda
-    case "s3":
-      return ComponentType.S3
-    case "sns":
-      return ComponentType.SNS
-    default:
-      throw new Error(`Unknown ComponentType '${id}'`)
-  }
-}
-
 export type Component = {
   readonly partType: PartType.Component
   readonly id: string
   readonly name: string
-  readonly type: ComponentType
+  readonly type: string
   readonly relations: readonly Relation[]
 }
 
@@ -135,6 +105,7 @@ export type Zone = {
 }
 
 export type Diagram = {
+  readonly componentTypes: readonly string[]
   readonly zones: Zone[]
 }
 

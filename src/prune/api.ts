@@ -181,6 +181,7 @@ export function pruneDiagram(opts: PruneOptions, diagram: Diagram): Diagram {
     return []
   })
   return {
+    componentTypes: [],
     zones,
   }
 }

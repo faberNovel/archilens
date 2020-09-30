@@ -7,7 +7,6 @@ import {
   Entity,
   ExternalModule,
   ExternalModuleType,
-  getComponentTypeOrFail,
   getExternalModuleTypeOrFail,
   getRelationTypeOrFail,
   Module,
@@ -33,7 +32,7 @@ export const RelationImport = t.intersection(
 )
 export type RelationImport = t.TypeOf<typeof RelationImport>
 
-export function importRelation(opts: RelationImport): Relation {
+export const importRelation = (opts: RelationImport): Relation => {
   return {
     targetId: opts.target,
     type: opts.rtype ? getRelationTypeOrFail(opts.rtype) : RelationType.Ask,
@@ -56,13 +55,20 @@ export const ComponentImport = t.intersection(
 )
 export type ComponentImport = t.TypeOf<typeof ComponentImport>
 
-export function importComponent(opts: ComponentImport): Component {
+export const importComponent = (ctypes: string[]) => (
+  component: ComponentImport
+): Component => {
+  if (!ctypes.includes(component.ctype)) {
+    throw new Error(
+      `Invalid component type '${component.ctype}' in component ${component}`
+    )
+  }
   return {
     partType: PartType.Component,
-    id: opts.id,
-    name: opts.name ?? opts.id,
-    type: getComponentTypeOrFail(opts.ctype),
-    relations: opts.relations?.map(importRelation) ?? [],
+    id: component.id,
+    name: component.name ?? component.id,
+    type: component.ctype,
+    relations: component.relations?.map(importRelation) ?? [],
   }
 }
 
@@ -79,7 +85,7 @@ export const ResourceImport = t.intersection(
 )
 export type ResourceImport = t.TypeOf<typeof ResourceImport>
 
-export function importResource(opts: ResourceImport): Resource {
+export const importResource = (opts: ResourceImport): Resource => {
   return {
     id: opts.id,
     name: opts.name ?? opts.id,
@@ -102,15 +108,19 @@ export const ModuleImport = t.intersection(
 )
 export type ModuleImport = t.TypeOf<typeof ModuleImport>
 
-export function importModule(opts: ModuleImport): Module {
-  const api = (opts.api !== undefined ? opts.api : opts.resources !== undefined)
-    ? { resources: opts.resources?.map(importResource) ?? [] }
+export const importModule = (ctypes: string[]) => (
+  module: ModuleImport
+): Module => {
+  const api = (
+    module.api !== undefined ? module.api : module.resources !== undefined
+  )
+    ? { resources: module.resources?.map(importResource) ?? [] }
     : undefined
   return {
     partType: PartType.Module,
-    id: opts.id,
-    name: opts.name ?? opts.id,
-    components: opts.components?.map(importComponent) ?? [],
+    id: module.id,
+    name: module.name ?? module.id,
+    components: module.components?.map(importComponent(ctypes)) ?? [],
     api,
   }
 }
@@ -130,9 +140,9 @@ export const ExternalModuleImport = t.intersection(
 )
 export type ExternalModuleImport = t.TypeOf<typeof ExternalModuleImport>
 
-export function importExternalModule(
+export const importExternalModule = (
   opts: ExternalModuleImport
-): ExternalModule {
+): ExternalModule => {
   return {
     partType: PartType.ExternalModule,
     id: opts.id,
@@ -158,9 +168,11 @@ export const isExternalModule = (
   entity: EntityImport
 ): entity is ExternalModuleImport => !isModule(entity) && !isComponent(entity)
 
-export function importEntity(entity: EntityImport): Entity {
-  if (isModule(entity)) return importModule(entity)
-  if (isComponent(entity)) return importComponent(entity)
+export const importEntity = (ctypes: string[]) => (
+  entity: EntityImport
+): Entity => {
+  if (isModule(entity)) return importModule(ctypes)(entity)
+  if (isComponent(entity)) return importComponent(ctypes)(entity)
   if (isExternalModule(entity)) return importExternalModule(entity)
   throw new Error(`Can't import entity: ${entity}`)
 }
@@ -179,12 +191,14 @@ export const DomainImport = t.intersection(
 )
 export type DomainImport = t.TypeOf<typeof DomainImport>
 
-export function importDomain(opts: DomainImport): Domain {
+export const importDomain = (ctypes: string[]) => (
+  domain: DomainImport
+): Domain => {
   return {
     partType: PartType.Domain,
-    id: opts.id,
-    name: opts.name ?? opts.id,
-    entities: opts.entities?.map(importEntity) ?? [],
+    id: domain.id,
+    name: domain.name ?? domain.id,
+    entities: domain.entities?.map(importEntity(ctypes)) ?? [],
   }
 }
 
@@ -202,25 +216,28 @@ export const ZoneImport = t.intersection(
 )
 export type ZoneImport = t.TypeOf<typeof ZoneImport>
 
-export function importZone(zone: ZoneImport): Zone {
+export const importZone = (ctypes: string[]) => (zone: ZoneImport): Zone => {
   return {
     partType: PartType.Zone,
     id: zone.id,
     name: zone.name ?? zone.id,
-    domains: zone.domains?.map(importDomain) ?? [],
+    domains: zone.domains?.map(importDomain(ctypes)) ?? [],
   }
 }
 
 export const DiagramImport = t.type(
   {
+    ctypes: t.union([t.undefined, t.array(t.string)]),
     zones: t.array(ZoneImport),
   },
   "DiagramImport"
 )
 export type DiagramImport = t.TypeOf<typeof DiagramImport>
 
-export function importDiagram(diagram: DiagramImport): Diagram {
+export const importDiagram = (diagram: DiagramImport): Diagram => {
+  const ctypes = diagram.ctypes ?? []
   return {
-    zones: diagram.zones.map(importZone),
+    componentTypes: ctypes,
+    zones: diagram.zones.map(importZone(ctypes)),
   }
 }

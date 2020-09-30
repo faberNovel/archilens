@@ -30,6 +30,7 @@ type DiagramInfos = {
   readonly children: ReadonlyMap<string, readonly Part[]>
   readonly descent: ReadonlyMap<string, readonly Part[]>
   readonly relations: ReadonlyArray<CompleteRelation>
+  readonly componentTypes: ReadonlyArray<string>
 }
 
 function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
@@ -190,6 +191,19 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     )
     return acc
   }, new Map<string, boolean>())
+  const componentTypes: string[] = [
+    ...new Set(
+      Array.from(containsFocused.entries()).flatMap(([partId, value]) => {
+        if (value) {
+          const part = ids.get(partId)
+          if (part && isComponent(part)) {
+            return [part.type]
+          }
+        }
+        return []
+      })
+    ),
+  ]
   return {
     diagram,
     opts,
@@ -201,6 +215,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     descent,
     containsFocused,
     relations,
+    componentTypes,
   }
 }
 
@@ -371,6 +386,7 @@ export const pruneZone = (infos: DiagramInfos) => (zone: Zone): Zone => {
 }
 
 export type PrunedDiagram = {
+  readonly componentTypes: readonly string[]
   readonly zones: readonly Zone[]
   readonly relations: readonly CompleteRelation[]
 }
@@ -388,6 +404,7 @@ export function pruneDiagram(
     return []
   })
   return {
+    componentTypes: infos.componentTypes,
     zones: zones,
     relations: infos.relations,
   }
