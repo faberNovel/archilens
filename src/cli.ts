@@ -1,15 +1,27 @@
+import p from "path"
+
 import { program } from "commander"
 
 import { RelationType } from "./models"
-import { PruneLevel, PruneOptions, PruneType } from "./prune/index"
+import { PruneLevel, PruneOptions } from "./prune"
 
 function die(message: string): never {
   console.error(message)
   return process.exit(1)
 }
 
+export enum PruneType {
+  Api = "Api",
+  Architecture = "Architecture",
+}
+
 program
   .version("0.1.0")
+  .option(
+    "-sd,--source-directory <dir>",
+    "Source base directory",
+    (value: string): string => value
+  )
   .option(
     "-l,--level <level>",
     "Level (nothing|zone|domain|module|component)",
@@ -33,8 +45,7 @@ program
         default:
           return die(`Invalid level: ${value}`)
       }
-    },
-    undefined
+    }
   )
   .option(
     "-rl,--relation-level <level>",
@@ -118,26 +129,45 @@ program
     PruneType.Architecture as PruneType
   )
 
-export function parseCli(args: string[]): PruneOptions {
+export type CliOptions = {
+  input?: string
+  sourceDirectory: string
+  pruneType: PruneType
+  pruneOptions: PruneOptions
+}
+
+export function parseCli(args: string[]): CliOptions {
   program.parse(args)
   const cliOpts = program.opts()
+  if (program.args.length > 1) {
+    console.warn("Only one input file is allowed")
+    process.exit(1)
+  }
+  const input = program.args[0]
   return {
-    level: cliOpts.level ?? PruneLevel.Nothing,
-    relationLevel:
-      cliOpts.type === PruneType.Api
-        ? PruneLevel.Nothing
-        : cliOpts.relationLevel ??
-          (cliOpts.level
-            ? [PruneLevel.Module, PruneLevel.Component].includes(cliOpts.level)
-              ? PruneLevel.Module
-              : PruneLevel.Nothing
-            : PruneLevel.Module),
-    focus: cliOpts.focus,
-    exclude: cliOpts.exclude,
-    open: cliOpts.open,
-    reverseRelationTypes: [
-      ...new Set(cliOpts.reverseRelationType as RelationType[]),
-    ],
-    type: cliOpts.type,
+    input: p.basename(input),
+    sourceDirectory:
+      cliOpts.sourceDirectory ?? (input ? p.dirname(input) : "."),
+    pruneType: cliOpts.type,
+    pruneOptions: {
+      level: cliOpts.level ?? PruneLevel.Nothing,
+      relationLevel:
+        cliOpts.type === PruneType.Api
+          ? PruneLevel.Nothing
+          : cliOpts.relationLevel ??
+            (cliOpts.level
+              ? [PruneLevel.Module, PruneLevel.Component].includes(
+                  cliOpts.level
+                )
+                ? PruneLevel.Module
+                : PruneLevel.Nothing
+              : PruneLevel.Module),
+      focus: cliOpts.focus,
+      exclude: cliOpts.exclude,
+      open: cliOpts.open,
+      reverseRelationTypes: [
+        ...new Set(cliOpts.reverseRelationType as RelationType[]),
+      ],
+    },
   }
 }

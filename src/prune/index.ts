@@ -1,10 +1,5 @@
 import { RelationType } from "../models"
 
-export const enum PruneType {
-  Api = "Api",
-  Architecture = "Architecture",
-}
-
 export const enum PruneLevel {
   Nothing = "Nothing",
   Zone = "Zone",
@@ -19,5 +14,4 @@ export type PruneOptions = {
   readonly exclude: string[]
   readonly open: string[]
   readonly reverseRelationTypes: RelationType[]
-  readonly type: PruneType
 }
