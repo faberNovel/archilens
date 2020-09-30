@@ -17,17 +17,13 @@ import {
   Zone,
 } from "./models"
 
-export const RelationImport = t.intersection(
-  [
-    t.type({
-      target: t.string,
-    }),
-    t.partial({
-      rtype: t.string,
-      reverse: t.boolean,
-      description: t.string,
-    }),
-  ],
+export const RelationImport = t.type(
+  {
+    target: t.string,
+    rtype: t.union([t.undefined, t.string]),
+    reverse: t.union([t.undefined, t.boolean]),
+    description: t.union([t.undefined, t.string]),
+  },
   "RelationImport"
 )
 export type RelationImport = t.TypeOf<typeof RelationImport>
@@ -40,17 +36,13 @@ export const importRelation = (opts: RelationImport): Relation => {
   }
 }
 
-export const ComponentImport = t.intersection(
-  [
-    t.type({
-      id: t.string,
-      ctype: t.string,
-    }),
-    t.partial({
-      name: t.string,
-      relations: t.array(RelationImport),
-    }),
-  ],
+export const ComponentImport = t.type(
+  {
+    id: t.string,
+    ctype: t.string,
+    name: t.union([t.undefined, t.string]),
+    relations: t.union([t.undefined, t.array(RelationImport)]),
+  },
   "ComponentImport"
 )
 export type ComponentImport = t.TypeOf<typeof ComponentImport>
@@ -60,7 +52,9 @@ export const importComponent = (ctypes: string[]) => (
 ): Component => {
   if (!ctypes.includes(component.ctype)) {
     throw new Error(
-      `Invalid component type '${component.ctype}' in component ${component}`
+      `Invalid ctype '${component.ctype}' in component ${JSON.stringify(
+        component
+      )}`
     )
   }
   return {
@@ -72,15 +66,11 @@ export const importComponent = (ctypes: string[]) => (
   }
 }
 
-export const ResourceImport = t.intersection(
-  [
-    t.type({
-      id: t.string,
-    }),
-    t.partial({
-      name: t.string,
-    }),
-  ],
+export const ResourceImport = t.type(
+  {
+    id: t.string,
+    name: t.union([t.undefined, t.string]),
+  },
   "Resource"
 )
 export type ResourceImport = t.TypeOf<typeof ResourceImport>
@@ -92,18 +82,14 @@ export const importResource = (opts: ResourceImport): Resource => {
   }
 }
 
-export const ModuleImport = t.intersection(
-  [
-    t.type({
-      id: t.string,
-    }),
-    t.partial({
-      name: t.string,
-      components: t.array(ComponentImport),
-      api: t.boolean,
-      resources: t.array(ResourceImport),
-    }),
-  ],
+export const ModuleImport = t.type(
+  {
+    id: t.string,
+    name: t.union([t.undefined, t.string]),
+    components: t.union([t.undefined, t.array(ComponentImport)]),
+    api: t.union([t.undefined, t.boolean]),
+    resources: t.union([t.undefined, t.array(ResourceImport)]),
+  },
   "ModuleImport"
 )
 export type ModuleImport = t.TypeOf<typeof ModuleImport>
@@ -125,17 +111,13 @@ export const importModule = (ctypes: string[]) => (
   }
 }
 
-export const ExternalModuleImport = t.intersection(
-  [
-    t.type({
-      id: t.string,
-    }),
-    t.partial({
-      name: t.string,
-      mtype: t.string,
-      relations: t.array(RelationImport),
-    }),
-  ],
+export const ExternalModuleImport = t.type(
+  {
+    id: t.string,
+    name: t.union([t.undefined, t.string]),
+    mtype: t.union([t.undefined, t.string]),
+    relations: t.union([t.undefined, t.array(RelationImport)]),
+  },
   "ExternalModuleImport"
 )
 export type ExternalModuleImport = t.TypeOf<typeof ExternalModuleImport>
@@ -177,16 +159,12 @@ export const importEntity = (ctypes: string[]) => (
   throw new Error(`Can't import entity: ${entity}`)
 }
 
-export const DomainImport = t.intersection(
-  [
-    t.type({
-      id: t.string,
-    }),
-    t.partial({
-      name: t.string,
-      entities: t.array(EntityImport),
-    }),
-  ],
+export const DomainImport = t.type(
+  {
+    id: t.string,
+    name: t.union([t.undefined, t.string]),
+    entities: t.union([t.undefined, t.array(EntityImport)]),
+  },
   "DomainImport"
 )
 export type DomainImport = t.TypeOf<typeof DomainImport>
@@ -202,16 +180,12 @@ export const importDomain = (ctypes: string[]) => (
   }
 }
 
-export const ZoneImport = t.intersection(
-  [
-    t.type({
-      id: t.string,
-    }),
-    t.partial({
-      name: t.string,
-      domains: t.array(DomainImport),
-    }),
-  ],
+export const ZoneImport = t.type(
+  {
+    id: t.string,
+    name: t.union([t.undefined, t.string]),
+    domains: t.union([t.undefined, t.array(DomainImport)]),
+  },
   "Zone"
 )
 export type ZoneImport = t.TypeOf<typeof ZoneImport>
