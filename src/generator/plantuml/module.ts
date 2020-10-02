@@ -151,19 +151,25 @@ export function generateDiagram(
 ): string {
   const componentSkinparams = diagram.componentTypes.flatMap((ctype) => {
     const shape = getShapreForComponentType(ctype)
-    return skinparam(`${shape}<<${ctype}>>`, "BackgroundColor #E1D5E7")
+    return skinparam(`${shape}<<${ctype}>>`, { BackgroundColor: "#E1D5E7" })
   })
 
   const skinParams = [
-    ...skinparam("", [...skinparams.base, "'linetype ortho"]),
+    ...skinparam("", { ...skinparams.base, "'linetype": "ortho" }),
     ...skinparam("rectangle", skinparams.rectangle),
-    ...skinparam("rectangle<<Zone>>", skinparams.rectangleZone),
-    ...skinparam("rectangle<<Domain>>", "BackgroundColor #D5E8D4"),
-    ...skinparam("rectangle<<ExternalModule>>", "BackgroundColor #F5F5F5"),
-    ...skinparam("rectangle<<LegacyModule>>", "BackgroundColor #F8CECC"),
-    ...skinparam("rectangle<<App>>", "BackgroundColor #F5F5F5"),
-    ...skinparam("rectangle<<Module>>", "BackgroundColor #FFE6CC"),
-    ...skinparam("queue", "BorderColor black"),
+    ...skinparam("rectangle<<Zone>>", {
+      ...skinparams.rectangleZone,
+      BackgroundColor: "#DAE8FC",
+    }),
+    ...skinparam("rectangle<<Domain>>", {
+      ...skinparams.rectangleDomain,
+      BackgroundColor: "#D5E8D4",
+    }),
+    ...skinparam("rectangle<<ExternalModule>>", { BackgroundColor: "#F5F5F5" }),
+    ...skinparam("rectangle<<LegacyModule>>", { BackgroundColor: "#F8CECC" }),
+    ...skinparam("rectangle<<App>>", { BackgroundColor: "#F5F5F5" }),
+    ...skinparam("rectangle<<Module>>", { BackgroundColor: "#FFE6CC" }),
+    ...skinparam("queue", { BorderColor: "black" }),
 
     ...componentSkinparams,
   ]

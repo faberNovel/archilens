@@ -1,26 +1,31 @@
 export const skinparam = (
   name: string,
-  values: string | string[]
+  values: { [key: string]: string }
 ): string[] => {
-  const valuesAsArray = Array.of(values).flat()
-  return [`skinparam ${name} {`, ...valuesAsArray.map((v) => `  ${v}`), "}"]
+  return [
+    `skinparam ${name} {`,
+    ...Object.entries(values).map(([k, v]) => `  ${k} ${v}`),
+    "}",
+  ]
 }
 
-const base = [
-  "BorderColor black",
-  "roundcorner 8",
-  "DPI 200",
-  "Shadowing false",
-]
-const rectangle = ["borderThickness 1.5"]
-const rectangleZone = [
+const base = {
+  BorderColor: "black",
+  roundcorner: "8",
+  DPI: "200",
+  Shadowing: "false",
+}
+const rectangle = { borderThickness: "1.5" }
+const rectangleZone = {
   ...rectangle,
-  "BorderStyle dashed",
-  "BackgroundColor #DAE8FC",
-  "roundcorner 0",
-]
+  borderThickness: "2",
+  BorderStyle: "dashed",
+  roundcorner: "0",
+}
+const rectangleDomain = { ...rectangle, borderThickness: "2" }
 export const skinparams = {
   base,
   rectangle,
   rectangleZone,
+  rectangleDomain,
 }

@@ -73,11 +73,14 @@ export function generateDiagram(
   const skinParams = [
     ...skinparam("", skinparams.base),
     ...skinparam("rectangle", skinparams.rectangle),
-    ...skinparam("rectangle<<Zone>>", skinparams.rectangleZone),
-    ...skinparam("rectangle<<Domain>>", "BackgroundColor #D5E8D4"),
-    ...skinparam("rectangle<<App>>", "BackgroundColor #F5F5F5"),
-    ...skinparam("rectangle<<Api>>", "BackgroundColor #FFE6CC"),
-    ...skinparam("rectangle<<Resource>>", "BackgroundColor #E1D5E7"),
+    ...skinparam("rectangle<<Zone>>", {
+      ...skinparams.rectangleZone,
+      BackgroundColor: "#DAE8FC",
+    }),
+    ...skinparam("rectangle<<Domain>>", { BackgroundColor: "#D5E8D4" }),
+    ...skinparam("rectangle<<App>>", { BackgroundColor: "#F5F5F5" }),
+    ...skinparam("rectangle<<Api>>", { BackgroundColor: "#FFE6CC" }),
+    ...skinparam("rectangle<<Resource>>", { BackgroundColor: "#E1D5E7" }),
   ]
   const zones = diagram.zones.flatMap(generateZone(opts))
   return ["@startuml", "", ...skinParams, "", ...zones, "", "@enduml"].join(
