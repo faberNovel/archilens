@@ -13,6 +13,7 @@ import {
   Zone,
 } from "../../models"
 import { PrunedDiagram } from "../../prune/module"
+import { skinparam, skinparams } from "./common"
 
 export type PlantumlOptions = {}
 
@@ -148,23 +149,22 @@ export function generateDiagram(
   opts: PlantumlOptions,
   diagram: PrunedDiagram
 ): string {
-  const skinparam = (name: string, ...values: string[]): string[] => {
-    return [`skinparam ${name} {`, ...values.map((v) => `  ${v}`), "}"]
-  }
   const componentSkinparams = diagram.componentTypes.flatMap((ctype) => {
     const shape = getShapreForComponentType(ctype)
     return skinparam(`${shape}<<${ctype}>>`, "BackgroundColor #E1D5E7")
   })
 
   const skinParams = [
-    ...skinparam("", "BorderColor black"),
-    ...skinparam("rectangle<<Zone>>", "BackgroundColor #DAE8FC"),
+    ...skinparam("", [...skinparams.base, "'linetype ortho"]),
+    ...skinparam("rectangle", skinparams.rectangle),
+    ...skinparam("rectangle<<Zone>>", skinparams.rectangleZone),
     ...skinparam("rectangle<<Domain>>", "BackgroundColor #D5E8D4"),
-    ...skinparam("rectangle<<Module>>", "BackgroundColor #FFE6CC"),
     ...skinparam("rectangle<<ExternalModule>>", "BackgroundColor #F5F5F5"),
-    ...skinparam("rectangle<<App>>", "BackgroundColor #F5F5F5"),
     ...skinparam("rectangle<<LegacyModule>>", "BackgroundColor #F8CECC"),
+    ...skinparam("rectangle<<App>>", "BackgroundColor #F5F5F5"),
+    ...skinparam("rectangle<<Module>>", "BackgroundColor #FFE6CC"),
     ...skinparam("queue", "BorderColor black"),
+
     ...componentSkinparams,
   ]
   const zones = diagram.zones.flatMap(generateZone(opts))

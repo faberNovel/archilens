@@ -7,6 +7,7 @@ import {
   Resource,
   Zone,
 } from "../../models"
+import { skinparam, skinparams } from "./common"
 
 export type PlantumlOptions = {}
 
@@ -69,23 +70,17 @@ export function generateDiagram(
   opts: PlantumlOptions,
   diagram: Diagram
 ): string {
-  const header = `
-    skinparam {
-      BorderColor black
-    }
-    skinparam rectangle<<Zone>> {
-      BackgroundColor #DAE8FC
-    }
-    skinparam rectangle<<Domain>> {
-      BackgroundColor #D5E8D4
-    }
-    skinparam rectangle<<API>> {
-      BackgroundColor #FFE6CC
-    }
-    skinparam rectangle<<Resource>> {
-      BackgroundColor #F5F5F5
-    }
-  `
+  const skinParams = [
+    ...skinparam("", skinparams.base),
+    ...skinparam("rectangle", skinparams.rectangle),
+    ...skinparam("rectangle<<Zone>>", skinparams.rectangleZone),
+    ...skinparam("rectangle<<Domain>>", "BackgroundColor #D5E8D4"),
+    ...skinparam("rectangle<<App>>", "BackgroundColor #F5F5F5"),
+    ...skinparam("rectangle<<Api>>", "BackgroundColor #FFE6CC"),
+    ...skinparam("rectangle<<Resource>>", "BackgroundColor #E1D5E7"),
+  ]
   const zones = diagram.zones.flatMap(generateZone(opts))
-  return ["@startuml", "", header, "", ...zones, "", "@enduml"].join("\n")
+  return ["@startuml", "", ...skinParams, "", ...zones, "", "@enduml"].join(
+    "\n"
+  )
 }
