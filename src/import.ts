@@ -1,4 +1,4 @@
-import * as t from "io-ts"
+import * as yup from "yup"
 
 import {
   Component,
@@ -17,17 +17,20 @@ import {
   Zone,
 } from "./models"
 
-export const RelationImport = t.type(
-  {
-    target: t.string,
-    rtype: t.union([t.undefined, t.string]),
-    reverse: t.union([t.undefined, t.boolean]),
-    description: t.union([t.undefined, t.string]),
-  },
-  "RelationImport"
-)
-export type RelationImport = t.TypeOf<typeof RelationImport>
-
+export type RelationImport = {
+  target: string
+  rtype: string
+  reverse?: boolean
+  description?: string
+}
+export const RelationImport: yup.ObjectSchema<RelationImport> = yup
+  .object({
+    target: yup.string().required(),
+    rtype: yup.string().required(),
+    reverse: yup.boolean().notRequired(),
+    description: yup.string().notRequired(),
+  })
+  .required()
 export const importRelation = (opts: RelationImport): Relation => {
   return {
     targetId: opts.target,
@@ -36,25 +39,28 @@ export const importRelation = (opts: RelationImport): Relation => {
   }
 }
 
-export const ComponentImport = t.type(
-  {
-    id: t.string,
-    ctype: t.string,
-    name: t.union([t.undefined, t.string]),
-    relations: t.union([t.undefined, t.array(RelationImport)]),
-  },
-  "ComponentImport"
-)
-export type ComponentImport = t.TypeOf<typeof ComponentImport>
-
+export type ComponentImport = {
+  id: string
+  ctype: string
+  name?: string
+  relations?: RelationImport[]
+}
+export const ComponentImport: yup.ObjectSchema<ComponentImport> = yup
+  .object({
+    id: yup.string().required(),
+    ctype: yup.string().required(),
+    name: yup.string().notRequired(),
+    relations: yup.array().of(RelationImport).notRequired(),
+  })
+  .required()
 export const importComponent = (ctypes: string[]) => (
   component: ComponentImport
 ): Component => {
   if (!ctypes.includes(component.ctype)) {
+    const value =
+      component.ctype === undefined ? "<undefined>" : `'${component.ctype}'`
     throw new Error(
-      `Invalid ctype '${component.ctype}' in component ${JSON.stringify(
-        component
-      )}`
+      `Invalid ctype ${value} in component ${JSON.stringify(component)}`
     )
   }
   return {
@@ -66,15 +72,16 @@ export const importComponent = (ctypes: string[]) => (
   }
 }
 
-export const ResourceImport = t.type(
-  {
-    id: t.string,
-    name: t.union([t.undefined, t.string]),
-  },
-  "Resource"
-)
-export type ResourceImport = t.TypeOf<typeof ResourceImport>
-
+export type ResourceImport = {
+  id: string
+  name?: string
+}
+export const ResourceImport: yup.ObjectSchema<ResourceImport> = yup
+  .object({
+    id: yup.string().required(),
+    name: yup.string().notRequired(),
+  })
+  .required()
 export const importResource = (opts: ResourceImport): Resource => {
   return {
     id: opts.id,
@@ -82,18 +89,22 @@ export const importResource = (opts: ResourceImport): Resource => {
   }
 }
 
-export const ModuleImport = t.type(
-  {
-    id: t.string,
-    name: t.union([t.undefined, t.string]),
-    components: t.union([t.undefined, t.array(ComponentImport)]),
-    api: t.union([t.undefined, t.boolean]),
-    resources: t.union([t.undefined, t.array(ResourceImport)]),
-  },
-  "ModuleImport"
-)
-export type ModuleImport = t.TypeOf<typeof ModuleImport>
-
+export type ModuleImport = {
+  id: string
+  name?: string
+  components?: ComponentImport[]
+  api?: boolean
+  resources?: ResourceImport[]
+}
+export const ModuleImport: yup.ObjectSchema<ModuleImport> = yup
+  .object({
+    id: yup.string().required(),
+    name: yup.string().notRequired(),
+    components: yup.array().of(ComponentImport).notRequired(),
+    api: yup.boolean().notRequired(),
+    resources: yup.array().of(ResourceImport).notRequired(),
+  })
+  .required()
 export const importModule = (ctypes: string[]) => (
   module: ModuleImport
 ): Module => {
@@ -111,17 +122,20 @@ export const importModule = (ctypes: string[]) => (
   }
 }
 
-export const ExternalModuleImport = t.type(
-  {
-    id: t.string,
-    name: t.union([t.undefined, t.string]),
-    mtype: t.union([t.undefined, t.string]),
-    relations: t.union([t.undefined, t.array(RelationImport)]),
-  },
-  "ExternalModuleImport"
-)
-export type ExternalModuleImport = t.TypeOf<typeof ExternalModuleImport>
-
+export type ExternalModuleImport = {
+  id: string
+  name?: string
+  mtype?: string
+  relations?: RelationImport[]
+}
+export const ExternalModuleImport: yup.ObjectSchema<ExternalModuleImport> = yup
+  .object({
+    id: yup.string().required(),
+    name: yup.string().notRequired(),
+    mtype: yup.string().notRequired(),
+    relations: yup.array().of(RelationImport).notRequired(),
+  })
+  .required()
 export const importExternalModule = (
   opts: ExternalModuleImport
 ): ExternalModule => {
@@ -136,11 +150,15 @@ export const importExternalModule = (
   }
 }
 
-export const EntityImport = t.union(
-  [ModuleImport, ComponentImport, ExternalModuleImport],
-  "EntityImport"
-)
-export type EntityImport = t.TypeOf<typeof EntityImport>
+export type EntityImport = ModuleImport | ComponentImport | ExternalModuleImport
+export const EntityImport = yup.lazy((value) => {
+  if (ModuleImport.isValidSync(value)) return ModuleImport
+  if (ComponentImport.isValidSync(value)) return ComponentImport
+  if (ExternalModuleImport.isValidSync(value)) return ExternalModuleImport
+  return yup
+    .mixed()
+    .test("failed", "${path} is not a valid entity", () => false)
+})
 
 export const isModule = (entity: EntityImport): entity is ModuleImport =>
   (entity as ModuleImport).components !== undefined
@@ -159,16 +177,18 @@ export const importEntity = (ctypes: string[]) => (
   throw new Error(`Can't import entity: ${entity}`)
 }
 
-export const DomainImport = t.type(
-  {
-    id: t.string,
-    name: t.union([t.undefined, t.string]),
-    entities: t.union([t.undefined, t.array(EntityImport)]),
-  },
-  "DomainImport"
-)
-export type DomainImport = t.TypeOf<typeof DomainImport>
-
+export type DomainImport = {
+  id: string
+  name?: string
+  entities?: EntityImport[]
+}
+export const DomainImport: yup.ObjectSchema<DomainImport> = yup
+  .object({
+    id: yup.string().required(),
+    name: yup.string().notRequired(),
+    entities: yup.array().of(EntityImport).notRequired(),
+  })
+  .required()
 export const importDomain = (ctypes: string[]) => (
   domain: DomainImport
 ): Domain => {
@@ -180,16 +200,18 @@ export const importDomain = (ctypes: string[]) => (
   }
 }
 
-export const ZoneImport = t.type(
-  {
-    id: t.string,
-    name: t.union([t.undefined, t.string]),
-    domains: t.union([t.undefined, t.array(DomainImport)]),
-  },
-  "Zone"
-)
-export type ZoneImport = t.TypeOf<typeof ZoneImport>
-
+export type ZoneImport = {
+  id: string
+  name?: string
+  domains?: DomainImport[]
+}
+export const ZoneImport: yup.ObjectSchema<ZoneImport> = yup
+  .object({
+    id: yup.string().required(),
+    name: yup.string().notRequired(),
+    domains: yup.array().of(DomainImport).notRequired(),
+  })
+  .required()
 export const importZone = (ctypes: string[]) => (zone: ZoneImport): Zone => {
   return {
     partType: PartType.Zone,
@@ -199,15 +221,16 @@ export const importZone = (ctypes: string[]) => (zone: ZoneImport): Zone => {
   }
 }
 
-export const DiagramImport = t.type(
-  {
-    ctypes: t.union([t.undefined, t.array(t.string)]),
-    zones: t.array(ZoneImport),
-  },
-  "DiagramImport"
-)
-export type DiagramImport = t.TypeOf<typeof DiagramImport>
-
+export type DiagramImport = {
+  ctypes: string[]
+  zones: ZoneImport[]
+}
+export const DiagramImport: yup.ObjectSchema<DiagramImport> = yup
+  .object({
+    ctypes: yup.array().of(yup.string().required()).required(),
+    zones: yup.array().of(ZoneImport).required(),
+  })
+  .required()
 export const importDiagram = (diagram: DiagramImport): Diagram => {
   const ctypes = diagram.ctypes ?? []
   return {

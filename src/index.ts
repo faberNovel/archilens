@@ -2,9 +2,7 @@ import p from "path"
 import fs from "fs"
 
 import * as YAML from "js-yaml"
-import { fold } from "fp-ts/Either"
-import { pipe } from "fp-ts/pipeable"
-import { failure as reportFailure } from "io-ts/PathReporter"
+import * as yup from "yup"
 
 import { debug } from "./debug"
 import { parseCli, PruneType } from "./cli"
@@ -50,28 +48,27 @@ function main(): void {
     IncludeFileOpts(options.sourceDirectory),
     options.input
   )
-  const parsed: DiagramImport = pipe(
-    DiagramImport.decode(content),
-    fold(
-      (errs) => {
-        console.warn(`Errors`, reportFailure(errs))
-        process.exit(1)
-      },
-      (diagram) => diagram
-    )
-  )
-  const imported = importDiagram(parsed)
-  debug("options:", options)
-  if (options.pruneType === PruneType.Api) {
-    debug("Generate API")
-    const pruned = pruneApiDiagram(options.pruneOptions, imported)
-    const generated = generateApiDiagram(options, pruned)
-    console.log(generated)
-  } else {
-    debug("Generate Archi")
-    const pruned = pruneModuleDiagram(options.pruneOptions, imported)
-    const generated = generateModuleDiagram(options, pruned)
-    console.log(generated)
+  const parsed: DiagramImport = DiagramImport.validateSync(content)
+  try {
+    const imported = importDiagram(parsed)
+    debug("options:", options)
+    if (options.pruneType === PruneType.Api) {
+      debug("Generate API")
+      const pruned = pruneApiDiagram(options.pruneOptions, imported)
+      const generated = generateApiDiagram(options, pruned)
+      console.log(generated)
+    } else {
+      debug("Generate Archi")
+      const pruned = pruneModuleDiagram(options.pruneOptions, imported)
+      const generated = generateModuleDiagram(options, pruned)
+      console.log(generated)
+    }
+  } catch (e) {
+    if (e instanceof yup.ValidationError) {
+      console.warn(e)
+    } else {
+      throw e
+    }
   }
 }
 main()
