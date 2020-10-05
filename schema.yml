@@ -1,0 +1,126 @@
+#$schema: "http://json-schema.org/draft-07/schema"
+#$id: "http://example.com/archilens.schema.json"
+title: "Archilens"
+description: "Architecture description schema"
+$defs:
+  zone:
+    title: Zone
+    description: "The unique identifier for a product"
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      domains:
+        type: array
+        items:
+          $ref: "#/$defs/domain"
+    required: [ id ]
+    additionalItems: false
+  domain:
+    title: Domain
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      entities:
+        type: array
+        items:
+          $ref: "#/$defs/entity"
+    required: [ id ]
+    additionalItems: false
+  entity:
+    oneOf:
+      - $ref: "#/$defs/module"
+      - $ref: "#/$defs/component"
+      - $ref: "#/$defs/externalmodule"
+  module:
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      components:
+        type: array
+        items:
+          $ref: "#/$defs/component"
+      api:
+        type: boolean
+      resources:
+        type: array
+        items:
+          $ref: "#/$defs/resource"
+    required: [ id, components ]
+    additionalItems: false
+  component:
+    type: object
+    properties:
+      id:
+        type: string
+      ctype:
+        type: string
+      name:
+        type: string
+      relations:
+        type: array
+        items:
+          $ref: "#/$defs/relation"
+    required: [ id, ctype ]
+    additionalItems: false
+  externalmodule:
+    type: object
+    properties:
+      id:
+        type: string
+      mtype:
+        type: string
+        enum: [ Generic, Legacy, App ]
+      name:
+        type: string
+      relations:
+        type: array
+        items:
+          $ref: "#/$defs/relation"
+    required: [ id, mtype ]
+    additionalItems: false
+  resource:
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    required: [ id ]
+    additionalItems: false
+  relation:
+    type: object
+    properties:
+      target:
+        type: string
+      rtype:
+        type: string
+        enum: [ Ask, Tell, Listen ]
+      reverse:
+        type: boolean
+      description:
+        type: string
+    required: [ target ]
+    additionalItems: false
+type: object
+properties:
+  ctypes:
+    description: "The allowed component types"
+    type: array
+    items:
+      - type: string
+  zones:
+    type: array
+    items:
+      $ref: "#/$defs/zone"
+
+required: [ ctypes, zones ]
+additionalItems: false

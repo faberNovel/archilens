@@ -124,15 +124,15 @@ export const importModule = (ctypes: string[]) => (
 
 export type ExternalModuleImport = {
   id: string
-  name?: string
   mtype?: string
+  name?: string
   relations?: RelationImport[]
 }
 export const ExternalModuleImport: yup.ObjectSchema<ExternalModuleImport> = yup
   .object({
     id: yup.string().required(),
-    name: yup.string().notRequired(),
     mtype: yup.string().notRequired(),
+    name: yup.string().notRequired(),
     relations: yup.array().of(RelationImport).notRequired(),
   })
   .required()
@@ -142,10 +142,10 @@ export const importExternalModule = (
   return {
     partType: PartType.ExternalModule,
     id: opts.id,
-    name: opts.name ?? opts.id,
     type: opts.mtype
       ? getExternalModuleTypeOrFail(opts.mtype)
       : ExternalModuleType.Generic,
+    name: opts.name ?? opts.id,
     relations: opts.relations?.map(importRelation) ?? [],
   }
 }

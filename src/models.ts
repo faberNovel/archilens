@@ -27,8 +27,8 @@ export function getExternalModuleTypeOrFail(id: string): ExternalModuleType {
 export type ExternalModule = {
   readonly partType: PartType.ExternalModule
   readonly id: string
-  readonly name: string
   readonly type: ExternalModuleType
+  readonly name: string
   readonly relations: readonly Relation[]
 }
 
