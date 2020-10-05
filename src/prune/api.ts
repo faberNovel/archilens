@@ -113,7 +113,7 @@ const focusAcceptZone = (opts: PruneOptions): boolean =>
   opts.level === PruneLevel.Zone
 
 const computeHasFocus = (opts: PruneOptions, part: Part): boolean => {
-  if (opts.exclude.includes(part.id)) {
+  if (opts.exclude.includes(part.id) || opts.softExclude.includes(part.id)) {
     return false
   }
   if (opts.focus.includes(part.id)) {

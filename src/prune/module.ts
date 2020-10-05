@@ -18,6 +18,7 @@ import {
 } from "../models"
 import { debug } from "../debug"
 import { PruneLevel, PruneOptions } from "./index"
+import { read } from "fs"
 
 type DiagramInfos = {
   readonly diagram: Diagram
@@ -42,7 +43,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
   const descent: Map<string, readonly Part[]> = new Map()
   const allRelations: { source: Part; relation: Relation }[] = []
 
-  const complete = (part: Part, parent?: Part): boolean => {
+  const complete = (part: Part): void => {
     if (ids.get(part.id)) {
       throw new Error(
         `Trying to add a part with a duplicate id '${
@@ -53,18 +54,13 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
       )
     }
     ids.set(part.id, part)
-    const hasFocus =
-      computeHasFocus(opts, part) ||
-      (parent !== undefined && opts.open.includes(parent.id))
-    focused.set(part.id, hasFocus)
-    return hasFocus
   }
   diagram.zones.forEach((zone) => {
     complete(zone)
     const zoneChildren: Domain[] = []
     const zoneDescent: Part[] = []
     zone.domains.forEach((domain) => {
-      complete(domain, zone)
+      complete(domain)
       parents.set(domain.id, zone)
       ancestors.set(domain.id, [zone])
       zoneChildren.push(domain)
@@ -72,7 +68,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
       const domainChildren: Entity[] = []
       const domainDescent: Part[] = []
       domain.entities.forEach((entity) => {
-        complete(entity, domain)
+        complete(entity)
         parents.set(entity.id, domain)
         ancestors.set(entity.id, [zone, domain])
         domainChildren.push(entity)
@@ -82,7 +78,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
           const moduleChildren: Component[] = []
           const moduleDescent: Part[] = []
           entity.components.forEach((component) => {
-            complete(component, entity)
+            complete(component)
             parents.set(component.id, entity)
             ancestors.set(component.id, [zone, domain, entity])
             moduleChildren.push(component)
@@ -112,6 +108,13 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     })
     children.set(zone.id, zoneChildren)
     descent.set(zone.id, zoneDescent)
+  })
+  ids.forEach((part) => {
+    const parent = parents.get(part.id)
+    const hasFocus =
+      computeHasFocus(opts, part, ancestors) ||
+      (parent !== undefined && opts.open.includes(parent.id))
+    focused.set(part.id, hasFocus)
   })
   const isDisplayed = (part: Part): boolean => {
     return (
@@ -146,6 +149,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
             commonDisplayedAncestors,
             target
           )
+          let reversed = false
           if (
             !firstSource &&
             firstTarget &&
@@ -159,9 +163,19 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
               source
             )
             firstTarget = getFirstRelationSource(opts, parents, focused, target)
-            debug("firstSource", firstSource, "firstTarget", firstTarget)
+            reversed = true
           }
-          if (firstSource && targetAncestors.includes(firstSource)) {
+          debug("Relation", {
+            source: source.id,
+            target: target.id,
+            firstSource: firstSource?.id,
+            firstTarget: firstTarget?.id,
+            reversed,
+          })
+          if (
+            firstSource &&
+            (reversed ? sourceAncestors : targetAncestors).includes(firstSource)
+          ) {
             return []
           }
           if (!firstSource || !firstTarget || firstSource === firstTarget) {
@@ -237,12 +251,30 @@ const relationAcceptDomain = (opts: PruneOptions): boolean =>
 const relationAcceptZone = (opts: PruneOptions): boolean =>
   opts.relationLevel === PruneLevel.Zone || relationAcceptDomain(opts)
 
-const computeHasFocus = (opts: PruneOptions, part: Part): boolean => {
+const computeHasFocus = (
+  opts: PruneOptions,
+  part: Part,
+  ancestors: ReadonlyMap<string, readonly Part[]>
+): boolean => {
   if (opts.exclude.includes(part.id)) {
     return false
   }
   if (opts.focus.includes(part.id)) {
     return true
+  }
+  if (
+    opts.softExclude.includes(part.id) ||
+    opts.softExcludeDeep.includes(part.id)
+  ) {
+    return false
+  }
+  const partAncestors = ancestors.get(part.id) ?? []
+  if (
+    partAncestors.find((ancestor) =>
+      opts.softExcludeDeep.includes(ancestor.id)
+    ) !== undefined
+  ) {
+    return false
   }
   if (isZone(part)) return focusAcceptZone(opts)
   if (isDomain(part)) return focusAcceptDomain(opts)
@@ -273,6 +305,9 @@ const computeIsRelationTarget = (
 ): boolean => {
   if (focused.get(part.id)) {
     return true
+  }
+  if (opts.exclude.includes(part.id)) {
+    return false
   }
   if (isZone(part)) return relationAcceptZone(opts)
   if (isDomain(part)) return relationAcceptDomain(opts)

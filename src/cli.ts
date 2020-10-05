@@ -76,13 +76,25 @@ program
   )
   .option(
     "-e,--exclude <id>",
-    "Exclude part",
+    "Exclude this part",
+    (value: string, previous: string[]) => [...previous, value],
+    []
+  )
+  .option(
+    "-se,--soft-exclude <id>",
+    "Only include this part if it is referenced",
+    (value: string, previous: string[]) => [...previous, value],
+    []
+  )
+  .option(
+    "-sed,--soft-exclude-deep <id>",
+    "Only include this part of its descent if it is referenced",
     (value: string, previous: string[]) => [...previous, value],
     []
   )
   .option(
     "-o,--open <id>",
-    "Open part",
+    "Include this part and its children",
     (value: string, previous: string[]) => [...previous, value],
     []
   )
@@ -164,6 +176,8 @@ export function parseCli(args: string[]): CliOptions {
               : PruneLevel.Module),
       focus: cliOpts.focus,
       exclude: cliOpts.exclude,
+      softExclude: cliOpts.softExclude,
+      softExcludeDeep: cliOpts.softExcludeDeep,
       open: cliOpts.open,
       reverseRelationTypes: [
         ...new Set(cliOpts.reverseRelationType as RelationType[]),

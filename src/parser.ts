@@ -20,9 +20,7 @@ const YamlIncludeFileType = (opts: IncludeFileOpts): YAML.Type =>
       const srcDir = p.isAbsolute(filename)
         ? p.normalize(opts.rootDir + dirname)
         : p.join(opts.srcDir, dirname)
-      const value = parseYaml({ ...opts, srcDir }, filename)
-      debug(`${filepath} => `, value)
-      return value
+      return parseYaml({ ...opts, srcDir }, filename)
     },
   })
 const YamlIncludeFileSchema = (opts: IncludeFileOpts) =>
