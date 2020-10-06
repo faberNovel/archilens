@@ -24,12 +24,17 @@ export function getExternalModuleTypeOrFail(id: string): ExternalModuleType {
   }
 }
 
+export type Flags = {
+  readonly softExcludeDeep?: boolean
+}
+
 export type ExternalModule = {
   readonly partType: PartType.ExternalModule
   readonly id: string
   readonly type: ExternalModuleType
   readonly name: string
   readonly relations: readonly Relation[]
+  readonly flags?: Flags
 }
 
 export type Resource = {
@@ -47,6 +52,7 @@ export type Module = {
   readonly name: string
   readonly components: readonly Component[]
   readonly api?: Api
+  readonly flags?: Flags
 }
 
 export type Component = {
@@ -55,6 +61,7 @@ export type Component = {
   readonly name: string
   readonly type: string
   readonly relations: readonly Relation[]
+  readonly flags?: Flags
 }
 
 export const enum RelationType {
@@ -95,6 +102,7 @@ export type Domain = {
   readonly id: string
   readonly name: string
   readonly entities: readonly Entity[]
+  readonly flags?: Flags
 }
 
 export type Zone = {
@@ -102,6 +110,7 @@ export type Zone = {
   readonly id: string
   readonly name: string
   readonly domains: readonly Domain[]
+  readonly flags?: Flags
 }
 
 export type Diagram = {

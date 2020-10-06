@@ -53,6 +53,11 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
         )}`
       )
     }
+    if (part.flags) {
+      if (part.flags.softExcludeDeep) {
+        opts.softExcludeDeep.push(part.id)
+      }
+    }
     ids.set(part.id, part)
   }
   diagram.zones.forEach((zone) => {

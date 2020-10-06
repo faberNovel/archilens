@@ -7,6 +7,7 @@ import {
   Entity,
   ExternalModule,
   ExternalModuleType,
+  Flags,
   getExternalModuleTypeOrFail,
   getRelationTypeOrFail,
   Module,
@@ -16,6 +17,20 @@ import {
   Resource,
   Zone,
 } from "./models"
+
+export type FlagsImport = {
+  soft_exclude_deep?: boolean
+}
+export const FlagsImport: yup.ObjectSchema<FlagsImport> = yup
+  .object({
+    soft_exclude_deep: yup.boolean().notRequired(),
+  })
+  .required()
+export const importFlags = (flags: FlagsImport | undefined): Flags => {
+  return {
+    softExcludeDeep: flags?.soft_exclude_deep,
+  }
+}
 
 export type RelationImport = {
   target: string
@@ -31,11 +46,13 @@ export const RelationImport: yup.ObjectSchema<RelationImport> = yup
     description: yup.string().notRequired(),
   })
   .required()
-export const importRelation = (opts: RelationImport): Relation => {
+export const importRelation = (relation: RelationImport): Relation => {
   return {
-    targetId: opts.target,
-    type: opts.rtype ? getRelationTypeOrFail(opts.rtype) : RelationType.Ask,
-    description: opts.description,
+    targetId: relation.target,
+    type: relation.rtype
+      ? getRelationTypeOrFail(relation.rtype)
+      : RelationType.Ask,
+    description: relation.description,
   }
 }
 
@@ -44,6 +61,7 @@ export type ComponentImport = {
   ctype: string
   name?: string
   relations?: RelationImport[]
+  flags?: FlagsImport
 }
 export const ComponentImport: yup.ObjectSchema<ComponentImport> = yup
   .object({
@@ -51,6 +69,7 @@ export const ComponentImport: yup.ObjectSchema<ComponentImport> = yup
     ctype: yup.string().required(),
     name: yup.string().notRequired(),
     relations: yup.array().of(RelationImport).notRequired(),
+    flags: FlagsImport.notRequired(),
   })
   .required()
 export const importComponent = (ctypes: string[]) => (
@@ -69,6 +88,7 @@ export const importComponent = (ctypes: string[]) => (
     name: component.name ?? component.id,
     type: component.ctype,
     relations: component.relations?.map(importRelation) ?? [],
+    flags: importFlags(component.flags),
   }
 }
 
@@ -82,10 +102,10 @@ export const ResourceImport: yup.ObjectSchema<ResourceImport> = yup
     name: yup.string().notRequired(),
   })
   .required()
-export const importResource = (opts: ResourceImport): Resource => {
+export const importResource = (resource: ResourceImport): Resource => {
   return {
-    id: opts.id,
-    name: opts.name ?? opts.id,
+    id: resource.id,
+    name: resource.name ?? resource.id,
   }
 }
 
@@ -95,6 +115,7 @@ export type ModuleImport = {
   components?: ComponentImport[]
   api?: boolean
   resources?: ResourceImport[]
+  flags?: FlagsImport
 }
 export const ModuleImport: yup.ObjectSchema<ModuleImport> = yup
   .object({
@@ -103,6 +124,7 @@ export const ModuleImport: yup.ObjectSchema<ModuleImport> = yup
     components: yup.array().of(ComponentImport).notRequired(),
     api: yup.boolean().notRequired(),
     resources: yup.array().of(ResourceImport).notRequired(),
+    flags: FlagsImport.notRequired(),
   })
   .required()
 export const importModule = (ctypes: string[]) => (
@@ -119,6 +141,7 @@ export const importModule = (ctypes: string[]) => (
     name: module.name ?? module.id,
     components: module.components?.map(importComponent(ctypes)) ?? [],
     api,
+    flags: importFlags(module.flags),
   }
 }
 
@@ -127,6 +150,7 @@ export type ExternalModuleImport = {
   mtype?: string
   name?: string
   relations?: RelationImport[]
+  flags?: FlagsImport
 }
 export const ExternalModuleImport: yup.ObjectSchema<ExternalModuleImport> = yup
   .object({
@@ -134,19 +158,21 @@ export const ExternalModuleImport: yup.ObjectSchema<ExternalModuleImport> = yup
     mtype: yup.string().notRequired(),
     name: yup.string().notRequired(),
     relations: yup.array().of(RelationImport).notRequired(),
+    flags: FlagsImport.notRequired(),
   })
   .required()
 export const importExternalModule = (
-  opts: ExternalModuleImport
+  externalModule: ExternalModuleImport
 ): ExternalModule => {
   return {
     partType: PartType.ExternalModule,
-    id: opts.id,
-    type: opts.mtype
-      ? getExternalModuleTypeOrFail(opts.mtype)
+    id: externalModule.id,
+    type: externalModule.mtype
+      ? getExternalModuleTypeOrFail(externalModule.mtype)
       : ExternalModuleType.Generic,
-    name: opts.name ?? opts.id,
-    relations: opts.relations?.map(importRelation) ?? [],
+    name: externalModule.name ?? externalModule.id,
+    relations: externalModule.relations?.map(importRelation) ?? [],
+    flags: importFlags(externalModule.flags),
   }
 }
 
@@ -181,12 +207,14 @@ export type DomainImport = {
   id: string
   name?: string
   entities?: EntityImport[]
+  flags?: FlagsImport
 }
 export const DomainImport: yup.ObjectSchema<DomainImport> = yup
   .object({
     id: yup.string().required(),
     name: yup.string().notRequired(),
     entities: yup.array().of(EntityImport).notRequired(),
+    flags: FlagsImport.notRequired(),
   })
   .required()
 export const importDomain = (ctypes: string[]) => (
@@ -197,6 +225,7 @@ export const importDomain = (ctypes: string[]) => (
     id: domain.id,
     name: domain.name ?? domain.id,
     entities: domain.entities?.map(importEntity(ctypes)) ?? [],
+    flags: importFlags(domain.flags),
   }
 }
 
@@ -204,12 +233,14 @@ export type ZoneImport = {
   id: string
   name?: string
   domains?: DomainImport[]
+  flags?: FlagsImport
 }
 export const ZoneImport: yup.ObjectSchema<ZoneImport> = yup
   .object({
     id: yup.string().required(),
     name: yup.string().notRequired(),
     domains: yup.array().of(DomainImport).notRequired(),
+    flags: FlagsImport.notRequired(),
   })
   .required()
 export const importZone = (ctypes: string[]) => (zone: ZoneImport): Zone => {
@@ -218,6 +249,7 @@ export const importZone = (ctypes: string[]) => (zone: ZoneImport): Zone => {
     id: zone.id,
     name: zone.name ?? zone.id,
     domains: zone.domains?.map(importDomain(ctypes)) ?? [],
+    flags: importFlags(zone.flags),
   }
 }
 

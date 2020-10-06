@@ -3,6 +3,13 @@
 title: "Archilens"
 description: "Architecture description schema"
 $defs:
+  flags:
+    title: Flags
+    type: object
+    properties:
+      soft_exclude_deep:
+        type: boolean
+    additionalItems: false
   zone:
     title: Zone
     description: "The unique identifier for a product"
@@ -16,6 +23,8 @@ $defs:
         type: array
         items:
           $ref: "#/$defs/domain"
+      flags:
+        $ref: "#/$defs/flags"
     required: [ id ]
     additionalItems: false
   domain:
@@ -30,6 +39,8 @@ $defs:
         type: array
         items:
           $ref: "#/$defs/entity"
+      flags:
+        $ref: "#/$defs/flags"
     required: [ id ]
     additionalItems: false
   entity:
@@ -54,6 +65,8 @@ $defs:
         type: array
         items:
           $ref: "#/$defs/resource"
+      flags:
+        $ref: "#/$defs/flags"
     required: [ id, components ]
     additionalItems: false
   component:
@@ -69,6 +82,8 @@ $defs:
         type: array
         items:
           $ref: "#/$defs/relation"
+      flags:
+        $ref: "#/$defs/flags"
     required: [ id, ctype ]
     additionalItems: false
   externalmodule:
@@ -85,6 +100,8 @@ $defs:
         type: array
         items:
           $ref: "#/$defs/relation"
+      flags:
+        $ref: "#/$defs/flags"
     required: [ id, mtype ]
     additionalItems: false
   resource:
@@ -121,6 +138,5 @@ properties:
     type: array
     items:
       $ref: "#/$defs/zone"
-
 required: [ ctypes, zones ]
 additionalItems: false
