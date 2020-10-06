@@ -20,7 +20,8 @@ export const generateResource = (opts: PlantumlOptions) => (
 export const generateApi = (opts: PlantumlOptions) => (
   module: Module
 ): string[] => {
-  const part = `rectangle "${module.name}" <<API>> as ${module.id}`
+  const name = module.api?.name ?? module.name
+  const part = `rectangle "${name}" <<API>> as ${module.id}`
   const resources =
     module.api && module.api.resources.flatMap(generateResource(opts))
   if (!resources) {

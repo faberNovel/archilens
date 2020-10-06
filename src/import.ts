@@ -109,11 +109,16 @@ export const importResource = (resource: ResourceImport): Resource => {
   }
 }
 
+const apiField = union<boolean | string | undefined>(
+  [yup.boolean().required(), yup.string().notRequired()],
+  "${path} should be a boolean or a string"
+)
+
 export type ModuleImport = {
   id: string
   name?: string
   components?: ComponentImport[]
-  api?: boolean
+  api?: string | boolean | undefined
   resources?: ResourceImport[]
   flags?: FlagsImport
 }
@@ -122,7 +127,7 @@ export const ModuleImport: yup.ObjectSchema<ModuleImport> = yup
     id: yup.string().required(),
     name: yup.string().notRequired(),
     components: yup.array().of(ComponentImport).notRequired(),
-    api: yup.boolean().notRequired(),
+    api: apiField,
     resources: yup.array().of(ResourceImport).notRequired(),
     flags: FlagsImport.notRequired(),
   })
@@ -130,15 +135,21 @@ export const ModuleImport: yup.ObjectSchema<ModuleImport> = yup
 export const importModule = (ctypes: string[]) => (
   module: ModuleImport
 ): Module => {
+  const name = module.name ?? module.id
   const api = (
-    module.api !== undefined ? module.api : module.resources !== undefined
+    module.api !== undefined
+      ? module.api !== false
+      : module.resources !== undefined
   )
-    ? { resources: module.resources?.map(importResource) ?? [] }
+    ? {
+        name: typeof module.api === "string" ? module.api : name,
+        resources: module.resources?.map(importResource) ?? [],
+      }
     : undefined
   return {
     partType: PartType.Module,
     id: module.id,
-    name: module.name ?? module.id,
+    name: name,
     components: module.components?.map(importComponent(ctypes)) ?? [],
     api,
     flags: importFlags(module.flags),
@@ -176,15 +187,27 @@ export const importExternalModule = (
   }
 }
 
+function union<A>(schemas: yup.Schema<A>[], message: string): yup.Schema<A> {
+  const loop = (value: unknown, schemas: yup.Schema<A>[]): yup.Schema<A> => {
+    if (schemas.length === 0) {
+      return (yup
+        .mixed()
+        .test("failed", message, () => false) as unknown) as yup.Schema<A>
+    }
+    const schema: yup.Schema<A> = schemas[0]
+    if (schema.isValidSync(value)) {
+      return schema
+    }
+    return loop(value, schemas.slice(1))
+  }
+  return yup.lazy((value) => loop(value, schemas))
+}
+
 export type EntityImport = ModuleImport | ComponentImport | ExternalModuleImport
-export const EntityImport = yup.lazy((value) => {
-  if (ModuleImport.isValidSync(value)) return ModuleImport
-  if (ComponentImport.isValidSync(value)) return ComponentImport
-  if (ExternalModuleImport.isValidSync(value)) return ExternalModuleImport
-  return yup
-    .mixed()
-    .test("failed", "${path} is not a valid entity", () => false)
-})
+export const EntityImport = union<EntityImport>(
+  [ModuleImport, ComponentImport, ExternalModuleImport],
+  "${path} is not a valid entity"
+)
 
 export const isModule = (entity: EntityImport): entity is ModuleImport =>
   (entity as ModuleImport).components !== undefined

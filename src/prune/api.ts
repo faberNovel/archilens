@@ -130,12 +130,14 @@ const partContainsFocused = (infos: DiagramInfos, part: Part): boolean =>
   infos.containsFocused.get(part.id) ?? false
 
 export const pruneApi = (infos: DiagramInfos) => (module: Module): Module => {
+  const resources =
+    infos.opts.level === PruneLevel.Component ? module.api?.resources ?? [] : []
   return {
     partType: PartType.Module,
     id: module.id,
     name: module.name,
     components: [],
-    api: infos.opts.level === PruneLevel.Component ? module.api : undefined,
+    api: module.api ? { ...module.api, resources } : undefined,
   }
 }
 

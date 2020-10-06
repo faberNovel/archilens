@@ -43,6 +43,7 @@ export type Resource = {
 }
 
 export type Api = {
+  readonly name: string
   readonly resources: readonly Resource[]
 }
 

@@ -60,7 +60,9 @@ $defs:
         items:
           $ref: "#/$defs/component"
       api:
-        type: boolean
+        oneOf:
+          - type: boolean
+          - type: string
       resources:
         type: array
         items:
