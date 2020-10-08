@@ -7,14 +7,14 @@ export const enum PartType {
 }
 
 export const enum ExternalModuleType {
-  Generic = "Generic",
+  External = "External",
   Legacy = "Legacy",
   App = "App",
 }
 export function getExternalModuleTypeOrFail(id: string): ExternalModuleType {
   switch (id.toLowerCase()) {
-    case "generic":
-      return ExternalModuleType.Generic
+    case "external":
+      return ExternalModuleType.External
     case "legacy":
       return ExternalModuleType.Legacy
     case "app":

@@ -57,7 +57,7 @@ export const generateExternalModule = (opts: PlantumlOptions) => (
 ): string[] => {
   let skin
   switch (module.type) {
-    case ExternalModuleType.Generic:
+    case ExternalModuleType.External:
       skin = "ExternalModule"
       break
     case ExternalModuleType.App:

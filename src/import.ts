@@ -180,7 +180,7 @@ export const importExternalModule = (
     id: externalModule.id,
     type: externalModule.mtype
       ? getExternalModuleTypeOrFail(externalModule.mtype)
-      : ExternalModuleType.Generic,
+      : ExternalModuleType.External,
     name: externalModule.name ?? externalModule.id,
     relations: externalModule.relations?.map(importRelation) ?? [],
     flags: importFlags(externalModule.flags),

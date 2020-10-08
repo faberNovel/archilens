@@ -95,7 +95,7 @@ $defs:
         type: string
       mtype:
         type: string
-        enum: [ Generic, Legacy, App ]
+        enum: [ "External", "Legacy", "App" ]
       name:
         type: string
       relations:
@@ -122,7 +122,7 @@ $defs:
         type: string
       rtype:
         type: string
-        enum: [ Ask, Tell, Listen ]
+        enum: [ "Ask", "Tell", "Listen" ]
       reverse:
         type: boolean
       description:
