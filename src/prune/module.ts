@@ -128,7 +128,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     )
   }
   debug("reverseRelationTypes", opts.reverseRelationTypes)
-  const relations: CompleteRelation[] =
+  const computedRelations: CompleteRelation[] =
     opts.relationLevel === PruneLevel.Nothing
       ? []
       : allRelations.flatMap(({ source, relation }) => {
@@ -195,10 +195,16 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
             },
           ]
         })
+
+  // Remove duplicates
+  const relationsMap = new Map<string, CompleteRelation>()
+  computedRelations.forEach((r) => relationsMap.set(JSON.stringify(r), r))
+  const relations = Array.from(relationsMap.values())
   relations.forEach((relation) => {
     focused.set(relation.sourceId, true)
     focused.set(relation.targetId, true)
   })
+
   const containsFocused = Array.from(ids.keys()).reduce((acc, partId): Map<
     string,
     boolean
