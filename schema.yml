@@ -15,7 +15,7 @@ $defs:
     description: "The unique identifier for a product"
     type: object
     properties:
-      id:
+      uid:
         type: string
       name:
         type: string
@@ -25,13 +25,13 @@ $defs:
           $ref: "#/$defs/domain"
       flags:
         $ref: "#/$defs/flags"
-    required: [ id ]
+    required: [ uid ]
     additionalItems: false
   domain:
     title: Domain
     type: object
     properties:
-      id:
+      uid:
         type: string
       name:
         type: string
@@ -41,7 +41,7 @@ $defs:
           $ref: "#/$defs/entity"
       flags:
         $ref: "#/$defs/flags"
-    required: [ id ]
+    required: [ uid ]
     additionalItems: false
   entity:
     oneOf:
@@ -51,7 +51,7 @@ $defs:
   module:
     type: object
     properties:
-      id:
+      uid:
         type: string
       name:
         type: string
@@ -69,12 +69,12 @@ $defs:
           $ref: "#/$defs/resource"
       flags:
         $ref: "#/$defs/flags"
-    required: [ id, components ]
+    required: [ uid, components ]
     additionalItems: false
   component:
     type: object
     properties:
-      id:
+      uid:
         type: string
       ctype:
         type: string
@@ -86,12 +86,12 @@ $defs:
           $ref: "#/$defs/relation"
       flags:
         $ref: "#/$defs/flags"
-    required: [ id, ctype ]
+    required: [ uid, ctype ]
     additionalItems: false
   externalmodule:
     type: object
     properties:
-      id:
+      uid:
         type: string
       mtype:
         type: string
@@ -104,16 +104,16 @@ $defs:
           $ref: "#/$defs/relation"
       flags:
         $ref: "#/$defs/flags"
-    required: [ id, mtype ]
+    required: [ uid, mtype ]
     additionalItems: false
   resource:
     type: object
     properties:
-      id:
+      uid:
         type: string
       name:
         type: string
-    required: [ id ]
+    required: [ uid ]
     additionalItems: false
   relation:
     type: object

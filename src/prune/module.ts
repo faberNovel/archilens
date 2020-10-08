@@ -44,21 +44,21 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
   const allRelations: { source: Part; relation: Relation }[] = []
 
   const complete = (part: Part): void => {
-    if (ids.get(part.id)) {
+    if (ids.get(part.uid)) {
       throw new Error(
-        `Trying to add a part with a duplicate id '${
-          part.id
+        `Trying to add a part with a duplicate uid '${
+          part.uid
         }'.\nNew: ${JSON.stringify(part)}\nExisting: ${JSON.stringify(
-          ids.get(part.id)
+          ids.get(part.uid)
         )}`
       )
     }
     if (part.flags) {
       if (part.flags.softExcludeDeep) {
-        opts.softExcludeDeep.push(part.id)
+        opts.softExcludeDeep.push(part.uid)
       }
     }
-    ids.set(part.id, part)
+    ids.set(part.uid, part)
   }
   diagram.zones.forEach((zone) => {
     complete(zone)
@@ -66,16 +66,16 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     const zoneDescent: Part[] = []
     zone.domains.forEach((domain) => {
       complete(domain)
-      parents.set(domain.id, zone)
-      ancestors.set(domain.id, [zone])
+      parents.set(domain.uid, zone)
+      ancestors.set(domain.uid, [zone])
       zoneChildren.push(domain)
       zoneDescent.push(domain)
       const domainChildren: Entity[] = []
       const domainDescent: Part[] = []
       domain.entities.forEach((entity) => {
         complete(entity)
-        parents.set(entity.id, domain)
-        ancestors.set(entity.id, [zone, domain])
+        parents.set(entity.uid, domain)
+        ancestors.set(entity.uid, [zone, domain])
         domainChildren.push(entity)
         domainDescent.push(entity)
         zoneDescent.push(entity)
@@ -84,8 +84,8 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
           const moduleDescent: Part[] = []
           entity.components.forEach((component) => {
             complete(component)
-            parents.set(component.id, entity)
-            ancestors.set(component.id, [zone, domain, entity])
+            parents.set(component.uid, entity)
+            ancestors.set(component.uid, [zone, domain, entity])
             moduleChildren.push(component)
             moduleDescent.push(component)
             domainDescent.push(component)
@@ -97,8 +97,8 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
               }))
             )
           })
-          children.set(entity.id, moduleChildren)
-          descent.set(entity.id, moduleDescent)
+          children.set(entity.uid, moduleChildren)
+          descent.set(entity.uid, moduleDescent)
         } else if (isExternalModule(entity)) {
           allRelations.push(
             ...entity.relations.map((relation) => ({
@@ -108,23 +108,23 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
           )
         }
       })
-      children.set(domain.id, domainChildren)
-      descent.set(domain.id, domainDescent)
+      children.set(domain.uid, domainChildren)
+      descent.set(domain.uid, domainDescent)
     })
-    children.set(zone.id, zoneChildren)
-    descent.set(zone.id, zoneDescent)
+    children.set(zone.uid, zoneChildren)
+    descent.set(zone.uid, zoneDescent)
   })
   ids.forEach((part) => {
-    const parent = parents.get(part.id)
+    const parent = parents.get(part.uid)
     const hasFocus =
       computeHasFocus(opts, part, ancestors) ||
-      (parent !== undefined && opts.open.includes(parent.id))
-    focused.set(part.id, hasFocus)
+      (parent !== undefined && opts.open.includes(parent.uid))
+    focused.set(part.uid, hasFocus)
   })
   const isDisplayed = (part: Part): boolean => {
     return (
-      focused.get(part.id) ||
-      descent.get(part.id)?.find((d) => focused.get(d.id)) !== undefined
+      focused.get(part.uid) ||
+      descent.get(part.uid)?.find((d) => focused.get(d.uid)) !== undefined
     )
   }
   debug("reverseRelationTypes", opts.reverseRelationTypes)
@@ -136,8 +136,8 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
           if (!target) {
             return []
           }
-          const sourceAncestors = ancestors.get(source.id) || []
-          const targetAncestors = ancestors.get(target.id) || []
+          const sourceAncestors = ancestors.get(source.uid) || []
+          const targetAncestors = ancestors.get(target.uid) || []
           const commonDisplayedAncestors = sourceAncestors.filter(
             (a) => targetAncestors.includes(a) && isDisplayed(a)
           )
@@ -171,10 +171,10 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
             reversed = true
           }
           debug("Relation", {
-            source: source.id,
-            target: target.id,
-            firstSource: firstSource?.id,
-            firstTarget: firstTarget?.id,
+            source: source.uid,
+            target: target.uid,
+            firstSource: firstSource?.uid,
+            firstTarget: firstTarget?.uid,
             reversed,
           })
           if (
@@ -188,8 +188,8 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
           }
           return [
             {
-              sourceId: firstSource.id,
-              targetId: firstTarget.id,
+              sourceId: firstSource.uid,
+              targetId: firstTarget.uid,
               type: relation.type,
               description: relation.description,
             },
@@ -206,7 +206,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     acc.set(
       partId,
       focused.get(partId) ||
-        descent.get(partId)?.find((d) => focused.get(d.id)) !== undefined
+        descent.get(partId)?.find((d) => focused.get(d.uid)) !== undefined
     )
     return acc
   }, new Map<string, boolean>())
@@ -261,22 +261,22 @@ const computeHasFocus = (
   part: Part,
   ancestors: ReadonlyMap<string, readonly Part[]>
 ): boolean => {
-  if (opts.exclude.includes(part.id)) {
+  if (opts.exclude.includes(part.uid)) {
     return false
   }
-  if (opts.focus.includes(part.id)) {
+  if (opts.focus.includes(part.uid)) {
     return true
   }
   if (
-    opts.softExclude.includes(part.id) ||
-    opts.softExcludeDeep.includes(part.id)
+    opts.softExclude.includes(part.uid) ||
+    opts.softExcludeDeep.includes(part.uid)
   ) {
     return false
   }
-  const partAncestors = ancestors.get(part.id) ?? []
+  const partAncestors = ancestors.get(part.uid) ?? []
   if (
     partAncestors.find((ancestor) =>
-      opts.softExcludeDeep.includes(ancestor.id)
+      opts.softExcludeDeep.includes(ancestor.uid)
     ) !== undefined
   ) {
     return false
@@ -294,10 +294,10 @@ const getFirstRelationSource = (
   focused: ReadonlyMap<string, boolean>,
   part: Part
 ): Part | undefined => {
-  if (focused.get(part.id)) {
+  if (focused.get(part.uid)) {
     return part
   }
-  const parent = parents.get(part.id)
+  const parent = parents.get(part.uid)
   if (!parent) {
     return undefined
   }
@@ -308,10 +308,10 @@ const computeIsRelationTarget = (
   focused: ReadonlyMap<string, boolean>,
   part: Part
 ): boolean => {
-  if (focused.get(part.id)) {
+  if (focused.get(part.uid)) {
     return true
   }
-  if (opts.exclude.includes(part.id)) {
+  if (opts.exclude.includes(part.uid)) {
     return false
   }
   if (isZone(part)) return relationAcceptZone(opts)
@@ -330,7 +330,7 @@ const getFirstRelationTaget = (
   if (computeIsRelationTarget(opts, focused, part)) {
     return part
   }
-  const parent = parents.get(part.id)
+  const parent = parents.get(part.uid)
   if (!parent) {
     return undefined
   }
@@ -347,7 +347,7 @@ const getFirstRelationTaget = (
 }
 
 const partContainsFocused = (infos: DiagramInfos, part: Part): boolean =>
-  infos.containsFocused.get(part.id) ?? false
+  infos.containsFocused.get(part.uid) ?? false
 
 export const pruneComponent = (infos: DiagramInfos) => (
   component: Component
@@ -366,7 +366,7 @@ export const pruneModule = (infos: DiagramInfos) => (
   })
   return {
     partType: PartType.Module,
-    id: module.id,
+    uid: module.uid,
     name: module.name,
     components,
   }
@@ -404,7 +404,7 @@ export const pruneDomain = (infos: DiagramInfos) => (
   })
   return {
     partType: PartType.Domain,
-    id: domain.id,
+    uid: domain.uid,
     name: domain.name,
     entities,
   }
@@ -419,7 +419,7 @@ export const pruneZone = (infos: DiagramInfos) => (zone: Zone): Zone => {
   })
   return {
     partType: PartType.Zone,
-    id: zone.id,
+    uid: zone.uid,
     name: zone.name,
     domains,
   }

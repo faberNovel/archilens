@@ -57,7 +57,7 @@ export const importRelation = (relation: RelationImport): Relation => {
 }
 
 export type ComponentImport = {
-  id: string
+  uid: string
   ctype: string
   name?: string
   relations?: RelationImport[]
@@ -65,7 +65,7 @@ export type ComponentImport = {
 }
 export const ComponentImport: yup.ObjectSchema<ComponentImport> = yup
   .object({
-    id: yup.string().required(),
+    uid: yup.string().required(),
     ctype: yup.string().required(),
     name: yup.string().notRequired(),
     relations: yup.array().of(RelationImport).notRequired(),
@@ -84,8 +84,8 @@ export const importComponent = (ctypes: string[]) => (
   }
   return {
     partType: PartType.Component,
-    id: component.id,
-    name: component.name ?? component.id,
+    uid: component.uid,
+    name: component.name ?? component.uid,
     type: component.ctype,
     relations: component.relations?.map(importRelation) ?? [],
     flags: importFlags(component.flags),
@@ -93,19 +93,19 @@ export const importComponent = (ctypes: string[]) => (
 }
 
 export type ResourceImport = {
-  id: string
+  uid: string
   name?: string
 }
 export const ResourceImport: yup.ObjectSchema<ResourceImport> = yup
   .object({
-    id: yup.string().required(),
+    uid: yup.string().required(),
     name: yup.string().notRequired(),
   })
   .required()
 export const importResource = (resource: ResourceImport): Resource => {
   return {
-    id: resource.id,
-    name: resource.name ?? resource.id,
+    uid: resource.uid,
+    name: resource.name ?? resource.uid,
   }
 }
 
@@ -115,7 +115,7 @@ const apiField = union<boolean | string | undefined>(
 )
 
 export type ModuleImport = {
-  id: string
+  uid: string
   name?: string
   components?: ComponentImport[]
   api?: string | boolean | undefined
@@ -124,7 +124,7 @@ export type ModuleImport = {
 }
 export const ModuleImport: yup.ObjectSchema<ModuleImport> = yup
   .object({
-    id: yup.string().required(),
+    uid: yup.string().required(),
     name: yup.string().notRequired(),
     components: yup.array().of(ComponentImport).notRequired(),
     api: apiField,
@@ -135,7 +135,7 @@ export const ModuleImport: yup.ObjectSchema<ModuleImport> = yup
 export const importModule = (ctypes: string[]) => (
   module: ModuleImport
 ): Module => {
-  const name = module.name ?? module.id
+  const name = module.name ?? module.uid
   const api = (
     module.api !== undefined
       ? module.api !== false
@@ -148,7 +148,7 @@ export const importModule = (ctypes: string[]) => (
     : undefined
   return {
     partType: PartType.Module,
-    id: module.id,
+    uid: module.uid,
     name: name,
     components: module.components?.map(importComponent(ctypes)) ?? [],
     api,
@@ -157,7 +157,7 @@ export const importModule = (ctypes: string[]) => (
 }
 
 export type ExternalModuleImport = {
-  id: string
+  uid: string
   mtype?: string
   name?: string
   relations?: RelationImport[]
@@ -165,7 +165,7 @@ export type ExternalModuleImport = {
 }
 export const ExternalModuleImport: yup.ObjectSchema<ExternalModuleImport> = yup
   .object({
-    id: yup.string().required(),
+    uid: yup.string().required(),
     mtype: yup.string().notRequired(),
     name: yup.string().notRequired(),
     relations: yup.array().of(RelationImport).notRequired(),
@@ -177,11 +177,11 @@ export const importExternalModule = (
 ): ExternalModule => {
   return {
     partType: PartType.ExternalModule,
-    id: externalModule.id,
+    uid: externalModule.uid,
     type: externalModule.mtype
       ? getExternalModuleTypeOrFail(externalModule.mtype)
       : ExternalModuleType.External,
-    name: externalModule.name ?? externalModule.id,
+    name: externalModule.name ?? externalModule.uid,
     relations: externalModule.relations?.map(importRelation) ?? [],
     flags: importFlags(externalModule.flags),
   }
@@ -227,14 +227,14 @@ export const importEntity = (ctypes: string[]) => (
 }
 
 export type DomainImport = {
-  id: string
+  uid: string
   name?: string
   entities?: EntityImport[]
   flags?: FlagsImport
 }
 export const DomainImport: yup.ObjectSchema<DomainImport> = yup
   .object({
-    id: yup.string().required(),
+    uid: yup.string().required(),
     name: yup.string().notRequired(),
     entities: yup.array().of(EntityImport).notRequired(),
     flags: FlagsImport.notRequired(),
@@ -245,22 +245,22 @@ export const importDomain = (ctypes: string[]) => (
 ): Domain => {
   return {
     partType: PartType.Domain,
-    id: domain.id,
-    name: domain.name ?? domain.id,
+    uid: domain.uid,
+    name: domain.name ?? domain.uid,
     entities: domain.entities?.map(importEntity(ctypes)) ?? [],
     flags: importFlags(domain.flags),
   }
 }
 
 export type ZoneImport = {
-  id: string
+  uid: string
   name?: string
   domains?: DomainImport[]
   flags?: FlagsImport
 }
 export const ZoneImport: yup.ObjectSchema<ZoneImport> = yup
   .object({
-    id: yup.string().required(),
+    uid: yup.string().required(),
     name: yup.string().notRequired(),
     domains: yup.array().of(DomainImport).notRequired(),
     flags: FlagsImport.notRequired(),
@@ -269,8 +269,8 @@ export const ZoneImport: yup.ObjectSchema<ZoneImport> = yup
 export const importZone = (ctypes: string[]) => (zone: ZoneImport): Zone => {
   return {
     partType: PartType.Zone,
-    id: zone.id,
-    name: zone.name ?? zone.id,
+    uid: zone.uid,
+    name: zone.name ?? zone.uid,
     domains: zone.domains?.map(importDomain(ctypes)) ?? [],
     flags: importFlags(zone.flags),
   }

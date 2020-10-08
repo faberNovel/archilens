@@ -11,8 +11,8 @@ export const enum ExternalModuleType {
   Legacy = "Legacy",
   App = "App",
 }
-export function getExternalModuleTypeOrFail(id: string): ExternalModuleType {
-  switch (id.toLowerCase()) {
+export function getExternalModuleTypeOrFail(uid: string): ExternalModuleType {
+  switch (uid.toLowerCase()) {
     case "external":
       return ExternalModuleType.External
     case "legacy":
@@ -20,7 +20,7 @@ export function getExternalModuleTypeOrFail(id: string): ExternalModuleType {
     case "app":
       return ExternalModuleType.App
     default:
-      throw new Error(`Unknown ExternalModuleType '${id}'`)
+      throw new Error(`Unknown ExternalModuleType '${uid}'`)
   }
 }
 
@@ -30,7 +30,7 @@ export type Flags = {
 
 export type ExternalModule = {
   readonly partType: PartType.ExternalModule
-  readonly id: string
+  readonly uid: string
   readonly type: ExternalModuleType
   readonly name: string
   readonly relations: readonly Relation[]
@@ -38,7 +38,7 @@ export type ExternalModule = {
 }
 
 export type Resource = {
-  readonly id: string
+  readonly uid: string
   readonly name: string
 }
 
@@ -49,7 +49,7 @@ export type Api = {
 
 export type Module = {
   readonly partType: PartType.Module
-  readonly id: string
+  readonly uid: string
   readonly name: string
   readonly components: readonly Component[]
   readonly api?: Api
@@ -58,7 +58,7 @@ export type Module = {
 
 export type Component = {
   readonly partType: PartType.Component
-  readonly id: string
+  readonly uid: string
   readonly name: string
   readonly type: string
   readonly relations: readonly Relation[]
@@ -70,8 +70,8 @@ export const enum RelationType {
   Tell = "Tell",
   Listen = "Listen",
 }
-export function getRelationTypeOrFail(id: string): RelationType {
-  switch (id.toLowerCase()) {
+export function getRelationTypeOrFail(uid: string): RelationType {
+  switch (uid.toLowerCase()) {
     case "ask":
       return RelationType.Ask
     case "tell":
@@ -79,7 +79,7 @@ export function getRelationTypeOrFail(id: string): RelationType {
     case "listen":
       return RelationType.Listen
     default:
-      throw new Error(`Unknown RelationType '${id}'`)
+      throw new Error(`Unknown RelationType '${uid}'`)
   }
 }
 
@@ -100,7 +100,7 @@ export type Entity = Module | ExternalModule | Component
 
 export type Domain = {
   readonly partType: PartType.Domain
-  readonly id: string
+  readonly uid: string
   readonly name: string
   readonly entities: readonly Entity[]
   readonly flags?: Flags
@@ -108,7 +108,7 @@ export type Domain = {
 
 export type Zone = {
   readonly partType: PartType.Zone
-  readonly id: string
+  readonly uid: string
   readonly name: string
   readonly domains: readonly Domain[]
   readonly flags?: Flags

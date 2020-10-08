@@ -34,14 +34,14 @@ export const generateComponent = (opts: PlantumlOptions) => (
 ): string[] => {
   const shape = getShapreForComponentType(component.type)
   return [
-    `${shape} "${component.name}" <<${component.type}>> as ${component.id}`,
+    `${shape} "${component.name}" <<${component.type}>> as ${component.uid}`,
   ]
 }
 
 export const generateModule = (opts: PlantumlOptions) => (
   module: Module
 ): string[] => {
-  const part = `rectangle "${module.name}" <<Module>> as ${module.id}`
+  const part = `rectangle "${module.name}" <<Module>> as ${module.uid}`
   if (module.components.length === 0) {
     return [part]
   }
@@ -71,7 +71,7 @@ export const generateExternalModule = (opts: PlantumlOptions) => (
         `Unknown ExternalModuleType '${module.type}' for module ${module}`
       )
   }
-  return [`rectangle "${module.name}" <<${skin}>> as ${module.id}`]
+  return [`rectangle "${module.name}" <<${skin}>> as ${module.uid}`]
 }
 
 export const generateEntity = (opts: PlantumlOptions) => (
@@ -92,7 +92,7 @@ export const generateEntity = (opts: PlantumlOptions) => (
 export const generateDomain = (opts: PlantumlOptions) => (
   domain: Domain
 ): string[] => {
-  const part = `rectangle "${domain.name}" <<Domain>> as ${domain.id}`
+  const part = `rectangle "${domain.name}" <<Domain>> as ${domain.uid}`
   if (domain.entities.length === 0) {
     return [part]
   }
@@ -106,7 +106,7 @@ export const generateDomain = (opts: PlantumlOptions) => (
 export const generateZone = (opts: PlantumlOptions) => (
   zone: Zone
 ): string[] => {
-  const part = `rectangle "${zone.name}" <<Zone>> as ${zone.id}`
+  const part = `rectangle "${zone.name}" <<Zone>> as ${zone.uid}`
   if (zone.domains.length === 0) {
     return [part]
   }

@@ -14,14 +14,14 @@ export type PlantumlOptions = {}
 export const generateResource = (opts: PlantumlOptions) => (
   resource: Resource
 ): string[] => {
-  return [`rectangle "${resource.name}" <<Resource>> as ${resource.id}`]
+  return [`rectangle "${resource.name}" <<Resource>> as ${resource.uid}`]
 }
 
 export const generateApi = (opts: PlantumlOptions) => (
   module: Module
 ): string[] => {
   const name = module.api?.name ?? module.name
-  const part = `rectangle "${name}" <<API>> as ${module.id}`
+  const part = `rectangle "${name}" <<API>> as ${module.uid}`
   const resources =
     module.api && module.api.resources.flatMap(generateResource(opts))
   if (!resources) {
@@ -42,7 +42,7 @@ export const generateEntity = (opts: PlantumlOptions) => (
 export const generateDomain = (opts: PlantumlOptions) => (
   domain: Domain
 ): string[] => {
-  const part = `rectangle "${domain.name}" <<Domain>> as ${domain.id}`
+  const part = `rectangle "${domain.name}" <<Domain>> as ${domain.uid}`
   if (domain.entities.length === 0) {
     return [part]
   }
@@ -56,7 +56,7 @@ export const generateDomain = (opts: PlantumlOptions) => (
 export const generateZone = (opts: PlantumlOptions) => (
   zone: Zone
 ): string[] => {
-  const part = `rectangle "${zone.name}" <<Zone>> as ${zone.id}`
+  const part = `rectangle "${zone.name}" <<Zone>> as ${zone.uid}`
   if (zone.domains.length === 0) {
     return [part]
   }

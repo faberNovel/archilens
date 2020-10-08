@@ -35,20 +35,20 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
   const descent: Map<string, readonly Part[]> = new Map()
 
   const complete = (part: Part, parent?: Part): boolean => {
-    if (ids.get(part.id)) {
+    if (ids.get(part.uid)) {
       throw new Error(
-        `Trying to add a part with a duplicate id '${
-          part.id
+        `Trying to add a part with a duplicate uid '${
+          part.uid
         }'.\nNew: ${JSON.stringify(part)}\nExisting: ${JSON.stringify(
-          ids.get(part.id)
+          ids.get(part.uid)
         )}`
       )
     }
-    ids.set(part.id, part)
+    ids.set(part.uid, part)
     const hasFocus =
       computeHasFocus(opts, part) ||
-      (parent !== undefined && opts.open.includes(parent.id))
-    focused.set(part.id, hasFocus)
+      (parent !== undefined && opts.open.includes(parent.uid))
+    focused.set(part.uid, hasFocus)
     return hasFocus
   }
   diagram.zones.forEach((zone) => {
@@ -57,8 +57,8 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     const zoneDescent: Part[] = []
     zone.domains.forEach((domain) => {
       complete(domain, zone)
-      parents.set(domain.id, zone)
-      ancestors.set(domain.id, [zone])
+      parents.set(domain.uid, zone)
+      ancestors.set(domain.uid, [zone])
       zoneChildren.push(domain)
       zoneDescent.push(domain)
       const domainChildren: Entity[] = []
@@ -66,18 +66,18 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
       domain.entities.forEach((entity) => {
         if (isModule(entity)) {
           complete(entity, domain)
-          parents.set(entity.id, domain)
-          ancestors.set(entity.id, [zone, domain])
+          parents.set(entity.uid, domain)
+          ancestors.set(entity.uid, [zone, domain])
           domainChildren.push(entity)
           domainDescent.push(entity)
           zoneDescent.push(entity)
         }
       })
-      children.set(domain.id, domainChildren)
-      descent.set(domain.id, domainDescent)
+      children.set(domain.uid, domainChildren)
+      descent.set(domain.uid, domainDescent)
     })
-    children.set(zone.id, zoneChildren)
-    descent.set(zone.id, zoneDescent)
+    children.set(zone.uid, zoneChildren)
+    descent.set(zone.uid, zoneDescent)
   })
   const containsFocused = Array.from(ids.keys()).reduce((acc, partId): Map<
     string,
@@ -86,7 +86,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     acc.set(
       partId,
       focused.get(partId) ||
-        descent.get(partId)?.find((d) => focused.get(d.id)) !== undefined
+        descent.get(partId)?.find((d) => focused.get(d.uid)) !== undefined
     )
     return acc
   }, new Map<string, boolean>())
@@ -113,10 +113,10 @@ const focusAcceptZone = (opts: PruneOptions): boolean =>
   opts.level === PruneLevel.Zone
 
 const computeHasFocus = (opts: PruneOptions, part: Part): boolean => {
-  if (opts.exclude.includes(part.id) || opts.softExclude.includes(part.id)) {
+  if (opts.exclude.includes(part.uid) || opts.softExclude.includes(part.uid)) {
     return false
   }
-  if (opts.focus.includes(part.id)) {
+  if (opts.focus.includes(part.uid)) {
     return true
   }
   if (isZone(part)) return focusAcceptZone(opts)
@@ -127,14 +127,14 @@ const computeHasFocus = (opts: PruneOptions, part: Part): boolean => {
 }
 
 const partContainsFocused = (infos: DiagramInfos, part: Part): boolean =>
-  infos.containsFocused.get(part.id) ?? false
+  infos.containsFocused.get(part.uid) ?? false
 
 export const pruneApi = (infos: DiagramInfos) => (module: Module): Module => {
   const resources =
     infos.opts.level === PruneLevel.Component ? module.api?.resources ?? [] : []
   return {
     partType: PartType.Module,
-    id: module.id,
+    uid: module.uid,
     name: module.name,
     components: [],
     api: module.api ? { ...module.api, resources } : undefined,
@@ -152,7 +152,7 @@ export const pruneDomain = (infos: DiagramInfos) => (
   })
   return {
     partType: PartType.Domain,
-    id: domain.id,
+    uid: domain.uid,
     name: domain.name,
     entities: apis,
   }
@@ -167,7 +167,7 @@ export const pruneZone = (infos: DiagramInfos) => (zone: Zone): Zone => {
   })
   return {
     partType: PartType.Zone,
-    id: zone.id,
+    uid: zone.uid,
     name: zone.name,
     domains,
   }
