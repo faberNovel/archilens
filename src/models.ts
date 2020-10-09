@@ -94,6 +94,8 @@ export type CompleteRelation = {
   readonly targetId: string
   readonly type: RelationType
   readonly description?: string
+  readonly origSourceId: string
+  readonly origTargetId: string
 }
 
 export type Entity = Module | ExternalModule | Component

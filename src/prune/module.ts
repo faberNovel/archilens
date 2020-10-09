@@ -192,18 +192,48 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
               targetId: firstTarget.uid,
               type: relation.type,
               description: relation.description,
+              origSourceId: source.uid,
+              origTargetId: target.uid,
             },
           ]
         })
-
-  // Remove duplicates
-  const relationsMap = new Map<string, CompleteRelation>()
-  computedRelations.forEach((r) => relationsMap.set(JSON.stringify(r), r))
-  const relations = Array.from(relationsMap.values())
-  relations.forEach((relation) => {
+  computedRelations.forEach((relation) => {
     focused.set(relation.sourceId, true)
     focused.set(relation.targetId, true)
   })
+
+  const cleanedRelations = computedRelations.map<CompleteRelation>(
+    (relation) => {
+      const sourceId = findFirstFocusedParent(
+        relation.origSourceId,
+        parents,
+        focused
+      )
+      const targetId = findFirstFocusedParent(
+        relation.origTargetId,
+        parents,
+        focused
+      )
+      if (!sourceId || !targetId) {
+        console.warn(
+          "[warn] invalid state when cleaning relations:",
+          relation,
+          { sourceId, targetId }
+        )
+        return relation
+      }
+      return {
+        ...relation,
+        sourceId,
+        targetId,
+      }
+    }
+  )
+
+  // Remove duplicates
+  const relationsMap = new Map<string, CompleteRelation>()
+  cleanedRelations.forEach((r) => relationsMap.set(JSON.stringify(r), r))
+  const relations = Array.from(relationsMap.values())
 
   const containsFocused = Array.from(ids.keys()).reduce((acc, partId): Map<
     string,
@@ -350,6 +380,21 @@ const getFirstRelationTaget = (
     commonFocusedAncestors,
     parent
   )
+}
+
+const findFirstFocusedParent = (
+  partId: string,
+  parents: ReadonlyMap<string, Part>,
+  focused: ReadonlyMap<string, boolean>
+): string | undefined => {
+  if (focused.get(partId) ?? false) {
+    return partId
+  }
+  const parent = parents.get(partId)
+  if (!parent) {
+    return undefined
+  }
+  return findFirstFocusedParent(parent.uid, parents, focused)
 }
 
 const partContainsFocused = (infos: DiagramInfos, part: Part): boolean =>
