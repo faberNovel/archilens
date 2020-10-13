@@ -10,6 +10,11 @@ $defs:
       soft_exclude_deep:
         type: boolean
     additionalItems: false
+  tags:
+    title: Flags
+    type: array
+    items:
+      type: string
   zone:
     title: Zone
     description: "The unique identifier for a product"
@@ -25,6 +30,8 @@ $defs:
           $ref: "#/$defs/domain"
       flags:
         $ref: "#/$defs/flags"
+      tags:
+        $ref: "#/$defs/tags"
     required: [ uid ]
     additionalItems: false
   domain:
@@ -41,6 +48,8 @@ $defs:
           $ref: "#/$defs/entity"
       flags:
         $ref: "#/$defs/flags"
+      tags:
+        $ref: "#/$defs/tags"
     required: [ uid ]
     additionalItems: false
   entity:
@@ -69,6 +78,8 @@ $defs:
           $ref: "#/$defs/resource"
       flags:
         $ref: "#/$defs/flags"
+      tags:
+        $ref: "#/$defs/tags"
     required: [ uid, components ]
     additionalItems: false
   component:
@@ -86,6 +97,8 @@ $defs:
           $ref: "#/$defs/relation"
       flags:
         $ref: "#/$defs/flags"
+      tags:
+        $ref: "#/$defs/tags"
     required: [ uid, ctype ]
     additionalItems: false
   externalmodule:
@@ -104,6 +117,8 @@ $defs:
           $ref: "#/$defs/relation"
       flags:
         $ref: "#/$defs/flags"
+      tags:
+        $ref: "#/$defs/tags"
     required: [ uid, mtype ]
     additionalItems: false
   resource:

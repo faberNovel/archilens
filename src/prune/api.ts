@@ -47,7 +47,9 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     ids.set(part.uid, part)
     const hasFocus =
       computeHasFocus(opts, part) ||
-      (parent !== undefined && opts.open.includes(parent.uid))
+      (parent !== undefined &&
+        (opts.open.includes(parent.uid) ||
+          parent.tags.find((t) => opts.openTags.includes(t)) !== undefined))
     focused.set(part.uid, hasFocus)
     return hasFocus
   }
@@ -113,10 +115,16 @@ const focusAcceptZone = (opts: PruneOptions): boolean =>
   opts.level === PruneLevel.Zone
 
 const computeHasFocus = (opts: PruneOptions, part: Part): boolean => {
-  if (opts.exclude.includes(part.uid) || opts.softExclude.includes(part.uid)) {
+  if (
+    opts.exclude.includes(part.uid) ||
+    part.tags.find((t) => opts.excludeTags.includes(t)) !== undefined
+  ) {
     return false
   }
-  if (opts.focus.includes(part.uid)) {
+  if (
+    opts.focus.includes(part.uid) ||
+    part.tags.find((t) => opts.focusTags.includes(t)) !== undefined
+  ) {
     return true
   }
   if (isZone(part)) return focusAcceptZone(opts)
@@ -138,6 +146,7 @@ export const pruneApi = (infos: DiagramInfos) => (module: Module): Module => {
     name: module.name,
     components: [],
     api: module.api ? { ...module.api, resources } : undefined,
+    tags: module.tags,
   }
 }
 
@@ -155,6 +164,7 @@ export const pruneDomain = (infos: DiagramInfos) => (
     uid: domain.uid,
     name: domain.name,
     entities: apis,
+    tags: domain.tags,
   }
 }
 
@@ -170,6 +180,7 @@ export const pruneZone = (infos: DiagramInfos) => (zone: Zone): Zone => {
     uid: zone.uid,
     name: zone.name,
     domains,
+    tags: zone.tags,
   }
 }
 

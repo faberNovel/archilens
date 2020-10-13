@@ -75,8 +75,20 @@ program
     []
   )
   .option(
+    "-ft,--focus-tag <id>",
+    "Focus parts with tag",
+    (value: string, previous: string[]) => [...previous, value],
+    []
+  )
+  .option(
     "-e,--exclude <id>",
     "Exclude this part",
+    (value: string, previous: string[]) => [...previous, value],
+    []
+  )
+  .option(
+    "-et,--exclude-tag <id>",
+    "Exclude parts with tag",
     (value: string, previous: string[]) => [...previous, value],
     []
   )
@@ -95,6 +107,12 @@ program
   .option(
     "-o,--open <id>",
     "Include this part and its children",
+    (value: string, previous: string[]) => [...previous, value],
+    []
+  )
+  .option(
+    "-ot,--open-tag <id>",
+    "Include parts with this tags and their children",
     (value: string, previous: string[]) => [...previous, value],
     []
   )
@@ -175,10 +193,13 @@ export function parseCli(args: string[]): CliOptions {
                 : PruneLevel.Nothing
               : PruneLevel.Module),
       focus: cliOpts.focus,
+      focusTags: cliOpts.focusTag,
       exclude: cliOpts.exclude,
+      excludeTags: cliOpts.excludeTag,
       softExclude: cliOpts.softExclude,
       softExcludeDeep: cliOpts.softExcludeDeep,
       open: cliOpts.open,
+      openTags: cliOpts.openTag,
       reverseRelationTypes: [
         ...new Set(cliOpts.reverseRelationType as RelationType[]),
       ],

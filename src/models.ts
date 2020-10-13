@@ -35,6 +35,7 @@ export type ExternalModule = {
   readonly name: string
   readonly relations: readonly Relation[]
   readonly flags?: Flags
+  readonly tags: readonly string[]
 }
 
 export type Resource = {
@@ -54,6 +55,7 @@ export type Module = {
   readonly components: readonly Component[]
   readonly api?: Api
   readonly flags?: Flags
+  readonly tags: readonly string[]
 }
 
 export type Component = {
@@ -63,6 +65,7 @@ export type Component = {
   readonly type: string
   readonly relations: readonly Relation[]
   readonly flags?: Flags
+  readonly tags: readonly string[]
 }
 
 export const enum RelationType {
@@ -106,6 +109,7 @@ export type Domain = {
   readonly name: string
   readonly entities: readonly Entity[]
   readonly flags?: Flags
+  readonly tags: readonly string[]
 }
 
 export type Zone = {
@@ -114,6 +118,7 @@ export type Zone = {
   readonly name: string
   readonly domains: readonly Domain[]
   readonly flags?: Flags
+  readonly tags: readonly string[]
 }
 
 export type Diagram = {

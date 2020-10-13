@@ -32,6 +32,13 @@ export const importFlags = (flags: FlagsImport | undefined): Flags => {
   }
 }
 
+export const TagsImport: yup.ArraySchema<string> = yup
+  .array(yup.string().required())
+  .required()
+export const importTags = (tags: string[] | undefined): string[] => {
+  return tags ?? []
+}
+
 export type RelationImport = {
   target: string
   rtype: string
@@ -62,6 +69,7 @@ export type ComponentImport = {
   name?: string
   relations?: RelationImport[]
   flags?: FlagsImport
+  tags?: string[]
 }
 export const ComponentImport: yup.ObjectSchema<ComponentImport> = yup
   .object({
@@ -70,6 +78,7 @@ export const ComponentImport: yup.ObjectSchema<ComponentImport> = yup
     name: yup.string().notRequired(),
     relations: yup.array().of(RelationImport).notRequired(),
     flags: FlagsImport.notRequired(),
+    tags: TagsImport.notRequired(),
   })
   .required()
 export const importComponent = (ctypes: string[]) => (
@@ -89,6 +98,7 @@ export const importComponent = (ctypes: string[]) => (
     type: component.ctype,
     relations: component.relations?.map(importRelation) ?? [],
     flags: importFlags(component.flags),
+    tags: importTags(component.tags),
   }
 }
 
@@ -121,6 +131,7 @@ export type ModuleImport = {
   api?: string | boolean | undefined
   resources?: ResourceImport[]
   flags?: FlagsImport
+  tags?: string[]
 }
 export const ModuleImport: yup.ObjectSchema<ModuleImport> = yup
   .object({
@@ -130,6 +141,7 @@ export const ModuleImport: yup.ObjectSchema<ModuleImport> = yup
     api: apiField,
     resources: yup.array().of(ResourceImport).notRequired(),
     flags: FlagsImport.notRequired(),
+    tags: TagsImport.notRequired(),
   })
   .required()
 export const importModule = (ctypes: string[]) => (
@@ -153,6 +165,7 @@ export const importModule = (ctypes: string[]) => (
     components: module.components?.map(importComponent(ctypes)) ?? [],
     api,
     flags: importFlags(module.flags),
+    tags: importTags(module.tags),
   }
 }
 
@@ -162,6 +175,7 @@ export type ExternalModuleImport = {
   name?: string
   relations?: RelationImport[]
   flags?: FlagsImport
+  tags?: string[]
 }
 export const ExternalModuleImport: yup.ObjectSchema<ExternalModuleImport> = yup
   .object({
@@ -170,6 +184,7 @@ export const ExternalModuleImport: yup.ObjectSchema<ExternalModuleImport> = yup
     name: yup.string().notRequired(),
     relations: yup.array().of(RelationImport).notRequired(),
     flags: FlagsImport.notRequired(),
+    tags: TagsImport.notRequired(),
   })
   .required()
 export const importExternalModule = (
@@ -184,6 +199,7 @@ export const importExternalModule = (
     name: externalModule.name ?? externalModule.uid,
     relations: externalModule.relations?.map(importRelation) ?? [],
     flags: importFlags(externalModule.flags),
+    tags: importTags(externalModule.tags),
   }
 }
 
@@ -231,6 +247,7 @@ export type DomainImport = {
   name?: string
   entities?: EntityImport[]
   flags?: FlagsImport
+  tags?: string[]
 }
 export const DomainImport: yup.ObjectSchema<DomainImport> = yup
   .object({
@@ -238,6 +255,7 @@ export const DomainImport: yup.ObjectSchema<DomainImport> = yup
     name: yup.string().notRequired(),
     entities: yup.array().of(EntityImport).notRequired(),
     flags: FlagsImport.notRequired(),
+    tags: TagsImport.notRequired(),
   })
   .required()
 export const importDomain = (ctypes: string[]) => (
@@ -249,6 +267,7 @@ export const importDomain = (ctypes: string[]) => (
     name: domain.name ?? domain.uid,
     entities: domain.entities?.map(importEntity(ctypes)) ?? [],
     flags: importFlags(domain.flags),
+    tags: importTags(domain.tags),
   }
 }
 
@@ -257,6 +276,7 @@ export type ZoneImport = {
   name?: string
   domains?: DomainImport[]
   flags?: FlagsImport
+  tags?: string[]
 }
 export const ZoneImport: yup.ObjectSchema<ZoneImport> = yup
   .object({
@@ -264,6 +284,7 @@ export const ZoneImport: yup.ObjectSchema<ZoneImport> = yup
     name: yup.string().notRequired(),
     domains: yup.array().of(DomainImport).notRequired(),
     flags: FlagsImport.notRequired(),
+    tags: TagsImport.notRequired(),
   })
   .required()
 export const importZone = (ctypes: string[]) => (zone: ZoneImport): Zone => {
@@ -273,6 +294,7 @@ export const importZone = (ctypes: string[]) => (zone: ZoneImport): Zone => {
     name: zone.name ?? zone.uid,
     domains: zone.domains?.map(importDomain(ctypes)) ?? [],
     flags: importFlags(zone.flags),
+    tags: importTags(zone.tags),
   }
 }
 

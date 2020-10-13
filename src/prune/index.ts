@@ -11,9 +11,12 @@ export type PruneOptions = {
   readonly level: PruneLevel
   readonly relationLevel: PruneLevel
   readonly focus: string[]
+  readonly focusTags: string[]
   readonly exclude: string[]
+  readonly excludeTags: string[]
   readonly softExclude: string[]
   readonly softExcludeDeep: string[]
   readonly open: string[]
+  readonly openTags: string[]
   readonly reverseRelationTypes: RelationType[]
 }

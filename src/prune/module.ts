@@ -118,7 +118,9 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     const parent = parents.get(part.uid)
     const hasFocus =
       computeHasFocus(opts, part, ancestors) ||
-      (parent !== undefined && opts.open.includes(parent.uid))
+      (parent !== undefined &&
+        (opts.open.includes(parent.uid) ||
+          parent.tags.find((t) => opts.openTags.includes(t)) !== undefined))
     focused.set(part.uid, hasFocus)
   })
   const isDisplayed = (part: Part): boolean => {
@@ -297,10 +299,16 @@ const computeHasFocus = (
   part: Part,
   ancestors: ReadonlyMap<string, readonly Part[]>
 ): boolean => {
-  if (opts.exclude.includes(part.uid)) {
+  if (
+    opts.exclude.includes(part.uid) ||
+    part.tags.find((t) => opts.excludeTags.includes(t)) !== undefined
+  ) {
     return false
   }
-  if (opts.focus.includes(part.uid)) {
+  if (
+    opts.focus.includes(part.uid) ||
+    part.tags.find((t) => opts.focusTags.includes(t)) !== undefined
+  ) {
     return true
   }
   if (
@@ -420,6 +428,7 @@ export const pruneModule = (infos: DiagramInfos) => (
     uid: module.uid,
     name: module.name,
     components,
+    tags: module.tags,
   }
 }
 
@@ -458,6 +467,7 @@ export const pruneDomain = (infos: DiagramInfos) => (
     uid: domain.uid,
     name: domain.name,
     entities,
+    tags: domain.tags,
   }
 }
 
@@ -473,6 +483,7 @@ export const pruneZone = (infos: DiagramInfos) => (zone: Zone): Zone => {
     uid: zone.uid,
     name: zone.name,
     domains,
+    tags: zone.tags,
   }
 }
 
