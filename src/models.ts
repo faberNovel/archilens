@@ -10,15 +10,18 @@ export const enum ExternalModuleType {
   External = "External",
   Legacy = "Legacy",
   App = "App",
+  Platform = "Platform",
 }
 export function getExternalModuleTypeOrFail(uid: string): ExternalModuleType {
   switch (uid.toLowerCase()) {
+    case "app":
+      return ExternalModuleType.App
     case "external":
       return ExternalModuleType.External
     case "legacy":
       return ExternalModuleType.Legacy
-    case "app":
-      return ExternalModuleType.App
+    case "platform":
+      return ExternalModuleType.Platform
     default:
       throw new Error(`Unknown ExternalModuleType '${uid}'`)
   }

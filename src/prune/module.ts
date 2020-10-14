@@ -18,7 +18,6 @@ import {
 } from "../models"
 import { debug } from "../debug"
 import { PruneLevel, PruneOptions } from "./index"
-import { read } from "fs"
 
 type DiagramInfos = {
   readonly diagram: Diagram

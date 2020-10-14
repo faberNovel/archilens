@@ -57,14 +57,17 @@ export const generateExternalModule = (opts: PlantumlOptions) => (
 ): string[] => {
   let skin
   switch (module.type) {
-    case ExternalModuleType.External:
-      skin = "ExternalModule"
-      break
     case ExternalModuleType.App:
       skin = "App"
       break
+    case ExternalModuleType.External:
+      skin = "ExternalModule"
+      break
     case ExternalModuleType.Legacy:
       skin = "LegacyModule"
+      break
+    case ExternalModuleType.Platform:
+      skin = "Platform"
       break
     default:
       throw new Error(
@@ -165,9 +168,10 @@ export function generateDiagram(
       ...skinparams.rectangleDomain,
       BackgroundColor: "#D5E8D4",
     }),
-    ...skinparam("rectangle<<ExternalModule>>", { BackgroundColor: "#F5F5F5" }),
-    ...skinparam("rectangle<<LegacyModule>>", { BackgroundColor: "#F8CECC" }),
     ...skinparam("rectangle<<App>>", { BackgroundColor: "#F5F5F5" }),
+    ...skinparam("rectangle<<ExternalModule>>", { BackgroundColor: "#F5F5F5" }),
+    ...skinparam("rectangle<<Platform>>", { BackgroundColor: "#FFF2CB" }),
+    ...skinparam("rectangle<<LegacyModule>>", { BackgroundColor: "#F8CECC" }),
     ...skinparam("rectangle<<Module>>", { BackgroundColor: "#FFE6CC" }),
     ...skinparam("queue", { BorderColor: "black" }),
 
