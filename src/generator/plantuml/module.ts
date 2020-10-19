@@ -158,7 +158,7 @@ export function generateDiagram(
   })
 
   const skinParams = [
-    ...skinparam("", { ...skinparams.base, "'linetype": "ortho" }),
+    ...skinparam("", { ...skinparams.base, linetype: "ortho" }),
     ...skinparam("rectangle", skinparams.rectangle),
     ...skinparam("rectangle<<Zone>>", {
       ...skinparams.rectangleZone,
