@@ -14,6 +14,7 @@ import {
   Part,
   PartType,
   Relation,
+  RelationType,
   Zone,
 } from "../models"
 import { debug } from "../debug"
@@ -129,7 +130,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
       descent.get(part.uid)?.find((d) => focused.get(d.uid)) !== undefined
     )
   }
-  debug("reverseRelationTypes", opts.reverseRelationTypes)
+  debug("reverseRelationTypes:", opts.reverseRelationTypes)
   const computedRelations: CompleteRelation[] =
     opts.relationLevel === PruneLevel.Nothing
       ? []
@@ -172,7 +173,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
             firstTarget = getFirstRelationSource(opts, parents, focused, target)
             reversed = true
           }
-          debug("Relation", {
+          debug("Relation:", {
             source: source.uid,
             target: target.uid,
             firstSource: firstSource?.uid,
@@ -199,12 +200,75 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
             },
           ]
         })
-  computedRelations.forEach((relation) => {
+
+  const listenRelationsPerTarget = new Map<string, CompleteRelation[]>()
+  computedRelations
+    .filter((r) => r.type === RelationType.Listen)
+    .forEach((rel) => {
+      listenRelationsPerTarget.set(rel.origTargetId, [
+        ...(listenRelationsPerTarget.get(rel.origTargetId) ?? []),
+        rel,
+      ])
+    })
+  debug("listenRelationsPerTarget:", listenRelationsPerTarget)
+  const listenRelationsTargetSeen = new Set<string>()
+  const mergedRelations = computedRelations.flatMap((relation) => {
+    const relatedListenRelations = listenRelationsPerTarget.get(
+      relation.origTargetId
+    )
+    if (relation.type === RelationType.Listen) {
+      return []
+    }
+    if (
+      relation.type === RelationType.Ask &&
+      ids.get(relation.origTargetId)?.partType === PartType.Component
+    ) {
+      debug("origTargetId:", relation.origTargetId)
+      debug("focused:", focused.get(relation.origTargetId))
+      debug("relatedListenRelations:", relatedListenRelations)
+    }
+    if (
+      relation.type === RelationType.Ask &&
+      ids.get(relation.origTargetId)?.partType === PartType.Component &&
+      focused.get(relation.origTargetId) !== true &&
+      relatedListenRelations !== undefined
+    ) {
+      debug("relation:", relation)
+      listenRelationsTargetSeen.add(relation.origTargetId)
+      return relatedListenRelations.map((rel) => {
+        debug("relatedListenRelation:", rel)
+        const newRel = {
+          ...rel,
+          targetId: relation.sourceId,
+          origTargetId: relation.origSourceId,
+        }
+        debug("newRel", newRel)
+        return newRel
+      })
+    }
+    return [relation]
+  })
+  const unrelatedListenRelations: CompleteRelation[] = [
+    ...listenRelationsPerTarget.entries(),
+  ]
+    .filter(([origTargetId]) => !listenRelationsTargetSeen.has(origTargetId))
+    .flatMap(([_, rels]) => rels)
+  const newRelations = [...mergedRelations, ...unrelatedListenRelations]
+
+  const acceptComponents =
+    opts.level === PruneLevel.Component ||
+    opts.relationLevel === PruneLevel.Component
+  debug("acceptComponents", acceptComponents)
+  const maybeMergedRelations = acceptComponents
+    ? computedRelations
+    : newRelations
+
+  maybeMergedRelations.forEach((relation) => {
     focused.set(relation.sourceId, true)
     focused.set(relation.targetId, true)
   })
 
-  const cleanedRelations = computedRelations.map<CompleteRelation>(
+  const cleanedRelations = maybeMergedRelations.map<CompleteRelation>(
     (relation) => {
       const sourceId = findFirstFocusedParent(
         relation.origSourceId,
@@ -498,7 +562,6 @@ export function pruneDiagram(
   diagram: Diagram
 ): PrunedDiagram {
   const infos = prepareDiagram(opts, diagram)
-  debug("infos:", infos)
   const zones = diagram.zones.flatMap((zone) => {
     if (partContainsFocused(infos, zone)) {
       return pruneZone(infos)(zone)
