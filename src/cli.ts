@@ -117,6 +117,12 @@ program
     []
   )
   .option(
+    "-c,--close <id>",
+    "Doesn't open this part",
+    (value: string, previous: string[]) => [...previous, value],
+    []
+  )
+  .option(
     "-rrt,--reverse-relation-type <level>",
     "Reverse relation level (none|all|ask|tell|listen)",
     (value: string, previous: RelationType[]): RelationType[] => {
@@ -200,6 +206,7 @@ export function parseCli(args: string[]): CliOptions {
       softExcludeDeep: cliOpts.softExcludeDeep,
       open: cliOpts.open,
       openTags: cliOpts.openTag,
+      close: cliOpts.close,
       reverseRelationTypes: [
         ...new Set(cliOpts.reverseRelationType as RelationType[]),
       ],

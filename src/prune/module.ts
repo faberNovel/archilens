@@ -118,6 +118,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     const hasFocus =
       computeHasFocus(opts, part, ancestors) ||
       (parent !== undefined &&
+        !opts.close.includes(parent.uid) &&
         (opts.open.includes(parent.uid) ||
           parent.tags.find((t) => opts.openTags.includes(t)) !== undefined))
     focused.set(part.uid, hasFocus)

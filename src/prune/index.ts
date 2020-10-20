@@ -18,5 +18,6 @@ export type PruneOptions = {
   readonly softExcludeDeep: string[]
   readonly open: string[]
   readonly openTags: string[]
+  readonly close: string[]
   readonly reverseRelationTypes: RelationType[]
 }
