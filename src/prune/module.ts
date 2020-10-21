@@ -129,7 +129,6 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
       descent.get(part.uid)?.find((d) => focused.get(d.uid)) !== undefined
     )
   }
-  debug("reverseRelationTypes:", opts.reverseRelationTypes)
   const computedRelations: CompleteRelation[] =
     opts.relationLevel === PruneLevel.Nothing
       ? []
@@ -172,13 +171,6 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
             firstTarget = getFirstRelationSource(opts, parents, focused, target)
             reversed = true
           }
-          debug("Relation:", {
-            source: source.uid,
-            target: target.uid,
-            firstSource: firstSource?.uid,
-            firstTarget: firstTarget?.uid,
-            reversed,
-          })
           if (
             firstSource &&
             (reversed ? sourceAncestors : targetAncestors).includes(firstSource)
@@ -209,7 +201,6 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
         rel,
       ])
     })
-  debug("listenRelationsPerTarget:", listenRelationsPerTarget)
   const listenRelationsTargetSeen = new Set<string>()
   const mergedRelations = computedRelations.flatMap((relation) => {
     const relatedListenRelations = listenRelationsPerTarget.get(
@@ -220,28 +211,17 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     }
     if (
       relation.type === RelationType.Ask &&
-      ids.get(relation.origTargetId)?.partType === PartType.Component
-    ) {
-      debug("origTargetId:", relation.origTargetId)
-      debug("focused:", focused.get(relation.origTargetId))
-      debug("relatedListenRelations:", relatedListenRelations)
-    }
-    if (
-      relation.type === RelationType.Ask &&
       ids.get(relation.origTargetId)?.partType === PartType.Component &&
       focused.get(relation.origTargetId) !== true &&
       relatedListenRelations !== undefined
     ) {
-      debug("relation:", relation)
       listenRelationsTargetSeen.add(relation.origTargetId)
       return relatedListenRelations.map((rel) => {
-        debug("relatedListenRelation:", rel)
         const newRel = {
           ...rel,
           targetId: relation.sourceId,
           origTargetId: relation.origSourceId,
         }
-        debug("newRel", newRel)
         return newRel
       })
     }
@@ -257,7 +237,6 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
   const acceptComponents =
     opts.level === PruneLevel.Component ||
     opts.relationLevel === PruneLevel.Component
-  debug("acceptComponents", acceptComponents)
   const maybeMergedRelations = acceptComponents
     ? computedRelations
     : newRelations
