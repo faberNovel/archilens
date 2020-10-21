@@ -119,7 +119,6 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     const hasFocus =
       computeHasFocus(opts, part, ancestors) ||
       (parent !== undefined &&
-        !opts.close.includes(parent.uid) &&
         (opts.open.includes(parent.uid) ||
           parent.tags.find((t) => opts.openTags.includes(t)) !== undefined))
     focused.set(part.uid, hasFocus)
@@ -263,12 +262,21 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     ? computedRelations
     : newRelations
 
+  const setFocus = (partId: string) => {
+    const parent = parents.get(partId)
+    if (parent && opts.close.includes(parent.uid)) {
+      focused.set(partId, false)
+      focused.set(parent.uid, true)
+    } else {
+      focused.set(partId, true)
+    }
+  }
   maybeMergedRelations.forEach((relation) => {
-    focused.set(relation.sourceId, true)
-    focused.set(relation.targetId, true)
+    setFocus(relation.sourceId)
+    setFocus(relation.targetId)
   })
 
-  const cleanedRelations = maybeMergedRelations.map<CompleteRelation>(
+  const cleanedRelations = maybeMergedRelations.flatMap<CompleteRelation>(
     (relation) => {
       const sourceId = findFirstFocusedParent(
         relation.origSourceId,
@@ -280,19 +288,16 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
         parents,
         focused
       )
-      if (!sourceId || !targetId) {
-        console.warn(
-          "[warn] invalid state when cleaning relations:",
-          relation,
-          { sourceId, targetId }
-        )
-        return relation
+      if (!sourceId || !targetId || sourceId === targetId) {
+        return []
       }
-      return {
-        ...relation,
-        sourceId,
-        targetId,
-      }
+      return [
+        {
+          ...relation,
+          sourceId,
+          targetId,
+        },
+      ]
     }
   )
 
