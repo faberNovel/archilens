@@ -18,8 +18,8 @@ type DiagramInfos = {
   readonly diagram: Diagram
   readonly opts: PruneOptions
   readonly ids: ReadonlyMap<string, Part>
-  readonly focused: ReadonlyMap<string, boolean>
-  readonly containsFocused: ReadonlyMap<string, boolean>
+  readonly focused: ReadonlySet<string>
+  readonly containsFocused: ReadonlySet<string>
   readonly parents: ReadonlyMap<string, Part>
   readonly ancestors: ReadonlyMap<string, readonly Part[]>
   readonly children: ReadonlyMap<string, readonly Part[]>
@@ -28,7 +28,7 @@ type DiagramInfos = {
 
 function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
   const ids: Map<string, Part> = new Map()
-  const focused: Map<string, boolean> = new Map()
+  const focused: Set<string> = new Set()
   const parents: Map<string, Part> = new Map()
   const ancestors: Map<string, readonly Part[]> = new Map()
   const children: Map<string, readonly Part[]> = new Map()
@@ -50,7 +50,9 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
       (parent !== undefined &&
         (opts.open.includes(parent.uid) ||
           parent.tags.find((t) => opts.openTags.includes(t)) !== undefined))
-    focused.set(part.uid, hasFocus)
+    if (hasFocus) {
+      focused.add(part.uid)
+    }
     return hasFocus
   }
   diagram.zones.forEach((zone) => {
@@ -81,17 +83,17 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     children.set(zone.uid, zoneChildren)
     descent.set(zone.uid, zoneDescent)
   })
-  const containsFocused = Array.from(ids.keys()).reduce((acc, partId): Map<
-    string,
-    boolean
+  const containsFocused = Array.from(ids.keys()).reduce((acc, partId): Set<
+    string
   > => {
-    acc.set(
-      partId,
-      focused.get(partId) ||
-        descent.get(partId)?.find((d) => focused.get(d.uid)) !== undefined
-    )
+    const containsFocused =
+      focused.has(partId) ||
+      descent.get(partId)?.find((d) => focused.has(d.uid)) !== undefined
+    if (containsFocused) {
+      acc.add(partId)
+    }
     return acc
-  }, new Map<string, boolean>())
+  }, new Set<string>())
   return {
     diagram,
     opts,
@@ -135,7 +137,7 @@ const computeHasFocus = (opts: PruneOptions, part: Part): boolean => {
 }
 
 const partContainsFocused = (infos: DiagramInfos, part: Part): boolean =>
-  infos.containsFocused.get(part.uid) ?? false
+  infos.containsFocused.has(part.uid)
 
 export const pruneApi = (infos: DiagramInfos) => (module: Module): Module => {
   const resources =
