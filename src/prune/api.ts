@@ -1,14 +1,16 @@
 import {
   Diagram,
+  DiagramPredicates,
   Domain,
   Entity,
+  filterDiagram,
   isComponent,
   isDomain,
   isModule,
   isZone,
   Module,
   Part,
-  PartType,
+  PartType, REJECT,
   Zone,
 } from "../models"
 import { debug } from "../debug"
@@ -136,67 +138,20 @@ const computeHasFocus = (opts: PruneOptions, part: Part): boolean => {
   return false
 }
 
-const partContainsFocused = (infos: DiagramInfos, part: Part): boolean =>
+const partContainsFocused = (infos: DiagramInfos) => (part: Part): boolean =>
   infos.containsFocused.has(part.uid)
-
-export const pruneApi = (infos: DiagramInfos) => (module: Module): Module => {
-  const resources =
-    infos.opts.level === PruneLevel.Component ? module.api?.resources ?? [] : []
-  return {
-    partType: PartType.Module,
-    uid: module.uid,
-    name: module.name,
-    components: [],
-    api: module.api ? { ...module.api, resources } : undefined,
-    tags: module.tags,
-  }
-}
-
-export const pruneDomain = (infos: DiagramInfos) => (
-  domain: Domain
-): Domain => {
-  const apis = domain.entities.flatMap((entity) => {
-    if (isModule(entity) && partContainsFocused(infos, entity)) {
-      return pruneApi(infos)(entity)
-    }
-    return []
-  })
-  return {
-    partType: PartType.Domain,
-    uid: domain.uid,
-    name: domain.name,
-    entities: apis,
-    tags: domain.tags,
-  }
-}
-
-export const pruneZone = (infos: DiagramInfos) => (zone: Zone): Zone => {
-  const domains = zone.domains.flatMap((domain) => {
-    if (partContainsFocused(infos, domain)) {
-      return pruneDomain(infos)(domain)
-    }
-    return []
-  })
-  return {
-    partType: PartType.Zone,
-    uid: zone.uid,
-    name: zone.name,
-    domains,
-    tags: zone.tags,
-  }
-}
 
 export function pruneDiagram(opts: PruneOptions, diagram: Diagram): Diagram {
   const infos = prepareDiagram(opts, diagram)
-  debug("infos:", infos)
-  const zones = diagram.zones.flatMap((zone) => {
-    if (partContainsFocused(infos, zone)) {
-      return pruneZone(infos)(zone)
-    }
-    return []
-  })
-  return {
-    componentTypes: [],
-    zones,
+  const predicates: DiagramPredicates = {
+    componentTypes: REJECT,
+    zone: partContainsFocused(infos),
+    domain: partContainsFocused(infos),
+    module: partContainsFocused(infos),
+    externalModule: REJECT,
+    component: REJECT,
+    relation: REJECT,
+    resource: (_: unknown): boolean => infos.opts.level === PruneLevel.Component,
   }
+  return filterDiagram(predicates)(diagram)
 }

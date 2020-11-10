@@ -126,7 +126,7 @@ export type Zone = {
 
 export type Diagram = {
   readonly componentTypes: readonly string[]
-  readonly zones: Zone[]
+  readonly zones: readonly Zone[]
 }
 
 export type Part = Zone | Domain | Module | ExternalModule | Component
@@ -141,3 +141,128 @@ export const isComponent = (part: Part): part is Component =>
   part.partType === PartType.Component
 export const isExternalModule = (part: Part): part is ExternalModule =>
   part.partType === PartType.ExternalModule
+
+export const foldEntity = <A>(
+  fnModule: (module: Module) => A,
+  fnExternalModule: (externalModule: ExternalModule) => A,
+  fnComponent: (component: Component) => A
+) => (entity: Entity): A => {
+  if (isModule(entity)) {
+    return fnModule(entity)
+  }
+  if (isExternalModule(entity)) {
+    return fnExternalModule(entity)
+  }
+  return fnComponent(entity)
+}
+
+export type DiagramPredicates = {
+  componentTypes(componentTypes: string): boolean
+  zone(zone: Zone): boolean
+  domain(domain: Domain): boolean
+  module(module: Module): boolean
+  externalModule(externalModule: ExternalModule): boolean
+  component(component: Component): boolean
+  relation(relation: Relation): boolean
+  resource(resource: Resource): boolean
+}
+
+export const ACCEPT = (_: unknown) => true
+export const REJECT = (_: unknown) => false
+
+export const filterDiagram = (predicates: DiagramPredicates) => (
+  diagram: Diagram
+): Diagram => ({
+  componentTypes: diagram.componentTypes.filter(predicates.componentTypes),
+  zones: diagram.zones.filter(predicates.zone).map(filterZone(predicates)),
+})
+
+export const filterZone = (predicates: DiagramPredicates) => (
+  zone: Zone
+): Zone => ({
+  partType: zone.partType,
+  uid: zone.uid,
+  name: zone.name,
+  domains: zone.domains.filter(predicates.domain).map(filterDomain(predicates)),
+  flags: zone.flags,
+  tags: zone.tags,
+})
+export const filterDomain = (predicates: DiagramPredicates) => (
+  domain: Domain
+): Domain => ({
+  partType: domain.partType,
+  uid: domain.uid,
+  name: domain.name,
+  entities: domain.entities
+    .filter(
+      foldEntity(
+        predicates.module,
+        predicates.externalModule,
+        predicates.component
+      )
+    )
+    .map(filterEntity(predicates)),
+  flags: domain.flags,
+  tags: domain.tags,
+})
+export const filterEntity = (predicates: DiagramPredicates) => (
+  entity: Entity
+): Entity =>
+  foldEntity<Entity>(
+    filterModule(predicates),
+    filterExternalModule(predicates),
+    filterComponent(predicates)
+  )(entity)
+export const filterModule = (predicates: DiagramPredicates) => (
+  module: Module
+): Module => ({
+  partType: module.partType,
+  uid: module.uid,
+  name: module.name,
+  components: module.components
+    .filter(predicates.component)
+    .map(filterComponent(predicates)),
+  api: module.api && filterApi(predicates)(module.api),
+  flags: module.flags,
+  tags: module.tags,
+})
+export const filterExternalModule = (predicates: DiagramPredicates) => (
+  externalModule: ExternalModule
+): ExternalModule => ({
+  partType: externalModule.partType,
+  uid: externalModule.uid,
+  type: externalModule.type,
+  name: externalModule.name,
+  relations: externalModule.relations
+    .filter(predicates.relation)
+    .map(filterRelation(predicates)),
+  flags: externalModule.flags,
+  tags: externalModule.tags,
+})
+export const filterComponent = (predicates: DiagramPredicates) => (
+  component: Component
+): Component => ({
+  partType: component.partType,
+  uid: component.uid,
+  name: component.name,
+  type: component.type,
+  relations: component.relations
+    .filter(predicates.relation)
+    .map(filterRelation(predicates)),
+  flags: component.flags,
+  tags: component.tags,
+})
+export const filterApi = (predicates: DiagramPredicates) => (
+  api: Api
+): Api => ({
+  name: api.name,
+  resources: api.resources
+    .filter(predicates.resource)
+    .map(filterResource(predicates)),
+})
+export const filterResource = (predicates: DiagramPredicates) => (
+  resource: Resource
+): Resource => resource
+export const filterRelation = (predicates: DiagramPredicates) => (
+  relation: Relation
+): Relation => relation

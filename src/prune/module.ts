@@ -1,10 +1,13 @@
 import {
+  ACCEPT,
   CompleteRelation,
   Component,
   Diagram,
+  DiagramPredicates,
   Domain,
   Entity,
   ExternalModule,
+  filterDiagram,
   isComponent,
   isDomain,
   isExternalModule,
@@ -12,9 +15,10 @@ import {
   isZone,
   Module,
   Part,
-  PartType,
+  PartType, REJECT,
   Relation,
   RelationType,
+  Resource,
   Zone,
 } from "../models"
 import { debug } from "../debug"
@@ -473,87 +477,8 @@ const findFirstFocusedParent = (
   return findFirstFocusedParent(parent.uid, parents, focused)
 }
 
-const partContainsFocused = (infos: DiagramInfos, part: Part): boolean =>
+const partContainsFocused = (infos: DiagramInfos) => (part: Part): boolean =>
   infos.containsFocused.has(part.uid)
-
-export const pruneComponent = (infos: DiagramInfos) => (
-  component: Component
-): Component => {
-  return component
-}
-
-export const pruneModule = (infos: DiagramInfos) => (
-  module: Module
-): Module => {
-  const components = module.components.flatMap((component) => {
-    if (partContainsFocused(infos, component)) {
-      return pruneComponent(infos)(component)
-    }
-    return []
-  })
-  return {
-    partType: PartType.Module,
-    uid: module.uid,
-    name: module.name,
-    components,
-    tags: module.tags,
-  }
-}
-
-export const pruneExternalModule = (infos: DiagramInfos) => (
-  externalModule: ExternalModule
-): ExternalModule => {
-  return externalModule
-}
-
-export const pruneEntity = (infos: DiagramInfos) => (
-  entity: Entity
-): Entity => {
-  if (isModule(entity)) {
-    return pruneModule(infos)(entity)
-  }
-  if (isComponent(entity)) {
-    return pruneComponent(infos)(entity)
-  }
-  if (isExternalModule(entity)) {
-    return pruneExternalModule(infos)(entity)
-  }
-  throw new Error(`Unknown entity type: ${entity}`)
-}
-
-export const pruneDomain = (infos: DiagramInfos) => (
-  domain: Domain
-): Domain => {
-  const entities = domain.entities.flatMap((entity) => {
-    if (partContainsFocused(infos, entity)) {
-      return pruneEntity(infos)(entity)
-    }
-    return []
-  })
-  return {
-    partType: PartType.Domain,
-    uid: domain.uid,
-    name: domain.name,
-    entities,
-    tags: domain.tags,
-  }
-}
-
-export const pruneZone = (infos: DiagramInfos) => (zone: Zone): Zone => {
-  const domains = zone.domains.flatMap((domain) => {
-    if (partContainsFocused(infos, domain)) {
-      return pruneDomain(infos)(domain)
-    }
-    return []
-  })
-  return {
-    partType: PartType.Zone,
-    uid: zone.uid,
-    name: zone.name,
-    domains,
-    tags: zone.tags,
-  }
-}
 
 export type PrunedDiagram = {
   readonly componentTypes: readonly string[]
@@ -566,15 +491,18 @@ export function pruneDiagram(
   diagram: Diagram
 ): PrunedDiagram {
   const infos = prepareDiagram(opts, diagram)
-  const zones = diagram.zones.flatMap((zone) => {
-    if (partContainsFocused(infos, zone)) {
-      return pruneZone(infos)(zone)
-    }
-    return []
-  })
+  const predicates: DiagramPredicates = {
+    componentTypes: ACCEPT,
+    zone: partContainsFocused(infos),
+    domain: partContainsFocused(infos),
+    module: partContainsFocused(infos),
+    externalModule: partContainsFocused(infos),
+    component: partContainsFocused(infos),
+    relation: REJECT,
+    resource: ACCEPT,
+  }
   return {
-    componentTypes: infos.componentTypes,
-    zones: zones,
+    ...filterDiagram(predicates)(diagram),
     relations: infos.relations,
   }
 }
