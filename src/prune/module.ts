@@ -141,6 +141,20 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
           }
           const sourceAncestors = ancestors.get(source.uid) || []
           const targetAncestors = ancestors.get(target.uid) || []
+
+          if (
+            opts.completelyExclude.includes(source.uid) ||
+            opts.completelyExclude.includes(target.uid) ||
+            sourceAncestors.find((a) =>
+              opts.completelyExclude.includes(a.uid)
+            ) !== undefined ||
+            targetAncestors.find((a) =>
+              opts.completelyExclude.includes(a.uid)
+            ) !== undefined
+          ) {
+            return []
+          }
+
           const commonDisplayedAncestors = sourceAncestors.filter(
             (a) => targetAncestors.includes(a) && isDisplayed(a)
           )
@@ -351,6 +365,7 @@ const computeHasFocus = (
 ): boolean => {
   if (
     opts.exclude.includes(part.uid) ||
+    opts.completelyExclude.includes(part.uid) ||
     part.tags.find((t) => opts.excludeTags.includes(t)) !== undefined
   ) {
     return false
@@ -405,7 +420,10 @@ const computeIsRelationTarget = (
   if (focused.has(part.uid)) {
     return true
   }
-  if (opts.exclude.includes(part.uid)) {
+  if (
+    opts.exclude.includes(part.uid) ||
+    opts.completelyExclude.includes(part.uid)
+  ) {
     return false
   }
   if (isZone(part)) return relationAcceptZone(opts)

@@ -25,10 +25,7 @@ program
   .option(
     "-l,--level <level>",
     "Level (nothing|zone|domain|module|component)",
-    (
-      value: string,
-      previous: PruneLevel | undefined
-    ): PruneLevel | undefined => {
+    (value: string): PruneLevel | undefined => {
       switch (value) {
         case "nothing":
           return PruneLevel.Nothing
@@ -71,55 +68,61 @@ program
   .option(
     "-f,--focus <id>",
     "Focus on part",
-    (value: string, previous: string[]) => [...previous, value],
+    (value: string, previous: string[]) => [...previous, ...value.split(",")],
     []
   )
   .option(
     "-ft,--focus-tag <id>",
     "Focus parts with tag",
-    (value: string, previous: string[]) => [...previous, value],
+    (value: string, previous: string[]) => [...previous, ...value.split(",")],
+    []
+  )
+  .option(
+    "-ce,--completely-exclude <id>",
+    "Exclude this part and its relations",
+    (value: string, previous: string[]) => [...previous, ...value.split(",")],
     []
   )
   .option(
     "-e,--exclude <id>",
     "Exclude this part",
-    (value: string, previous: string[]) => [...previous, value],
+    (value: string, previous: string[]) => [...previous, ...value.split(",")],
     []
   )
   .option(
     "-et,--exclude-tag <id>",
     "Exclude parts with tag",
-    (value: string, previous: string[]) => [...previous, value],
+    (value: string, previous: string[]) => [...previous, ...value.split(",")],
     []
   )
   .option(
     "-se,--soft-exclude <id>",
     "Only include this part if it is referenced",
-    (value: string, previous: string[]) => [...previous, value],
+    (value: string, previous: string[]) => [...previous, ...value.split(",")],
     []
   )
   .option(
     "-sed,--soft-exclude-deep <id>",
     "Only include this part of its descent if it is referenced",
-    (value: string, previous: string[]) => [...previous, value],
+    (value: string, previous: string[]) => [...previous, ...value.split(",")],
     []
   )
   .option(
     "-o,--open <id>",
     "Include this part and its children",
-    (value: string, previous: string[]) => [...previous, value],
+    (value: string, previous: string[]) => [...previous, ...value.split(",")],
     []
   )
   .option(
     "-ot,--open-tag <id>",
     "Include parts with this tags and their children",
-    (value: string, previous: string[]) => [...previous, value],
+    (value: string, previous: string[]) => [...previous, ...value.split(",")],
     []
   )
   .option(
     "-c,--close <id>",
     "Doesn't open this part",
-    (value: string, previous: string[]) => [...previous, value],
+    (value: string, previous: string[]) => [...previous, ...value.split(",")],
     []
   )
   .option(
@@ -200,6 +203,7 @@ export function parseCli(args: string[]): CliOptions {
               : PruneLevel.Module),
       focus: cliOpts.focus,
       focusTags: cliOpts.focusTag,
+      completelyExclude: cliOpts.completelyExclude,
       exclude: cliOpts.exclude,
       excludeTags: cliOpts.excludeTag,
       softExclude: cliOpts.softExclude,
