@@ -15,7 +15,8 @@ import {
   isZone,
   Module,
   Part,
-  PartType, REJECT,
+  PartType,
+  REJECT,
   Relation,
   RelationType,
   Resource,
@@ -347,11 +348,11 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
 const focusAcceptComponent = (opts: PruneOptions): boolean =>
   opts.level === PruneLevel.Component
 const focusAcceptModule = (opts: PruneOptions): boolean =>
-  opts.level === PruneLevel.Module || focusAcceptComponent(opts)
+  opts.level === PruneLevel.Module
 const focusAcceptDomain = (opts: PruneOptions): boolean =>
-  opts.level === PruneLevel.Domain || focusAcceptModule(opts)
+  opts.level === PruneLevel.Domain
 const focusAcceptZone = (opts: PruneOptions): boolean =>
-  opts.level === PruneLevel.Zone || focusAcceptDomain(opts)
+  opts.level === PruneLevel.Zone
 
 const relationAcceptComponent = (opts: PruneOptions): boolean =>
   opts.relationLevel === PruneLevel.Component

@@ -10,7 +10,8 @@ import {
   isZone,
   Module,
   Part,
-  PartType, REJECT,
+  PartType,
+  REJECT,
   Zone,
 } from "../models"
 import { debug } from "../debug"
@@ -151,7 +152,8 @@ export function pruneDiagram(opts: PruneOptions, diagram: Diagram): Diagram {
     externalModule: REJECT,
     component: REJECT,
     relation: REJECT,
-    resource: (_: unknown): boolean => infos.opts.level === PruneLevel.Component,
+    resource: (_: unknown): boolean =>
+      infos.opts.level === PruneLevel.Component,
   }
   return filterDiagram(predicates)(diagram)
 }

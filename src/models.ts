@@ -167,8 +167,8 @@ export type DiagramPredicates = {
   resource(resource: Resource): boolean
 }
 
-export const ACCEPT = (_: unknown) => true
-export const REJECT = (_: unknown) => false
+export const ACCEPT = <A>(_: A) => true
+export const REJECT = <A>(_: A) => false
 
 export const filterDiagram = (predicates: DiagramPredicates) => (
   diagram: Diagram
