@@ -377,7 +377,8 @@ const computeHasFocus = (
   }
   if (
     opts.focus.includes(part.uid) ||
-    part.tags.find((t) => opts.focusTags.includes(t)) !== undefined
+    part.tags.find((t) => opts.focusTags.includes(t)) !== undefined ||
+    part.tags.find((t) => opts.openTags.includes(t)) !== undefined
   ) {
     return true
   }
