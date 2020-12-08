@@ -76,6 +76,9 @@ export const enum RelationType {
   Tell = "Tell",
   Listen = "Listen",
 }
+export function isAsyncRelationType(rt: RelationType): boolean {
+  return rt !== RelationType.Ask
+}
 export function getRelationTypeOrFail(uid: string): RelationType {
   switch (uid.toLowerCase()) {
     case "ask":
@@ -93,6 +96,10 @@ export type Relation = {
   readonly targetId: string
   readonly type: RelationType
   readonly description?: string
+}
+
+export function isAsyncRelation(rel: Relation): boolean {
+  return isAsyncRelationType(rel.type)
 }
 
 export type CompleteRelation = {
