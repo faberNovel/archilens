@@ -1,12 +1,10 @@
 import {
-  ACCEPT,
   CompleteRelation,
   Component,
   Diagram,
   DiagramPredicates,
   Domain,
   Entity,
-  ExternalModule,
   filterDiagram,
   isAsyncRelation,
   isComponent,
@@ -14,16 +12,12 @@ import {
   isExternalModule,
   isModule,
   isZone,
-  Module,
   Part,
   PartType,
-  REJECT,
+  Predicates,
   Relation,
   RelationType,
-  Resource,
-  Zone,
 } from "../models"
-import { debug } from "../debug"
 import { PruneLevel, PruneOptions } from "./index"
 
 type DiagramInfos = {
@@ -480,9 +474,7 @@ const findFirstFocusedParent = (
 const partContainsFocused = (infos: DiagramInfos) => (part: Part): boolean =>
   infos.containsFocused.has(part.uid)
 
-export type PrunedDiagram = {
-  readonly componentTypes: readonly string[]
-  readonly zones: readonly Zone[]
+export type PrunedDiagram = Diagram & {
   readonly relations: readonly CompleteRelation[]
 }
 
@@ -492,14 +484,14 @@ export function pruneDiagram(
 ): PrunedDiagram {
   const infos = prepareDiagram(opts, diagram)
   const predicates: DiagramPredicates = {
-    componentTypes: ACCEPT,
+    componentTypes: Predicates.ACCEPT,
     zone: partContainsFocused(infos),
     domain: partContainsFocused(infos),
     module: partContainsFocused(infos),
     externalModule: partContainsFocused(infos),
     component: partContainsFocused(infos),
-    relation: REJECT,
-    resource: ACCEPT,
+    relation: Predicates.REJECT,
+    resource: Predicates.REJECT,
   }
   return {
     ...filterDiagram(predicates)(diagram),

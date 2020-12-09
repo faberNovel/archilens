@@ -11,8 +11,6 @@ import { generateDiagram as generateModuleDiagram } from "./generator/plantuml/m
 
 import Ajv from "ajv"
 import p from "path"
-import fs from "fs"
-import * as YAML from "js-yaml"
 
 function main(): void {
   const ajv = new Ajv() // options can be passed, e.g. {allErrors: true}

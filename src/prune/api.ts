@@ -8,13 +8,9 @@ import {
   isDomain,
   isModule,
   isZone,
-  Module,
   Part,
-  PartType,
-  REJECT,
-  Zone,
+  Predicates,
 } from "../models"
-import { debug } from "../debug"
 import { PruneLevel, PruneOptions } from "./index"
 
 type DiagramInfos = {
@@ -145,13 +141,13 @@ const partContainsFocused = (infos: DiagramInfos) => (part: Part): boolean =>
 export function pruneDiagram(opts: PruneOptions, diagram: Diagram): Diagram {
   const infos = prepareDiagram(opts, diagram)
   const predicates: DiagramPredicates = {
-    componentTypes: REJECT,
+    componentTypes: Predicates.REJECT,
     zone: partContainsFocused(infos),
     domain: partContainsFocused(infos),
     module: partContainsFocused(infos),
-    externalModule: REJECT,
-    component: REJECT,
-    relation: REJECT,
+    externalModule: Predicates.REJECT,
+    component: Predicates.REJECT,
+    relation: Predicates.REJECT,
     resource: (_: unknown): boolean =>
       infos.opts.level === PruneLevel.Component,
   }

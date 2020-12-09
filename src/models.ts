@@ -163,19 +163,28 @@ export const foldEntity = <A>(
   return fnComponent(entity)
 }
 
+export type Predicate<A> = (value: A) => boolean
+
 export type DiagramPredicates = {
-  componentTypes(componentTypes: string): boolean
-  zone(zone: Zone): boolean
-  domain(domain: Domain): boolean
-  module(module: Module): boolean
-  externalModule(externalModule: ExternalModule): boolean
-  component(component: Component): boolean
-  relation(relation: Relation): boolean
-  resource(resource: Resource): boolean
+  componentTypes: Predicate<string>
+  zone: Predicate<Zone>
+  domain: Predicate<Domain>
+  module: Predicate<Module>
+  externalModule: Predicate<ExternalModule>
+  component: Predicate<Component>
+  relation: Predicate<Relation>
+  resource: Predicate<Resource>
 }
 
-export const ACCEPT = <A>(_: A) => true
-export const REJECT = <A>(_: A) => false
+export const Predicates: {
+  readonly ALWAYS: (v: boolean) => Predicate<unknown>
+  readonly ACCEPT: Predicate<unknown>
+  readonly REJECT: Predicate<unknown>
+} = {
+  ALWAYS: (v: boolean) => <A>(_: A) => v,
+  ACCEPT: (_: unknown) => true,
+  REJECT: (_: unknown) => false,
+}
 
 export const filterDiagram = (predicates: DiagramPredicates) => (
   diagram: Diagram
