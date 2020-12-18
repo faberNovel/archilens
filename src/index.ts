@@ -13,13 +13,20 @@ import Ajv from "ajv"
 import p from "path"
 
 function main(): void {
-  const ajv = new Ajv() // options can be passed, e.g. {allErrors: true}
+  const ajv = new Ajv({verbose: true}) // options can be passed, e.g. {allErrors: true}
   const schema = parse(p.join(__dirname, ".."), "schema.yml")
   const options = parseCli(process.argv)
   const content = parse(options.sourceDirectory, options.input)
   const valid = ajv.validate(schema, content)
   if (!valid) {
-    console.warn(ajv.errors)
+    const errors = ajv.errors?.map(err => {
+      const data = err.data.uid ? {uid: err.data.uid} : {data: err.data, path: err.dataPath}
+      return {
+        error: err.params,
+        ...data,
+      }
+    })
+    console.warn(errors)
     process.exit(3)
   }
   const parsed: DiagramImport = DiagramImport.validateSync(content)
