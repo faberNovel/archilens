@@ -295,7 +295,9 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
 
   // Remove duplicates
   const relationsMap = new Map<string, CompleteRelation>()
-  cleanedRelations.forEach((r) => relationsMap.set(JSON.stringify(r), r))
+  cleanedRelations.forEach((r) =>
+    relationsMap.set(`${r.sourceId},${r.targetId}`, r)
+  )
   const relations = Array.from(relationsMap.values())
 
   const containsFocused = Array.from(ids.keys()).reduce((acc, partId): Set<
