@@ -40,3 +40,8 @@ export function parse(srcDir: string, input?: string): object {
   }
   return parsed
 }
+
+export function parseSimple(file: string): unknown {
+  const src = fs.readFileSync(file, "utf-8")
+  return YAML.safeLoad(src)
+}

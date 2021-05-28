@@ -2,6 +2,7 @@ import p from "path"
 
 import { program } from "commander"
 
+import { Config, DiagramConfig, PruneType } from "./config"
 import { RelationType } from "./models"
 import { PruneLevel, PruneOptions } from "./prune"
 
@@ -10,13 +11,15 @@ function die(message: string): never {
   return process.exit(1)
 }
 
-export enum PruneType {
-  Api = "Api",
-  Architecture = "Architecture",
-}
-
 program
   .version("0.1.0")
+  .option("-i,--input <file>", "Input file", (value: string): string => value)
+  .option("-o,--output <file>", "Ouput file", (value: string): string => value)
+  .option(
+    "-c,--config <file>",
+    "Configuration file",
+    (value: string): string => value
+  )
   .option(
     "-sd,--source-directory <dir>",
     "Source base directory",
@@ -168,52 +171,54 @@ program
     PruneType.Architecture as PruneType
   )
 
-export type CliOptions = {
-  input?: string
-  sourceDirectory: string
-  pruneType: PruneType
-  pruneOptions: PruneOptions
-}
+export type CliOptions =
+  | { type: "config"; config: string }
+  | (Config & { type: "cli" })
 
 export function parseCli(args: string[]): CliOptions {
   program.parse(args)
   const cliOpts = program.opts()
-  if (program.args.length > 1) {
-    console.warn("Only one input file is allowed")
-    process.exit(1)
+  if (cliOpts.config) {
+    return { type: "config", config: cliOpts.config }
   }
-  const input = program.args[0]
   return {
-    input: p.basename(input),
+    type: "cli",
+    input: p.basename(cliOpts.input),
     sourceDirectory:
-      cliOpts.sourceDirectory ?? (input ? p.dirname(input) : "."),
-    pruneType: cliOpts.type,
-    pruneOptions: {
-      level: cliOpts.level ?? PruneLevel.Nothing,
-      relationLevel:
-        cliOpts.type === PruneType.Api
-          ? PruneLevel.Nothing
-          : cliOpts.relationLevel ??
-            (cliOpts.level
-              ? [PruneLevel.Module, PruneLevel.Component].includes(
-                  cliOpts.level
-                )
-                ? PruneLevel.Module
-                : PruneLevel.Nothing
-              : PruneLevel.Module),
-      focus: cliOpts.focus,
-      focusTags: cliOpts.focusTag,
-      completelyExclude: cliOpts.completelyExclude,
-      exclude: cliOpts.exclude,
-      excludeTags: cliOpts.excludeTag,
-      softExclude: cliOpts.softExclude,
-      softExcludeDeep: cliOpts.softExcludeDeep,
-      open: cliOpts.open,
-      openTags: cliOpts.openTag,
-      close: cliOpts.close,
-      reverseRelationTypes: [
-        ...new Set(cliOpts.reverseRelationType as RelationType[]),
-      ],
-    },
+      cliOpts.sourceDirectory ??
+      (cliOpts.input ? p.dirname(cliOpts.input) : "."),
+    diagrams: [
+      {
+        output: cliOpts.output,
+        pruneType: cliOpts.type,
+        pruneOptions: {
+          level: cliOpts.level ?? PruneLevel.Nothing,
+          relationLevel:
+            cliOpts.type === PruneType.Api
+              ? PruneLevel.Nothing
+              : cliOpts.relationLevel ??
+                (cliOpts.level
+                  ? [PruneLevel.Module, PruneLevel.Component].includes(
+                      cliOpts.level
+                    )
+                    ? PruneLevel.Module
+                    : PruneLevel.Nothing
+                  : PruneLevel.Module),
+          focus: cliOpts.focus,
+          focusTags: cliOpts.focusTag,
+          completelyExclude: cliOpts.completelyExclude,
+          exclude: cliOpts.exclude,
+          excludeTags: cliOpts.excludeTag,
+          softExclude: cliOpts.softExclude,
+          softExcludeDeep: cliOpts.softExcludeDeep,
+          open: cliOpts.open,
+          openTags: cliOpts.openTag,
+          close: cliOpts.close,
+          reverseRelationTypes: [
+            ...new Set(cliOpts.reverseRelationType as RelationType[]),
+          ],
+        },
+      },
+    ],
   }
 }
