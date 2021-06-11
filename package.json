@@ -3,12 +3,16 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "engines": {
+    "node": ">=14.15.0"
+  },
   "scripts": {
     "format": "prettier --loglevel warn --write src",
     "build": "tsc",
     "generate": "node build"
   },
   "dependencies": {
+    "@notionhq/client": "^0.1.8",
     "commander": "^6.1.0",
     "js-yaml": "^3.14.0",
     "pajv": "^1.2.0",

@@ -16,7 +16,7 @@ import {
   RelationType,
   Resource,
   Zone,
-} from "./models"
+} from "../../models"
 
 export type FlagsImport = {
   soft_exclude_deep?: boolean

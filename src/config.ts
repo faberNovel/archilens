@@ -2,6 +2,7 @@ import { z } from "zod"
 
 import { PruneLevel, PruneOptions } from "./prune"
 import { RelationType } from "./models"
+import { NotionConfig } from "./importer/notion";
 
 export const enum PruneType {
   Api = "Api",
@@ -90,29 +91,39 @@ export const diagramConfig: z.ZodType<DiagramConfig> = (() => {
       },
     })
   )
-  return (transformed as unknown) as z.ZodType<DiagramConfig>
+  return transformed as unknown as z.ZodType<DiagramConfig>
 })()
 
-export type Config = {
+export type YamlConfig = {
+  configType: 'YAML'
   sourceDirectory: string
-  input: string
+  rootFile: string
+}
+
+export type Config = {
+  input: NotionConfig | YamlConfig
   diagrams: DiagramConfig[]
 }
-export const config: z.ZodType<Config> = (() => {
-  const semiRaw = z.object({
-    sourceDirectory: z.string(),
-    input: z.string().default("index.yml"),
+export const config: z.ZodType<Config> = z.object({
+    input: (
+      z.object({
+        sourceDirectory: z.string(),
+        rootFile: z.string().default('index.yaml'),
+      }).transform(c => ({...c, configType: 'YAML'})) as unknown as z.ZodType<YamlConfig>
+    ).or(
+      z.object({
+        pages: z.object({
+          projects: z.string(),
+          modules: z.string(),
+          components: z.string(),
+          relations: z.string(),
+          apis: z.string(),
+          resources: z.string(),
+        })
+      }).transform(c => ({...c, configType: 'NotionConfig'})) as unknown as z.ZodType<NotionConfig>
+    ),
     diagrams: z.array(diagramConfig),
   })
-  const transformed = semiRaw.transform(
-    (imported): Config => ({
-      sourceDirectory: imported.sourceDirectory,
-      input: imported.input,
-      diagrams: imported.diagrams,
-    })
-  )
-  return transformed as z.ZodType<Config>
-})()
 
 export function parseConfig(raw: unknown): Config {
   return config.parse(raw)

@@ -12,8 +12,8 @@ export const enum ExternalModuleType {
   App = "App",
   Platform = "Platform",
 }
-export function getExternalModuleTypeOrFail(uid: string): ExternalModuleType {
-  switch (uid.toLowerCase()) {
+export function getExternalModuleType(type: string): ExternalModuleType | undefined {
+  switch (type.toLowerCase()) {
     case "app":
       return ExternalModuleType.App
     case "external":
@@ -23,8 +23,15 @@ export function getExternalModuleTypeOrFail(uid: string): ExternalModuleType {
     case "platform":
       return ExternalModuleType.Platform
     default:
-      throw new Error(`Unknown ExternalModuleType '${uid}'`)
+      return undefined
   }
+}
+export function getExternalModuleTypeOrFail(type: string): ExternalModuleType {
+  const emt = getExternalModuleType(type)
+  if (emt === undefined) {
+    throw new Error(`Unknown ExternalModuleType '${type}'`)
+  }
+  return emt
 }
 
 export type Flags = {
