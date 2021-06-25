@@ -23,6 +23,7 @@ import {
   RelationType,
   Zone
 } from "../../models";
+import * as fs from "fs";
 
 export type NotionConfig = {
   configType: 'NotionConfig',
@@ -40,7 +41,17 @@ const notion = new Client({
   auth: process.env.NOTION_TOKEN,
 })
 
+const USE_CACHE = process.env.NOTION_USE_CACHE === 'true'
+const CACHE_DIR = process.env.NOTION_CACHE_DIR || 'cache'
+if (USE_CACHE && !fs.existsSync(CACHE_DIR)) {
+  fs.mkdirSync(CACHE_DIR)
+}
+
 async function getAllPages(dbId: string): Promise<Page[]> {
+  const cacheFile = `${CACHE_DIR}/${dbId}.json`
+  if (USE_CACHE && fs.existsSync(cacheFile)) {
+    return JSON.parse(fs.readFileSync(cacheFile).toString())
+  }
   let response: PaginatedList<Page> = await notion.databases.query({
     database_id: dbId,
   })
@@ -52,7 +63,11 @@ async function getAllPages(dbId: string): Promise<Page[]> {
     })
     parts = [...parts, response.results]
   }
-  return parts.flat()
+  const result = parts.flat().filter(r => !r.archived)
+  if (USE_CACHE) {
+    fs.writeFileSync(cacheFile, JSON.stringify(result, undefined, '  '))
+  }
+  return result
 }
 
 // --- Modules ---

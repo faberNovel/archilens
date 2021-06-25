@@ -17,7 +17,6 @@ import { importFromNotion } from "./importer/notion"
 
 async function main(): Promise<void> {
   const ajv = new Ajv({ verbose: true }) // options can be passed, e.g. {allErrors: true}
-  const schema = parse(p.join(__dirname, ".."), "schema.yml")
   const options = parseCli(process.argv)
 
   const config: Config =
@@ -27,6 +26,7 @@ async function main(): Promise<void> {
   let diagram: Diagram
   if (config.input.configType === 'YAML') {
     const content = parse(config.input.sourceDirectory, config.input.rootFile)
+    const schema = parse(p.join(__dirname, "importer/yaml"), "schema.yml")
     const valid = ajv.validate(schema, content)
     if (!valid) {
       const errors = ajv.errors?.map((err) => {
