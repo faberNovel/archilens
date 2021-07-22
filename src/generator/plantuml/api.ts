@@ -1,4 +1,6 @@
+import { toId } from "../../helpers"
 import {
+  Api,
   Diagram,
   Domain,
   Entity,
@@ -18,16 +20,22 @@ export const generateResource = (opts: PlantumlOptions) => (
 }
 
 export const generateApi = (opts: PlantumlOptions) => (
-  module: Module
+  module: Module,
+  api: Api,
 ): string[] => {
-  const name = module.api?.name ?? module.name
-  const part = `rectangle "${name}" <<API>> as ${module.uid}`
-  const resources =
-    module.api && module.api.resources.flatMap(generateResource(opts))
+  const name = api.name ?? module.name
+  const part = `rectangle "${name}" <<${api.type}>> as ${toId(`${module.uid}_${name}`)}`
+  const resources = api.resources.flatMap(generateResource(opts))
   if (!resources) {
     return [part]
   }
   return [`${part} {`, ...resources.map((s) => `  ${s}`), "}"]
+}
+
+export const generateModuleApis = (opts: PlantumlOptions) => (
+  module: Module
+): string[] => {
+  return module.apis.flatMap(api => generateApi(opts)(module, api))
 }
 
 export const generateEntity = (opts: PlantumlOptions) => (
@@ -36,7 +44,7 @@ export const generateEntity = (opts: PlantumlOptions) => (
   if (!isModule(entity)) {
     return []
   }
-  return generateApi(opts)(entity)
+  return generateModuleApis(opts)(entity)
 }
 
 export const generateDomain = (opts: PlantumlOptions) => (
@@ -71,6 +79,17 @@ export function generateDiagram(
   opts: PlantumlOptions,
   diagram: Diagram
 ): string {
+
+  const apiTypes = [... new Set(diagram.zones.flatMap(zone =>
+    zone.domains.flatMap(domain =>
+      domain.entities.flatMap(entity =>
+        isModule(entity)
+        ? entity.apis.map(api => api.type)
+        : []
+      )
+    )
+  ))]
+
   const skinParams = [
     ...skinparam("", skinparams.base),
     ...skinparam("rectangle", skinparams.rectangle),
@@ -80,7 +99,9 @@ export function generateDiagram(
     }),
     ...skinparam("rectangle<<Domain>>", { BackgroundColor: "#D5E8D4" }),
     ...skinparam("rectangle<<App>>", { BackgroundColor: "#F5F5F5" }),
-    ...skinparam("rectangle<<Api>>", { BackgroundColor: "#FFE6CC" }),
+    ...apiTypes.flatMap(typ =>
+      skinparam(`rectangle<<${typ}>>`, { BackgroundColor: "#FFE6CC" })
+    ),
     ...skinparam("rectangle<<Resource>>", { BackgroundColor: "#E1D5E7" }),
   ]
   const zones = diagram.zones.flatMap(generateZone(opts))

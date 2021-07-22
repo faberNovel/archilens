@@ -154,6 +154,7 @@ export const importModule = (ctypes: string[]) => (
       : module.resources !== undefined
   )
     ? {
+        type: 'APIGW', // TODO allow to specify API type in YAML
         name: typeof module.api === "string" ? module.api : name,
         resources: module.resources?.map(importResource) ?? [],
       }
@@ -163,7 +164,7 @@ export const importModule = (ctypes: string[]) => (
     uid: module.uid,
     name: name,
     components: module.components?.map(importComponent(ctypes)) ?? [],
-    api,
+    apis: api ? [api] : [], // TODO allow to defined more than 1 API in YAML
     flags: importFlags(module.flags),
     tags: importTags(module.tags),
   }

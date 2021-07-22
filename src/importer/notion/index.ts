@@ -1,6 +1,8 @@
 import { Client } from "@notionhq/client"
 import { Page, PaginatedList } from "@notionhq/client/build/src/api-types"
 
+import { toId } from "../../helpers"
+
 import {
   getPageCheckboxOrFail,
   getPageMultiselectOrFail,
@@ -80,7 +82,7 @@ type ModuleEntry = {
   domain: string
   projectIds: string[]
   appId: string[]
-  apiId: string | undefined
+  apiIds: string[]
   isFuture: boolean
   components: string[]
 }
@@ -95,7 +97,7 @@ export async function getModules(config: NotionConfig): Promise<ModuleEntry[]> {
     domain: getPageSelectOrFail(page, { name: "Domain" }),
     projectIds: getPageRelationOrFail(page, { name: "Projects" }),
     appId: getPageRelationOrFail(page, { name: "Is App" }),
-    apiId: getPageRelationOrFail(page, { name: "API" })[0],
+    apiIds: getPageRelationOrFail(page, { name: "API" }),
     isFuture: getPageCheckboxOrFail(page, { name: "Future" }),
     components: getPageRelationOrFail(page, { name: "Components" }),
   }))
@@ -168,6 +170,7 @@ export async function getProjects(config: NotionConfig): Promise<ProjectEntry[]>
 
 type ApiEntry = {
   id: string
+  type: string
   name: string
   resources: string[]
 }
@@ -176,6 +179,7 @@ export async function getApis(config: NotionConfig): Promise<ApiEntry[]> {
   const database: Page[] = await getAllPages(config.pages.apis)
   return database.map((page) => ({
     id: page.id,
+    type: getPageSelectOrFail(page, { name: "Type" }),
     name: getPageNameOrFail(page),
     resources: getPageRelationOrFail(page, { name: "Resources" }),
   }))
@@ -197,10 +201,6 @@ export async function getResources(config: NotionConfig): Promise<ResourceEntry[
 }
 
 // --- TEST ---
-
-function toId(name: string): string {
-  return name.normalize('NFD').toLowerCase().replace(/[^a-z0-9_]/ug, '_').replace(' ', '')
-}
 
 export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
 
@@ -312,23 +312,25 @@ export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
             tags: [],  // TODO
           }
         })
-        const apiEntry = module.apiId !== undefined ? apiEntryById.get(module.apiId) : undefined
-        const api = apiEntry && (() => {
+        const apiEntries: ApiEntry[] =
+          module.apiIds.map(apiId => apiEntryById.get(apiId)).filter(e => e !== undefined) as ApiEntry[]
+        const apis = apiEntries.map(apiEntry => {
           const resourceEntries = apiEntry.resources.map(resId => resourceEntryById.get(resId)).filter(c => c !== undefined) as ResourceEntry[]
           return {
             name: apiEntry.name,
+            type: apiEntry.type,
             resources: resourceEntries.map(rs => ({
               uid: toId(`resource_${apiEntry.name}_${rs.name}_${rs.id}`),
               name: rs.name,
             }))
           }
-        })()
+        })
         return {
           partType: PartType.Module,
           uid: toId(`module_${module.name}_${module.id}`),
           name: module.name,
           components,
-          api,
+          apis,
           flags: undefined, // TODO
           tags: projects.map(p => p.name),
         }

@@ -54,6 +54,7 @@ export type Resource = {
 }
 
 export type Api = {
+  readonly type: string
   readonly name: string
   readonly resources: readonly Resource[]
 }
@@ -63,7 +64,7 @@ export type Module = {
   readonly uid: string
   readonly name: string
   readonly components: readonly Component[]
-  readonly api?: Api
+  readonly apis: Api[]
   readonly flags?: Flags
   readonly tags: readonly string[]
 }
@@ -245,7 +246,7 @@ export const filterModule = (predicates: DiagramPredicates) => (
   components: module.components
     .filter(predicates.component)
     .map(filterComponent(predicates)),
-  api: module.api && filterApi(predicates)(module.api),
+  apis: module.apis.map(filterApi(predicates)).filter(e => e !== undefined) as Api[],
   flags: module.flags,
   tags: module.tags,
 })
@@ -279,6 +280,7 @@ export const filterApi = (predicates: DiagramPredicates) => (
   api: Api
 ): Api => ({
   name: api.name,
+  type: api.type,
   resources: api.resources
     .filter(predicates.resource)
     .map(filterResource(predicates)),
