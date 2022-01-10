@@ -29,7 +29,7 @@ async function main(): Promise<void> {
     const schema = parse(p.join(__dirname, "importer/yaml"), "schema.yml")
     const valid = ajv.validate(schema, content)
     if (!valid) {
-      const errors = ajv.errors?.map((err) => {
+      const errors = ajv.errors?.map((err: any) => {
         const data = err.data.uid
           ? { uid: err.data.uid }
           : { data: err.data, path: err.dataPath }

@@ -1,5 +1,4 @@
 import { Client } from "@notionhq/client"
-import { Page, PaginatedList } from "@notionhq/client/build/src/api-types"
 
 import { toId } from "../../helpers"
 
@@ -11,6 +10,9 @@ import {
   getPageRelationOrFail,
   getPageSelectOrFail,
   getPageSingleRelationOrFail,
+  isEmptyPage,
+  isNotEmptyPage,
+  Page,
 } from "./helpers"
 import {
   Component,
@@ -54,10 +56,10 @@ async function getAllPages(dbId: string): Promise<Page[]> {
   if (USE_CACHE && fs.existsSync(cacheFile)) {
     return JSON.parse(fs.readFileSync(cacheFile).toString())
   }
-  let response: PaginatedList<Page> = await notion.databases.query({
+  let response = await notion.databases.query({
     database_id: dbId,
   })
-  let parts: Page[][] = [response.results]
+  let parts = [response.results]
   while (response.next_cursor) {
     response = await notion.databases.query({
       database_id: dbId,
@@ -65,7 +67,7 @@ async function getAllPages(dbId: string): Promise<Page[]> {
     })
     parts = [...parts, response.results]
   }
-  const result = parts.flat().filter(r => !r.archived)
+  const result = (parts.flat() as Page[]).filter(isNotEmptyPage)
   if (USE_CACHE) {
     fs.writeFileSync(cacheFile, JSON.stringify(result, undefined, '  '))
   }

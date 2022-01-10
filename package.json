@@ -12,7 +12,7 @@
     "generate": "node build"
   },
   "dependencies": {
-    "@notionhq/client": "^0.1.8",
+    "@notionhq/client": "^0.4.11",
     "commander": "^6.1.0",
     "js-yaml": "^3.14.0",
     "pajv": "^1.2.0",
