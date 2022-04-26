@@ -12,6 +12,7 @@ import {
   getPageSingleRelationOrFail,
   isEmptyPage,
   isNotEmptyPage,
+  isNotIgnoredPage,
   Page,
 } from "./helpers"
 import {
@@ -67,7 +68,7 @@ async function getAllPages(dbId: string): Promise<Page[]> {
     })
     parts = [...parts, response.results]
   }
-  const result = (parts.flat() as Page[]).filter(isNotEmptyPage)
+  const result = (parts.flat() as Page[]).filter(isNotEmptyPage).filter(isNotIgnoredPage)
   if (USE_CACHE) {
     fs.writeFileSync(cacheFile, JSON.stringify(result, undefined, '  '))
   }

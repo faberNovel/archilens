@@ -1513,6 +1513,15 @@ export type Page = {
   url: string
 }
 
+const ignoredPpt = {name: '_gen_ignored'}
+
+export function isNotIgnoredPage(page: Page): boolean {
+  return !isIgnoredPage(page)
+}
+export function isIgnoredPage(page: Page): boolean {
+  const ignored = getPageCheckbox(page, ignoredPpt)
+  return !!ignored
+}
 export function isNotEmptyPage(page: Page): boolean {
   return !isEmptyPage(page)
 }
@@ -1569,8 +1578,8 @@ export function getPageName(page: Page): string | undefined {
 export function getPageNameOrFail(page: Page): string {
   const name = getPageName(page)
   if (!name) {
-    console.log('isEmptyPage = ', isEmptyPage(page))
-    throw new Error(`Missing page name in page ${pageId(page)}`)
+    const emptyLabel = isEmptyPage(page) ? 'empty' : 'not empty'
+    throw new Error(`Missing page name in ${emptyLabel} page ${pageId(page)}`)
   }
   return name
 }
@@ -1644,6 +1653,18 @@ export function getPageCheckboxOrFail(
   page: Page,
   property: { name: string }
 ): boolean {
+  const checkbox = getPageCheckbox(page, property)
+  if (checkbox === undefined) {
+    throw new Error(
+      `Missing checkbox ${JSON.stringify(property)} in page ${pageId(page)}`
+    )
+  }
+  return checkbox
+}
+export function getPageCheckbox(
+  page: Page,
+  property: { name: string }
+): boolean | undefined {
   const ppt = page.properties[property.name] as
     | CheckboxPropertyValue
     | undefined
@@ -1654,13 +1675,7 @@ export function getPageCheckboxOrFail(
       )}`
     )
   }
-  const checkbox = ppt?.checkbox
-  if (checkbox === undefined) {
-    throw new Error(
-      `Missing checkbox ${JSON.stringify(property)} in page ${pageId(page)}`
-    )
-  }
-  return checkbox
+  return ppt?.checkbox
 }
 
 export function getPageSelectOrFail(
