@@ -7,22 +7,22 @@ input:
     apis:       "f6ccaf0accb4ad075a38bf662926d4d8"
     resources:  "59bca60a5844088dcff948e58df3db6b"
 diagrams:
-  - output: 'output/modules.plantuml'
+  - output: 'output/plantuml/all-modules.plantuml'
     level: Module
     reverseRelationTypes: ['Ask', 'Tell', 'Listen']
-  - output: 'output/components.plantuml'
+  - output: 'output/plantuml/all-components.plantuml'
     level: Component
-  - output: 'output/api.plantuml'
+  - output: 'output/plantuml/all-api.plantuml'
     type: Api
     level: Module
-  - output: 'output/resource.plantuml'
+  - output: 'output/plantuml/all-resource.plantuml'
     type: Api
     level: Component
 
-  - output: 'output/MyProject-module.plantuml'
+  - output: 'output/plantuml/MyProject-module.plantuml'
     focusTags: ['MyProject']
     reverseRelationTypes: ['Ask', 'Tell', 'Listen']
-  - output: 'output/MyProject-components.plantuml'
+  - output: 'output/plantuml/MyProject-components.plantuml'
     openTags: ['MyProject']
     relationLevel: Component
     reverseRelationTypes: ['Ask', 'Tell', 'Listen']

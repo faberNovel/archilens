@@ -2,7 +2,7 @@
 
 run() { (set -x ; "$@"); }
 
-export_dir=${EXPORT_DIR:-"./export"}
+output_dir=${OUTPUT_DIR:-"./output"}
 cache_dir=${CACHE_DIR:-"./cache"}
 clean_enabled=${CLEAN_ENABLED:-"false"}
 cache_enabled=${CACHE_ENABLED:-"true"}
@@ -27,7 +27,7 @@ while true; do
       echo "  -K, --no-clean             Do not clean cache before generating" >&2
       echo "  -c, --cache                Enable cache (default: true)" >&2
       echo "  -C, --no-cache             Disable cache" >&2
-      echo "  -ed, --export-dir DIR      Export directory (default: ./export)" >&2
+      echo "  -ed, --output-dir DIR      output directory (default: ./output)" >&2
       echo "  -cd, --cache-dir DIR       Cache directory (default: ./cache)" >&2
       echo "  -s, --svg                  Enable generation of SVG files (default: true)" >&2
       echo "  -S, --no-svg               Disable generation of SVG files" >&2
@@ -38,7 +38,7 @@ while true; do
       echo "  -b, --force-build          Force build (default: false)" >&2
       echo "  -B, --no-force-build       Do not force build" >&2
       echo "" >&2
-      echo "Be sure to export your diagrams to '<export-dir>/plantuml/<filename>.plantuml'" >&2
+      echo "Be sure to generate your diagrams into '<output-dir>/plantuml/<filename>.plantuml'" >&2
       exit 0
       ;;
     -d|--debug)
@@ -65,8 +65,8 @@ while true; do
       cache_enabled=false
       shift
       ;;
-    -ed|--export-dir)
-      export_dir="$2"
+    -ed|--output-dir)
+      output_dir="$2"
       shift 2
       ;;
     -cd|--cache-dir)
@@ -125,7 +125,7 @@ while true; do
 done
 
 if [[ "$debug_enabled" == "true" ]]; then
-  echo "export_dir: $export_dir" >&2
+  echo "output_dir: $output_dir" >&2
   echo "cache_dir: $cache_dir" >&2
   echo "clean_enabled: $clean_enabled" >&2
   echo "cache_enabled: $cache_enabled" >&2
@@ -138,9 +138,9 @@ if [[ "$debug_enabled" == "true" ]]; then
 fi
 
 if [[ "$clean_enabled" == "true" ]]; then
-  if [[ -d "$export_dir" ]]; then
-    echo "Deleting export dir ($export_dir)" >&2
-    rm -rf "$export_dir"
+  if [[ -d "$output_dir" ]]; then
+    echo "Deleting output dir ($output_dir)" >&2
+    rm -rf "$output_dir"
   fi
   if [[ -d "$cache_dir" ]]; then
     echo "Deleting cache dir ($cache_dir)" >&2
@@ -151,9 +151,9 @@ if [[ "$clean_enabled" == "true" ]]; then
     rm -rf "$plantuml_jar"
   fi
 fi
-if [[ ! -d "$export_dir" ]]; then
-  echo "Creating export dir ($export_dir)" >&2
-  mkdir -p "$export_dir/"{plantuml,svg,png}
+if [[ ! -d "$output_dir" ]]; then
+  echo "Creating output dir ($output_dir)" >&2
+  mkdir -p "$output_dir/"{plantuml,svg,png}
 fi
 
 if [[ "$gen_svg_enabled" == "true" ]]; then
@@ -202,14 +202,14 @@ echo "Generating plantuml files..."
 if [[ "$gen_svg_enabled" == "true" ]]; then
   echo "Generating SVG files..." >&2
   export JAVA_OPTS="-Djava.awt.headless=true -Dapple.awt.UIElement=true -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 $JAVA_OPTS"
-  run java -jar "$plantuml_jar" -checkmetadata -o '../svg' -tsvg "$export_dir/plantuml/*.plantuml"
+  run java -jar "$plantuml_jar" -checkmetadata -o '../svg' -tsvg "$output_dir/plantuml/*.plantuml"
 else
   echo "Skipping SVG generation..." >&2
 fi
 
 if [[ "$gen_png_enabled" == "true" ]]; then
   echo "Generating PNG files..." >&2
-  cd "$export_dir/svg"
+  cd "$output_dir/svg"
   for file in *.svg; do
     run convert -density 100 "$file" "../png/${file/.svg/}.png"
   done
