@@ -26,12 +26,12 @@ import {
   PartType,
   Relation,
   RelationType,
-  Zone
-} from "../../models";
-import * as fs from "fs";
+  Zone,
+} from "../../models"
+import * as fs from "fs"
 
 export type NotionConfig = {
-  configType: 'NotionConfig',
+  configType: "NotionConfig"
   pages: {
     projects: string
     modules: string
@@ -39,15 +39,15 @@ export type NotionConfig = {
     relations: string
     apis: string
     resources: string
-  },
+  }
 }
 
 const notion = new Client({
   auth: process.env.NOTION_TOKEN,
 })
 
-const USE_CACHE = process.env.NOTION_USE_CACHE === 'true'
-const CACHE_DIR = process.env.NOTION_CACHE_DIR || 'cache'
+const USE_CACHE = process.env.NOTION_USE_CACHE === "true"
+const CACHE_DIR = process.env.NOTION_CACHE_DIR || "cache"
 if (USE_CACHE && !fs.existsSync(CACHE_DIR)) {
   fs.mkdirSync(CACHE_DIR)
 }
@@ -68,9 +68,11 @@ async function getAllPages(dbId: string): Promise<Page[]> {
     })
     parts = [...parts, response.results]
   }
-  const result = (parts.flat() as Page[]).filter(isNotEmptyPage).filter(isNotIgnoredPage)
+  const result = (parts.flat() as Page[])
+    .filter(isNotEmptyPage)
+    .filter(isNotIgnoredPage)
   if (USE_CACHE) {
-    fs.writeFileSync(cacheFile, JSON.stringify(result, undefined, '  '))
+    fs.writeFileSync(cacheFile, JSON.stringify(result, undefined, "  "))
   }
   return result
 }
@@ -117,7 +119,9 @@ type ComponentEntry = {
   language: string
 }
 
-export async function getComponents(config: NotionConfig): Promise<ComponentEntry[]> {
+export async function getComponents(
+  config: NotionConfig
+): Promise<ComponentEntry[]> {
   const database: Page[] = await getAllPages(config.pages.components)
   return database.map((page) => ({
     id: page.id,
@@ -139,13 +143,24 @@ type RelationEntry = {
   type: RelationType
 }
 
-export async function getRelations(config: NotionConfig, componentsEntryById: Map<string, ComponentEntry>): Promise<RelationEntry[]> {
+export async function getRelations(
+  config: NotionConfig,
+  componentsEntryById: Map<string, ComponentEntry>
+): Promise<RelationEntry[]> {
   const database: Page[] = await getAllPages(config.pages.relations)
   return database.map((page) => ({
     id: page.id,
     name: getPageName(page),
-    componentId: getPageSingleRelationOrFail(page, { name: "Component" }, componentsEntryById),
-    targetId: getPageSingleRelationOrFail(page, { name: "Target" }, componentsEntryById),
+    componentId: getPageSingleRelationOrFail(
+      page,
+      { name: "Component" },
+      componentsEntryById
+    ),
+    targetId: getPageSingleRelationOrFail(
+      page,
+      { name: "Target" },
+      componentsEntryById
+    ),
     type: getRelationTypeOrFail(getPageSelectOrFail(page, { name: "Type" })),
   }))
 }
@@ -159,7 +174,9 @@ type ProjectEntry = {
   statut: string[]
 }
 
-export async function getProjects(config: NotionConfig): Promise<ProjectEntry[]> {
+export async function getProjects(
+  config: NotionConfig
+): Promise<ProjectEntry[]> {
   const database: Page[] = await getAllPages(config.pages.projects)
   return database.map((page) => ({
     id: page.id,
@@ -195,7 +212,9 @@ type ResourceEntry = {
   name: string
 }
 
-export async function getResources(config: NotionConfig): Promise<ResourceEntry[]> {
+export async function getResources(
+  config: NotionConfig
+): Promise<ResourceEntry[]> {
   const database: Page[] = await getAllPages(config.pages.resources)
   return database.map((page) => ({
     id: page.id,
@@ -206,104 +225,131 @@ export async function getResources(config: NotionConfig): Promise<ResourceEntry[
 // --- TEST ---
 
 export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
-
   function toMap<V, K extends keyof V>(arr: V[], key: K): Map<V[K], V> {
     const map = new Map<V[K], V>()
-    arr.forEach(el => map.set(el[key], el))
+    arr.forEach((el) => map.set(el[key], el))
     return map
   }
 
   function groupBy<V, K extends keyof V>(arr: V[], key: K): Map<V[K], V[]> {
     const map = new Map<V[K], V[]>()
-    arr.forEach(el => {
-      map.set(el[key], [...map.get(el[key]) ?? [], el])
+    arr.forEach((el) => {
+      map.set(el[key], [...(map.get(el[key]) ?? []), el])
     })
     return map
   }
 
   const projectEntries = await getProjects(config)
-  const projectEntryById = toMap(projectEntries, 'id')
+  const projectEntryById = toMap(projectEntries, "id")
 
   const componentEntries = await getComponents(config)
-  const componentEntryById = toMap(componentEntries, 'id')
+  const componentEntryById = toMap(componentEntries, "id")
 
-  const moduleEntries = (await getModules(config)).filter(m => !m.isFuture)
-  const moduleEntryById = toMap(moduleEntries, 'id')
+  const moduleEntries = (await getModules(config)).filter((m) => !m.isFuture)
+  const moduleEntryById = toMap(moduleEntries, "id")
 
   const moduleByComponentId = new Map<string, ModuleEntry>()
-  componentEntries.forEach(c => {
+  componentEntries.forEach((c) => {
     const module = moduleEntryById.get(c.module)
     if (module) {
       moduleByComponentId.set(c.id, module)
     }
   })
 
-  const relationEntries = (await getRelations(config, componentEntryById)).filter(entry => {
-    return componentEntryById.has(entry.componentId) && componentEntryById.has(entry.targetId)
+  const relationEntries = (
+    await getRelations(config, componentEntryById)
+  ).filter((entry) => {
+    return (
+      componentEntryById.has(entry.componentId) &&
+      componentEntryById.has(entry.targetId)
+    )
   })
-  const relationEntriesBySource = groupBy(relationEntries, 'componentId')
+  const relationEntriesBySource = groupBy(relationEntries, "componentId")
   function getRelationEntriesBySource(cId: string): RelationEntry[] {
     return relationEntriesBySource.get(cId) ?? []
   }
 
-  const apiEntries = (await getApis(config))
-  const apiEntryById = toMap(apiEntries, 'id')
-  const resourceEntries = (await getResources(config))
-  const resourceEntryById = toMap(resourceEntries, 'id')
+  const apiEntries = await getApis(config)
+  const apiEntryById = toMap(apiEntries, "id")
+  const resourceEntries = await getResources(config)
+  const resourceEntryById = toMap(resourceEntries, "id")
 
-  const zoneNames = [...new Set(moduleEntries.map(s => s.zone))]
+  const zoneNames = [...new Set(moduleEntries.map((s) => s.zone))]
 
   const zones = zoneNames.map((zone): Zone => {
-    const domainNames = [...new Set(moduleEntries.filter(s => s.zone === zone).map(s => s.domain))]
+    const domainNames = [
+      ...new Set(
+        moduleEntries.filter((s) => s.zone === zone).map((s) => s.domain)
+      ),
+    ]
     const domains = domainNames.map((domain): Domain => {
-      const modules = moduleEntries.filter(m => m.zone === zone && m.domain === domain)
+      const modules = moduleEntries.filter(
+        (m) => m.zone === zone && m.domain === domain
+      )
       const entities = modules.map((module): Entity => {
         const externalModuleType = getExternalModuleType(module.type)
-        const componentEntries = module.components.map(cId => componentEntryById.get(cId)).filter(c => c !== undefined) as ComponentEntry[]
-        const projects = module.projectIds.map(pId => projectEntryById.get(pId)).filter(p => p !== undefined) as ProjectEntry[]
+        const componentEntries = module.components
+          .map((cId) => componentEntryById.get(cId))
+          .filter((c) => c !== undefined) as ComponentEntry[]
+        const projects = module.projectIds
+          .map((pId) => projectEntryById.get(pId))
+          .filter((p) => p !== undefined) as ProjectEntry[]
         if (externalModuleType) {
-          const relations: Relation[] = componentEntries.flatMap(component =>
-            getRelationEntriesBySource(component.id).map((rel): Relation | undefined => {
-              const target = componentEntryById.get(rel.targetId)
-              if (target) {
-                return {
-                  type: rel.type,
-                  targetId: toId(`component_${target.name}_${target.id}`),
-                  description: rel.name,
-                }
-              }
-            }).filter(c => c !== undefined) as Relation[]
+          const relations: Relation[] = componentEntries.flatMap(
+            (component) =>
+              getRelationEntriesBySource(component.id)
+                .map((rel): Relation | undefined => {
+                  const target = componentEntryById.get(rel.targetId)
+                  if (target) {
+                    return {
+                      type: rel.type,
+                      targetId: toId(`component_${target.name}_${target.id}`),
+                      description: rel.name,
+                    }
+                  }
+                })
+                .filter((c) => c !== undefined) as Relation[]
           )
 
           return {
             partType: PartType.ExternalModule,
             uid: toId(`module_${module.name}_${module.id}`),
             type: externalModuleType,
-            name: externalModuleType === ExternalModuleType.App ? module.name.replace(' (app)', '') : module.name,
+            name:
+              externalModuleType === ExternalModuleType.App
+                ? module.name.replace(" (app)", "")
+                : module.name,
             relations: relations,
             flags: undefined, // TODO
-            tags: projects.map(p => p.name),
+            tags: projects.map((p) => p.name),
           }
         }
         const components = componentEntries.map((component): Component => {
-          const relations = getRelationEntriesBySource(component.id).map((rel): Relation | undefined => {
-            const target = componentEntryById.get(rel.targetId)
-            if (target) {
-              const targetModule = moduleByComponentId.get(rel.targetId)
-              if (targetModule?.type && getExternalModuleType(targetModule.type)) {
+          const relations = getRelationEntriesBySource(component.id)
+            .map((rel): Relation | undefined => {
+              const target = componentEntryById.get(rel.targetId)
+              if (target) {
+                const targetModule = moduleByComponentId.get(rel.targetId)
+                if (
+                  targetModule?.type &&
+                  getExternalModuleType(targetModule.type)
+                ) {
+                  return {
+                    type: rel.type,
+                    targetId: toId(
+                      `module_${targetModule.name}_${targetModule.id}`
+                    ),
+                    description: rel.name,
+                  }
+                }
                 return {
                   type: rel.type,
-                  targetId: toId(`module_${targetModule.name}_${targetModule.id}`),
+                  targetId: toId(`component_${target.name}_${target.id}`),
                   description: rel.name,
                 }
               }
-              return {
-                type: rel.type,
-                targetId: toId(`component_${target.name}_${target.id}`),
-                description: rel.name,
-              }
-            }
-          }).filter(c => c !== undefined) as Relation[]
+            })
+            .filter((c) => c !== undefined) as Relation[]
 
           return {
             partType: PartType.Component,
@@ -311,21 +357,24 @@ export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
             name: component.name,
             type: component.type,
             relations,
-            flags: undefined,  // TODO
-            tags: [],  // TODO
+            flags: undefined, // TODO
+            tags: [], // TODO
           }
         })
-        const apiEntries: ApiEntry[] =
-          module.apiIds.map(apiId => apiEntryById.get(apiId)).filter(e => e !== undefined) as ApiEntry[]
-        const apis = apiEntries.map(apiEntry => {
-          const resourceEntries = apiEntry.resources.map(resId => resourceEntryById.get(resId)).filter(c => c !== undefined) as ResourceEntry[]
+        const apiEntries: ApiEntry[] = module.apiIds
+          .map((apiId) => apiEntryById.get(apiId))
+          .filter((e) => e !== undefined) as ApiEntry[]
+        const apis = apiEntries.map((apiEntry) => {
+          const resourceEntries = apiEntry.resources
+            .map((resId) => resourceEntryById.get(resId))
+            .filter((c) => c !== undefined) as ResourceEntry[]
           return {
             name: apiEntry.name,
             type: apiEntry.type,
-            resources: resourceEntries.map(rs => ({
+            resources: resourceEntries.map((rs) => ({
               uid: toId(`resource_${apiEntry.name}_${rs.name}_${rs.id}`),
               name: rs.name,
-            }))
+            })),
           }
         })
         return {
@@ -335,7 +384,7 @@ export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
           components,
           apis,
           flags: undefined, // TODO
-          tags: projects.map(p => p.name),
+          tags: projects.map((p) => p.name),
         }
       })
       return {
@@ -358,7 +407,7 @@ export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
   })
 
   return {
-    componentTypes: [...new Set(componentEntries.map(c => c.type))],
+    componentTypes: [...new Set(componentEntries.map((c) => c.type))],
     zones,
   }
 }

@@ -300,17 +300,18 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
   )
   const relations = Array.from(relationsMap.values())
 
-  const containsFocused = Array.from(ids.keys()).reduce((acc, partId): Set<
-    string
-  > => {
-    const containsFocused =
-      focused.has(partId) ||
-      descent.get(partId)?.find((d) => focused.has(d.uid)) !== undefined
-    if (containsFocused) {
-      acc.add(partId)
-    }
-    return acc
-  }, new Set<string>())
+  const containsFocused = Array.from(ids.keys()).reduce(
+    (acc, partId): Set<string> => {
+      const containsFocused =
+        focused.has(partId) ||
+        descent.get(partId)?.find((d) => focused.has(d.uid)) !== undefined
+      if (containsFocused) {
+        acc.add(partId)
+      }
+      return acc
+    },
+    new Set<string>()
+  )
   const componentTypes: string[] = [
     ...new Set(
       Array.from(containsFocused.entries()).flatMap(([partId, value]) => {
@@ -473,8 +474,10 @@ const findFirstFocusedParent = (
   return findFirstFocusedParent(parent.uid, parents, focused)
 }
 
-const partContainsFocused = (infos: DiagramInfos) => (part: Part): boolean =>
-  infos.containsFocused.has(part.uid)
+const partContainsFocused =
+  (infos: DiagramInfos) =>
+  (part: Part): boolean =>
+    infos.containsFocused.has(part.uid)
 
 export type PrunedDiagram = Diagram & {
   readonly relations: readonly CompleteRelation[]

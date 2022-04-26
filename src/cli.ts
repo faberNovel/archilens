@@ -172,7 +172,7 @@ program
   )
 
 export type CliOptions =
-  | { type: "config", config: string }
+  | { type: "config"; config: string }
   | (Config & { type: "cli" })
 
 export function parseCli(args: string[]): CliOptions {
@@ -184,7 +184,7 @@ export function parseCli(args: string[]): CliOptions {
   return {
     type: "cli",
     input: cliOpts.input && {
-      configType: 'YAML',
+      configType: "YAML",
       rootFile: p.basename(cliOpts.input),
       sourceDirectory:
         cliOpts.sourceDirectory ??

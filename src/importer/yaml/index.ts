@@ -81,26 +81,26 @@ export const ComponentImport: yup.ObjectSchema<ComponentImport> = yup
     tags: TagsImport.notRequired(),
   })
   .required()
-export const importComponent = (ctypes: string[]) => (
-  component: ComponentImport
-): Component => {
-  if (!ctypes.includes(component.ctype)) {
-    const value =
-      component.ctype === undefined ? "<undefined>" : `'${component.ctype}'`
-    throw new Error(
-      `Invalid ctype ${value} in component ${JSON.stringify(component)}`
-    )
+export const importComponent =
+  (ctypes: string[]) =>
+  (component: ComponentImport): Component => {
+    if (!ctypes.includes(component.ctype)) {
+      const value =
+        component.ctype === undefined ? "<undefined>" : `'${component.ctype}'`
+      throw new Error(
+        `Invalid ctype ${value} in component ${JSON.stringify(component)}`
+      )
+    }
+    return {
+      partType: PartType.Component,
+      uid: component.uid,
+      name: component.name ?? component.uid,
+      type: component.ctype,
+      relations: component.relations?.map(importRelation) ?? [],
+      flags: importFlags(component.flags),
+      tags: importTags(component.tags),
+    }
   }
-  return {
-    partType: PartType.Component,
-    uid: component.uid,
-    name: component.name ?? component.uid,
-    type: component.ctype,
-    relations: component.relations?.map(importRelation) ?? [],
-    flags: importFlags(component.flags),
-    tags: importTags(component.tags),
-  }
-}
 
 export type ResourceImport = {
   uid: string
@@ -144,31 +144,31 @@ export const ModuleImport: yup.ObjectSchema<ModuleImport> = yup
     tags: TagsImport.notRequired(),
   })
   .required()
-export const importModule = (ctypes: string[]) => (
-  module: ModuleImport
-): Module => {
-  const name = module.name ?? module.uid
-  const api = (
-    module.api !== undefined
-      ? module.api !== false
-      : module.resources !== undefined
-  )
-    ? {
-        type: 'APIGW', // TODO allow to specify API type in YAML
-        name: typeof module.api === "string" ? module.api : name,
-        resources: module.resources?.map(importResource) ?? [],
-      }
-    : undefined
-  return {
-    partType: PartType.Module,
-    uid: module.uid,
-    name: name,
-    components: module.components?.map(importComponent(ctypes)) ?? [],
-    apis: api ? [api] : [], // TODO allow to defined more than 1 API in YAML
-    flags: importFlags(module.flags),
-    tags: importTags(module.tags),
+export const importModule =
+  (ctypes: string[]) =>
+  (module: ModuleImport): Module => {
+    const name = module.name ?? module.uid
+    const api = (
+      module.api !== undefined
+        ? module.api !== false
+        : module.resources !== undefined
+    )
+      ? {
+          type: "APIGW", // TODO allow to specify API type in YAML
+          name: typeof module.api === "string" ? module.api : name,
+          resources: module.resources?.map(importResource) ?? [],
+        }
+      : undefined
+    return {
+      partType: PartType.Module,
+      uid: module.uid,
+      name: name,
+      components: module.components?.map(importComponent(ctypes)) ?? [],
+      apis: api ? [api] : [], // TODO allow to defined more than 1 API in YAML
+      flags: importFlags(module.flags),
+      tags: importTags(module.tags),
+    }
   }
-}
 
 export type ExternalModuleImport = {
   uid: string
@@ -207,9 +207,9 @@ export const importExternalModule = (
 function union<A>(schemas: yup.Schema<A>[], message: string): yup.Schema<A> {
   const loop = (value: unknown, schemas: yup.Schema<A>[]): yup.Schema<A> => {
     if (schemas.length === 0) {
-      return (yup
+      return yup
         .mixed()
-        .test("failed", message, () => false) as unknown) as yup.Schema<A>
+        .test("failed", message, () => false) as unknown as yup.Schema<A>
     }
     const schema: yup.Schema<A> = schemas[0]
     if (schema.isValidSync(value)) {
@@ -234,14 +234,14 @@ export const isExternalModule = (
   entity: EntityImport
 ): entity is ExternalModuleImport => !isModule(entity) && !isComponent(entity)
 
-export const importEntity = (ctypes: string[]) => (
-  entity: EntityImport
-): Entity => {
-  if (isModule(entity)) return importModule(ctypes)(entity)
-  if (isComponent(entity)) return importComponent(ctypes)(entity)
-  if (isExternalModule(entity)) return importExternalModule(entity)
-  throw new Error(`Can't import entity: ${entity}`)
-}
+export const importEntity =
+  (ctypes: string[]) =>
+  (entity: EntityImport): Entity => {
+    if (isModule(entity)) return importModule(ctypes)(entity)
+    if (isComponent(entity)) return importComponent(ctypes)(entity)
+    if (isExternalModule(entity)) return importExternalModule(entity)
+    throw new Error(`Can't import entity: ${entity}`)
+  }
 
 export type DomainImport = {
   uid: string
@@ -259,18 +259,18 @@ export const DomainImport: yup.ObjectSchema<DomainImport> = yup
     tags: TagsImport.notRequired(),
   })
   .required()
-export const importDomain = (ctypes: string[]) => (
-  domain: DomainImport
-): Domain => {
-  return {
-    partType: PartType.Domain,
-    uid: domain.uid,
-    name: domain.name ?? domain.uid,
-    entities: domain.entities?.map(importEntity(ctypes)) ?? [],
-    flags: importFlags(domain.flags),
-    tags: importTags(domain.tags),
+export const importDomain =
+  (ctypes: string[]) =>
+  (domain: DomainImport): Domain => {
+    return {
+      partType: PartType.Domain,
+      uid: domain.uid,
+      name: domain.name ?? domain.uid,
+      entities: domain.entities?.map(importEntity(ctypes)) ?? [],
+      flags: importFlags(domain.flags),
+      tags: importTags(domain.tags),
+    }
   }
-}
 
 export type ZoneImport = {
   uid: string
@@ -288,16 +288,18 @@ export const ZoneImport: yup.ObjectSchema<ZoneImport> = yup
     tags: TagsImport.notRequired(),
   })
   .required()
-export const importZone = (ctypes: string[]) => (zone: ZoneImport): Zone => {
-  return {
-    partType: PartType.Zone,
-    uid: zone.uid,
-    name: zone.name ?? zone.uid,
-    domains: zone.domains?.map(importDomain(ctypes)) ?? [],
-    flags: importFlags(zone.flags),
-    tags: importTags(zone.tags),
+export const importZone =
+  (ctypes: string[]) =>
+  (zone: ZoneImport): Zone => {
+    return {
+      partType: PartType.Zone,
+      uid: zone.uid,
+      name: zone.name ?? zone.uid,
+      domains: zone.domains?.map(importDomain(ctypes)) ?? [],
+      flags: importFlags(zone.flags),
+      tags: importTags(zone.tags),
+    }
   }
-}
 
 export type DiagramImport = {
   ctypes: string[]

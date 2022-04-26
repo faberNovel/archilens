@@ -32,7 +32,7 @@ $defs:
         $ref: "#/$defs/flags"
       tags:
         $ref: "#/$defs/tags"
-    required: [ uid ]
+    required: [uid]
     additionalItems: false
   domain:
     title: Domain
@@ -50,7 +50,7 @@ $defs:
         $ref: "#/$defs/flags"
       tags:
         $ref: "#/$defs/tags"
-    required: [ uid ]
+    required: [uid]
     additionalItems: false
   entity:
     oneOf:
@@ -80,7 +80,7 @@ $defs:
         $ref: "#/$defs/flags"
       tags:
         $ref: "#/$defs/tags"
-    required: [ uid, components ]
+    required: [uid, components]
     additionalItems: false
   component:
     type: object
@@ -99,7 +99,7 @@ $defs:
         $ref: "#/$defs/flags"
       tags:
         $ref: "#/$defs/tags"
-    required: [ uid, ctype ]
+    required: [uid, ctype]
     additionalItems: false
   externalmodule:
     type: object
@@ -108,7 +108,7 @@ $defs:
         type: string
       mtype:
         type: string
-        enum: [ "App", "External", "Legacy", "Platform" ]
+        enum: ["App", "External", "Legacy", "Platform"]
       name:
         type: string
       relations:
@@ -119,7 +119,7 @@ $defs:
         $ref: "#/$defs/flags"
       tags:
         $ref: "#/$defs/tags"
-    required: [ uid, mtype ]
+    required: [uid, mtype]
     additionalItems: false
   resource:
     type: object
@@ -128,7 +128,7 @@ $defs:
         type: string
       name:
         type: string
-    required: [ uid ]
+    required: [uid]
     additionalItems: false
   relation:
     type: object
@@ -137,12 +137,12 @@ $defs:
         type: string
       rtype:
         type: string
-        enum: [ "Ask", "Listen", "Tell" ]
+        enum: ["Ask", "Listen", "Tell"]
       reverse:
         type: boolean
       description:
         type: string
-    required: [ target ]
+    required: [target]
     additionalItems: false
 type: object
 properties:
@@ -155,5 +155,5 @@ properties:
     type: array
     items:
       $ref: "#/$defs/zone"
-required: [ ctypes, zones ]
+required: [ctypes, zones]
 additionalItems: false

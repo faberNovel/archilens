@@ -1513,7 +1513,7 @@ export type Page = {
   url: string
 }
 
-const ignoredPpt = {name: '_gen_ignored'}
+const ignoredPpt = { name: "_gen_ignored" }
 
 export function isNotIgnoredPage(page: Page): boolean {
   return !isIgnoredPage(page)
@@ -1529,18 +1529,30 @@ export function isEmptyPage(page: Page): boolean {
   return Object.keys(page.properties).every((key) => {
     const ppt = page.properties[key]
     switch (ppt.type) {
-      case "checkbox": return !ppt.checkbox
-      case "date": return ppt.date === undefined || ppt.date === null
-      case "email": return !ppt.email
-      case "files": return ppt.files.length === 0
-      case "multi_select": return ppt.multi_select.length === 0
-      case "number": return ppt.number === undefined || ppt.number === null
-      case "people": return ppt.people.length === 0
-      case "phone_number": return !ppt.phone_number
-      case "relation": return ppt.relation.length === 0
-      case "rich_text": return ppt.rich_text.length === 0
-      case "select": return ppt.select === undefined || ppt.select === null
-      case "title": return ppt.title.length === 0
+      case "checkbox":
+        return !ppt.checkbox
+      case "date":
+        return ppt.date === undefined || ppt.date === null
+      case "email":
+        return !ppt.email
+      case "files":
+        return ppt.files.length === 0
+      case "multi_select":
+        return ppt.multi_select.length === 0
+      case "number":
+        return ppt.number === undefined || ppt.number === null
+      case "people":
+        return ppt.people.length === 0
+      case "phone_number":
+        return !ppt.phone_number
+      case "relation":
+        return ppt.relation.length === 0
+      case "rich_text":
+        return ppt.rich_text.length === 0
+      case "select":
+        return ppt.select === undefined || ppt.select === null
+      case "title":
+        return ppt.title.length === 0
       // always defined
       case "created_by":
       case "created_time":
@@ -1550,7 +1562,8 @@ export function isEmptyPage(page: Page): boolean {
       case "rollup":
       case "url":
         return true
-      default: throw `Unknown property: ${key} for page ${pageId(page)}`
+      default:
+        throw `Unknown property: ${key} for page ${pageId(page)}`
     }
   })
 }
@@ -1578,7 +1591,7 @@ export function getPageName(page: Page): string | undefined {
 export function getPageNameOrFail(page: Page): string {
   const name = getPageName(page)
   if (!name) {
-    const emptyLabel = isEmptyPage(page) ? 'empty' : 'not empty'
+    const emptyLabel = isEmptyPage(page) ? "empty" : "not empty"
     throw new Error(`Missing page name in ${emptyLabel} page ${pageId(page)}`)
   }
   return name

@@ -24,7 +24,7 @@ async function main(): Promise<void> {
   debug("config:", JSON.stringify(config))
 
   let diagram: Diagram
-  if (config.input.configType === 'YAML') {
+  if (config.input.configType === "YAML") {
     const content = parse(config.input.sourceDirectory, config.input.rootFile)
     const schema = parse(p.join(__dirname, "importer/yaml"), "schema.yml")
     const valid = ajv.validate(schema, content)

@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import { PruneLevel, PruneOptions } from "./prune"
 import { RelationType } from "./models"
-import { NotionConfig } from "./importer/notion";
+import { NotionConfig } from "./importer/notion"
 
 export const enum PruneType {
   Api = "Api",
@@ -95,7 +95,7 @@ export const diagramConfig: z.ZodType<DiagramConfig> = (() => {
 })()
 
 export type YamlConfig = {
-  configType: 'YAML'
+  configType: "YAML"
   sourceDirectory: string
   rootFile: string
 }
@@ -105,13 +105,19 @@ export type Config = {
   diagrams: DiagramConfig[]
 }
 export const config: z.ZodType<Config> = z.object({
-    input: (
-      z.object({
+  input: (
+    z
+      .object({
         sourceDirectory: z.string(),
-        rootFile: z.string().default('index.yaml'),
-      }).transform(c => ({...c, configType: 'YAML'})) as unknown as z.ZodType<YamlConfig>
-    ).or(
-      z.object({
+        rootFile: z.string().default("index.yaml"),
+      })
+      .transform((c) => ({
+        ...c,
+        configType: "YAML",
+      })) as unknown as z.ZodType<YamlConfig>
+  ).or(
+    z
+      .object({
         pages: z.object({
           projects: z.string(),
           modules: z.string(),
@@ -119,11 +125,15 @@ export const config: z.ZodType<Config> = z.object({
           relations: z.string(),
           apis: z.string(),
           resources: z.string(),
-        })
-      }).transform(c => ({...c, configType: 'NotionConfig'})) as unknown as z.ZodType<NotionConfig>
-    ),
-    diagrams: z.array(diagramConfig),
-  })
+        }),
+      })
+      .transform((c) => ({
+        ...c,
+        configType: "NotionConfig",
+      })) as unknown as z.ZodType<NotionConfig>
+  ),
+  diagrams: z.array(diagramConfig),
+})
 
 export function parseConfig(raw: unknown): Config {
   return config.parse(raw)

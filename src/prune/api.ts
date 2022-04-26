@@ -82,17 +82,18 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     children.set(zone.uid, zoneChildren)
     descent.set(zone.uid, zoneDescent)
   })
-  const containsFocused = Array.from(ids.keys()).reduce((acc, partId): Set<
-    string
-  > => {
-    const containsFocused =
-      focused.has(partId) ||
-      descent.get(partId)?.find((d) => focused.has(d.uid)) !== undefined
-    if (containsFocused) {
-      acc.add(partId)
-    }
-    return acc
-  }, new Set<string>())
+  const containsFocused = Array.from(ids.keys()).reduce(
+    (acc, partId): Set<string> => {
+      const containsFocused =
+        focused.has(partId) ||
+        descent.get(partId)?.find((d) => focused.has(d.uid)) !== undefined
+      if (containsFocused) {
+        acc.add(partId)
+      }
+      return acc
+    },
+    new Set<string>()
+  )
   return {
     diagram,
     opts,
@@ -135,8 +136,10 @@ const computeHasFocus = (opts: PruneOptions, part: Part): boolean => {
   return false
 }
 
-const partContainsFocused = (infos: DiagramInfos) => (part: Part): boolean =>
-  infos.containsFocused.has(part.uid)
+const partContainsFocused =
+  (infos: DiagramInfos) =>
+  (part: Part): boolean =>
+    infos.containsFocused.has(part.uid)
 
 export function pruneDiagram(opts: PruneOptions, diagram: Diagram): Diagram {
   const infos = prepareDiagram(opts, diagram)
