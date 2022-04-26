@@ -41,7 +41,7 @@ export const generateComponent = (opts: PlantumlOptions) => (
 export const generateModule = (opts: PlantumlOptions) => (
   module: Module
 ): string[] => {
-  const part = `rectangle "${module.name}" <<Module>> as ${module.uid}`
+  const part = `rectangle "${module.name}" <<Service>> as ${module.uid}`
   if (module.components.length === 0) {
     return [part]
   }
@@ -61,10 +61,10 @@ export const generateExternalModule = (opts: PlantumlOptions) => (
       skin = "App"
       break
     case ExternalModuleType.External:
-      skin = "ExternalModule"
+      skin = "ExternalService"
       break
     case ExternalModuleType.Legacy:
-      skin = "LegacyModule"
+      skin = "LegacyService"
       break
     case ExternalModuleType.Platform:
       skin = "Platform"
@@ -169,10 +169,10 @@ export function generateDiagram(
       BackgroundColor: "#D5E8D4",
     }),
     ...skinparam("rectangle<<App>>", { BackgroundColor: "#F5F5F5" }),
-    ...skinparam("rectangle<<ExternalModule>>", { BackgroundColor: "#F5F5F5" }),
+    ...skinparam("rectangle<<ExternalService>>", { BackgroundColor: "#F5F5F5" }),
     ...skinparam("rectangle<<Platform>>", { BackgroundColor: "#FFF2CB" }),
-    ...skinparam("rectangle<<LegacyModule>>", { BackgroundColor: "#F8CECC" }),
-    ...skinparam("rectangle<<Module>>", { BackgroundColor: "#FFE6CC" }),
+    ...skinparam("rectangle<<LegacyService>>", { BackgroundColor: "#F8CECC" }),
+    ...skinparam("rectangle<<Service>>", { BackgroundColor: "#FFE6CC" }),
     ...skinparam("queue", { BorderColor: "black" }),
 
     ...componentSkinparams,
