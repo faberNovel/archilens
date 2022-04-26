@@ -21,7 +21,7 @@ async function main(): Promise<void> {
 
   const config: Config =
     options.type === "cli" ? options : parseConfig(parseSimple(options.config))
-  debug("config:", config)
+  debug("config:", JSON.stringify(config))
 
   let diagram: Diagram
   if (config.input.configType === 'YAML') {
