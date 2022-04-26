@@ -1520,7 +1520,7 @@ export function isEmptyPage(page: Page): boolean {
   return Object.keys(page.properties).every((key) => {
     const ppt = page.properties[key]
     switch (ppt.type) {
-      case "checkbox": return ppt.checkbox === undefined || ppt.checkbox === null
+      case "checkbox": return !ppt.checkbox
       case "date": return ppt.date === undefined || ppt.date === null
       case "email": return !ppt.email
       case "files": return ppt.files.length === 0
