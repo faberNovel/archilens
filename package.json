@@ -7,9 +7,10 @@
     "node": ">=14.15.0"
   },
   "scripts": {
-    "format": "prettier --loglevel warn --write src",
+    "format": "prettier --loglevel warn --write ./src",
     "build": "tsc",
-    "generate": "node build"
+    "generate": "node ./build",
+    "generate:dev": "ts-node ./src"
   },
   "dependencies": {
     "@notionhq/client": "^0.4.11",
