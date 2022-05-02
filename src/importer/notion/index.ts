@@ -10,10 +10,10 @@ import {
   getPageRelationOrFail,
   getPageSelectOrFail,
   getPageSingleRelationOrFail,
-  isEmptyPage,
   isNotEmptyPage,
   isNotIgnoredPage,
   Page,
+  pageId,
 } from "./helpers"
 import {
   Component,
@@ -52,6 +52,63 @@ if (USE_CACHE && !fs.existsSync(CACHE_DIR)) {
   fs.mkdirSync(CACHE_DIR)
 }
 
+type RelationResult = {
+  type: "relation"
+  relation: {
+    id: string
+  }
+  object: "property_item"
+}
+type RelationRetrieveResult = {
+  object: "list"
+  results: RelationResult[]
+  next_cursor: string | null
+  has_more: boolean
+}
+
+const MAX_RELATION_IN_RESULT = 25
+async function completePageRelations(page: Page): Promise<Page> {
+  for (const key of Object.keys(page.properties)) {
+    const ppt = page.properties[key]
+    if (
+      ppt.type === "relation" &&
+      ppt.relation.length >= MAX_RELATION_IN_RESULT
+    ) {
+      console.warn(
+        `${pageId(page)} has too many relations (${
+          ppt.relation.length
+        }) in property '${key}'`
+      )
+      const retrievedRelations: RelationResult[] = []
+      let nextCursor: string | null = null
+      do {
+        const retrieved = (await notion.pages.properties.retrieve({
+          page_id: page.id,
+          property_id: ppt.id,
+          // page_size: 30,
+          start_cursor: nextCursor ?? undefined,
+        })) as RelationRetrieveResult
+        retrievedRelations.push(...retrieved.results)
+        nextCursor = retrieved.next_cursor
+      } while (nextCursor)
+      ppt.relation = retrievedRelations.map((rel) => ({ id: rel.relation.id }))
+      console.warn(
+        "Retrieved ${retrievedRelations.length} relations for page ${pageId(page)} for property '${key}'"
+      )
+    }
+  }
+  return page
+}
+
+async function completePagesRelations(pages: Page[]): Promise<Page[]> {
+  const completed: Page[] = []
+  for (const page of pages) {
+    const completedPage: Page = await completePageRelations(page)
+    completed.push(completedPage)
+  }
+  return completed
+}
+
 async function getAllPages(dbId: string): Promise<Page[]> {
   const cacheFile = `${CACHE_DIR}/${dbId}.json`
   if (USE_CACHE && fs.existsSync(cacheFile)) {
@@ -68,13 +125,17 @@ async function getAllPages(dbId: string): Promise<Page[]> {
     })
     parts = [...parts, response.results]
   }
-  const result = (parts.flat() as Page[])
+  const filteredResults = (parts.flat() as Page[])
     .filter(isNotEmptyPage)
     .filter(isNotIgnoredPage)
+  const completedResults = await completePagesRelations(filteredResults)
   if (USE_CACHE) {
-    fs.writeFileSync(cacheFile, JSON.stringify(result, undefined, "  "))
+    fs.writeFileSync(
+      cacheFile,
+      JSON.stringify(completedResults, undefined, "  ")
+    )
   }
-  return result
+  return completedResults
 }
 
 // --- Modules ---

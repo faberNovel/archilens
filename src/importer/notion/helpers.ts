@@ -405,6 +405,14 @@ type SelectPropertyValue = {
   } | null
   id: string
 }
+type RelationPropertyValue = {
+  type: "relation"
+  relation: Array<{
+    id: string
+  }>
+  id: string
+  next_url: string | null
+}
 
 export type Page = {
   parent:
@@ -565,13 +573,7 @@ export type Page = {
             }
         id: string
       }
-    | {
-        type: "relation"
-        relation: Array<{
-          id: string
-        }>
-        id: string
-      }
+    | RelationPropertyValue
     | {
         type: "created_time"
         created_time: string
@@ -1526,8 +1528,7 @@ export function isNotEmptyPage(page: Page): boolean {
   return !isEmptyPage(page)
 }
 export function isEmptyPage(page: Page): boolean {
-  return Object.keys(page.properties).every((key) => {
-    const ppt = page.properties[key]
+  return Object.entries(page.properties).every(([key, ppt]) => {
     switch (ppt.type) {
       case "checkbox":
         return !ppt.checkbox
