@@ -164,7 +164,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
             focused,
             source
           )
-          let firstTarget: Part | undefined = getFirstRelationTaget(
+          let firstTarget: Part | undefined = getFirstRelationTarget(
             opts,
             parents,
             focused,
@@ -177,7 +177,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
             firstTarget &&
             opts.reverseRelationTypes.includes(relation.type)
           ) {
-            firstSource = getFirstRelationTaget(
+            firstSource = getFirstRelationTarget(
               opts,
               parents,
               focused,
@@ -433,7 +433,7 @@ const computeIsRelationTarget = (
   if (isExternalModule(part)) return relationAcceptModule(opts)
   return relationAcceptComponent(opts)
 }
-const getFirstRelationTaget = (
+const getFirstRelationTarget = (
   opts: PruneOptions,
   parents: ReadonlyMap<string, Part>,
   focused: ReadonlySet<string>,
@@ -450,7 +450,7 @@ const getFirstRelationTaget = (
   if (commonFocusedAncestors.includes(parent)) {
     return part
   }
-  return getFirstRelationTaget(
+  return getFirstRelationTarget(
     opts,
     parents,
     focused,
