@@ -134,7 +134,7 @@ if [[ "$debug_enabled" == "true" ]]; then
   echo "force_build_enabled: $force_build_enabled" >&2
   echo "gen_svg_enabled: $gen_svg_enabled" >&2
   echo "gen_png_enabled: $gen_png_enabled" >&2
-  echo "args: $args" >&2
+  echo "args: ${args[*]}" >&2
 fi
 
 if [[ "$clean_enabled" == "true" ]]; then
