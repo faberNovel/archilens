@@ -178,6 +178,7 @@ type ComponentEntry = {
   type: string
   hosting: string
   language: string
+  tags: string[]
 }
 
 export async function getComponents(
@@ -191,6 +192,7 @@ export async function getComponents(
     type: getPageSelectOrFail(page, { name: "Type" }),
     hosting: getPageSelectOrFail(page, { name: "Hosting" }),
     language: getPageSelectOrFail(page, { name: "Language" }),
+    tags: getPageMultiselectOrFail(page, { name: "Tags" }),
   }))
 }
 
@@ -419,7 +421,7 @@ export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
             type: component.type,
             relations,
             flags: undefined, // TODO
-            tags: [], // TODO
+            tags: component.tags,
           }
         })
         const apiEntries: ApiEntry[] = module.apiIds
