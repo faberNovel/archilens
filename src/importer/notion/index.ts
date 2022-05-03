@@ -93,7 +93,9 @@ async function completePageRelations(page: Page): Promise<Page> {
       } while (nextCursor)
       ppt.relation = retrievedRelations.map((rel) => ({ id: rel.relation.id }))
       console.warn(
-        "Retrieved ${retrievedRelations.length} relations for page ${pageId(page)} for property '${key}'"
+        `Retrieved ${retrievedRelations.length} relations for page ${pageId(
+          page
+        )} for property '${key}'`
       )
     }
   }
