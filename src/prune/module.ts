@@ -117,10 +117,15 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
   ids.forEach((part) => {
     const parent = parents.get(part.uid)
     const hasFocus =
-      computeHasFocus(opts, part, ancestors) ||
-      (parent !== undefined &&
-        (opts.open.includes(parent.uid) ||
-          parent.tags.find((t) => opts.openTags.includes(t)) !== undefined))
+      !(
+        opts.exclude.includes(part.uid) ||
+        opts.completelyExclude.includes(part.uid) ||
+        opts.excludeTags.some((tag) => part.tags.includes(tag))
+      ) &&
+      (computeHasFocus(opts, part, ancestors) ||
+        (parent !== undefined &&
+          (opts.open.includes(parent.uid) ||
+            parent.tags.some((t) => opts.openTags.includes(t)))))
     if (hasFocus) {
       focused.add(part.uid)
     }
