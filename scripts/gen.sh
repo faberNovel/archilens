@@ -184,6 +184,7 @@ if [[ "$force_build_enabled" == "true" ]]; then
 fi
 if [[ "$force_build_enabled" == "true" || ("$devmode_enabled" != "true" && (! -d "$build_dir")) ]]; then
   echo "Building archilens..." >&2
+  run yarn format
   run yarn build
 fi
 
