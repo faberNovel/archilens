@@ -157,7 +157,7 @@ if [[ ! -d "$output_dir" ]]; then
 fi
 
 if [[ "$gen_svg_enabled" == "true" ]]; then
-  plantuml_jar="$(scripts/download_plantuml.sh --dry-run)"
+  plantuml_jar="$(scripts/download_plantuml.sh --name-only)"
 
   if [[ "$debug" == "true" ]]; then
     "plantuml_jar: $plantuml_jar" >&2
