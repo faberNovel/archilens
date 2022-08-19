@@ -66,7 +66,7 @@ type RelationRetrieveResult = {
   has_more: boolean
 }
 
-const MAX_RELATION_IN_RESULT = 25
+const MAX_RELATION_IN_RESULT = 20
 async function completePageRelations(page: Page): Promise<Page> {
   for (const key of Object.keys(page.properties)) {
     const ppt = page.properties[key]
