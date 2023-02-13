@@ -1,17 +1,20 @@
-export const enum PartType {
-  Zone = "Zone",
-  Domain = "Domain",
-  Module = "Module",
-  ExternalModule = "ExternalModule",
-  Component = "Component",
-}
+export type PartType = "Zone" | "Domain" | "Module" | "ExternalModule" | "Component"
+export const PartType = {
+  Zone: "Zone",
+  Domain: "Domain",
+  Module: "Module",
+  ExternalModule: "ExternalModule",
+  Component: "Component",
+} satisfies Record<PartType, PartType>
 
-export const enum ExternalModuleType {
-  External = "External",
-  Legacy = "Legacy",
-  App = "App",
-  Platform = "Platform",
-}
+export type ExternalModuleType = "External" | "Legacy" | "App" | "Platform"
+export const ExternalModuleType = {
+  External: "External",
+  Legacy: "Legacy",
+  App: "App",
+  Platform: "Platform",
+} satisfies Record<ExternalModuleType, ExternalModuleType>
+
 export function getExternalModuleType(
   type: string
 ): ExternalModuleType | undefined {
@@ -41,8 +44,9 @@ export type Flags = {
 }
 
 export type ExternalModule = {
-  readonly partType: PartType.ExternalModule
+  readonly partType: typeof PartType.ExternalModule
   readonly uid: string
+  readonly id: string
   readonly type: ExternalModuleType
   readonly name: string
   readonly relations: readonly Relation[]
@@ -52,6 +56,7 @@ export type ExternalModule = {
 
 export type Resource = {
   readonly uid: string
+  readonly id: string
   readonly name: string
 }
 
@@ -62,8 +67,9 @@ export type Api = {
 }
 
 export type Module = {
-  readonly partType: PartType.Module
+  readonly partType: typeof PartType.Module
   readonly uid: string
+  readonly id: string
   readonly name: string
   readonly components: readonly Component[]
   readonly apis: Api[]
@@ -72,8 +78,9 @@ export type Module = {
 }
 
 export type Component = {
-  readonly partType: PartType.Component
+  readonly partType: typeof PartType.Component
   readonly uid: string
+  readonly id: string
   readonly name: string
   readonly type: string
   readonly relations: readonly Relation[]
@@ -86,6 +93,8 @@ export const enum RelationType {
   Tell = "Tell",
   Listen = "Listen",
 }
+export const AllRelationTypes: RelationType[] = [RelationType.Ask, RelationType.Tell, RelationType.Listen]
+
 export function isAsyncRelationType(rt: RelationType): boolean {
   return rt !== RelationType.Ask
 }
@@ -124,8 +133,9 @@ export type CompleteRelation = {
 export type Entity = Module | ExternalModule | Component
 
 export type Domain = {
-  readonly partType: PartType.Domain
+  readonly partType: typeof PartType.Domain
   readonly uid: string
+  readonly id: string
   readonly name: string
   readonly entities: readonly Entity[]
   readonly flags?: Flags
@@ -133,8 +143,9 @@ export type Domain = {
 }
 
 export type Zone = {
-  readonly partType: PartType.Zone
+  readonly partType: typeof PartType.Zone
   readonly uid: string
+  readonly id: string
   readonly name: string
   readonly domains: readonly Domain[]
   readonly flags?: Flags
@@ -213,6 +224,7 @@ export const filterZone =
   (zone: Zone): Zone => ({
     partType: zone.partType,
     uid: zone.uid,
+    id: zone.id,
     name: zone.name,
     domains: zone.domains
       .filter(predicates.domain)
@@ -225,6 +237,7 @@ export const filterDomain =
   (domain: Domain): Domain => ({
     partType: domain.partType,
     uid: domain.uid,
+    id: domain.id,
     name: domain.name,
     entities: domain.entities
       .filter(
@@ -251,6 +264,7 @@ export const filterModule =
   (module: Module): Module => ({
     partType: module.partType,
     uid: module.uid,
+    id: module.id,
     name: module.name,
     components: module.components
       .filter(predicates.component)
@@ -266,6 +280,7 @@ export const filterExternalModule =
   (externalModule: ExternalModule): ExternalModule => ({
     partType: externalModule.partType,
     uid: externalModule.uid,
+    id: externalModule.id,
     type: externalModule.type,
     name: externalModule.name,
     relations: externalModule.relations
@@ -279,6 +294,7 @@ export const filterComponent =
   (component: Component): Component => ({
     partType: component.partType,
     uid: component.uid,
+    id: component.id,
     name: component.name,
     type: component.type,
     relations: component.relations

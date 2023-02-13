@@ -1,9 +1,10 @@
 #!/bin/bash -e
 
+die() { echo "$@" >&2; exit 3; }
 run() { (set -x ; "$@"); }
 
 output_dir=${OUTPUT_DIR:-"./output"}
-cache_dir=${CACHE_DIR:-"./cache"}
+cache_dir=${CACHE_DIR:-"./.notion_cache"}
 clean_enabled=${CLEAN_ENABLED:-"false"}
 cache_enabled=${CACHE_ENABLED:-"true"}
 debug_enabled=${DEBUG_ENABLED:-"false"}
@@ -38,7 +39,8 @@ while true; do
       echo "  -b, --force-build          Force build (default: false)" >&2
       echo "  -B, --no-force-build       Do not force build" >&2
       echo "" >&2
-      echo "Be sure to generate your diagrams into '<output-dir>/plantuml/<filename>.plantuml'" >&2
+      # echo "Be sure to generate your diagrams into '<output-dir>/plantuml/<filename>.plantuml'" >&2
+      echo "Be sure to generate your diagrams into '<output-dir>/d2/<filename>.d2'" >&2
       exit 0
       ;;
     -d|--debug)
@@ -153,26 +155,15 @@ if [[ "$clean_enabled" == "true" ]]; then
 fi
 if [[ ! -d "$output_dir" ]]; then
   echo "Creating output dir ($output_dir)" >&2
-  mkdir -p "$output_dir/"{plantuml,svg,png}
-fi
-
-if [[ "$gen_svg_enabled" == "true" ]]; then
-  plantuml_jar="$(scripts/download_plantuml.sh --name-only)"
-
-  if [[ "$debug" == "true" ]]; then
-    "plantuml_jar: $plantuml_jar" >&2
+  if [[ "$gen_svg_enabled" == "true" ]]; then
+    mkdir -p "$output_dir/svg"
   fi
-
-  if [[ ! -x "$plantuml_jar" ]]; then
-    scripts/download_plantuml.sh >/dev/null
+  if [[ "$gen_png_enabled" == "true" ]]; then
+    mkdir -p "$output_dir/png"
   fi
 fi
 
 if [[ "$cache_enabled" == "true" ]]; then
-  if [[ ! -d "$cache_dir" ]]; then
-    echo "Creating cache dir ($cache_dir)" >&2
-    mkdir "$cache_dir"
-  fi
   export NOTION_USE_CACHE="true"
   export NOTION_CACHE_DIR="$cache_dir"
 fi
@@ -202,18 +193,80 @@ echo "Generating plantuml files..."
 
 if [[ "$gen_svg_enabled" == "true" ]]; then
   echo "Generating SVG files..." >&2
-  export JAVA_OPTS="-Djava.awt.headless=true -Dapple.awt.UIElement=true -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 $JAVA_OPTS"
-  run java -jar "$plantuml_jar" -checkmetadata -o '../svg' -tsvg "$output_dir/plantuml/*.plantuml"
+  if [[ -d "$output_dir/plantuml" ]]; then
+    (
+      cd "$output_dir/plantuml" || exit 2
+      plantuml_jar="$(scripts/download_plantuml.sh --name-only)"
+
+      if [[ "$debug_enabled" == "true" ]]; then
+        "plantuml_jar: $plantuml_jar" >&2
+      fi
+
+      if [[ ! -x "$plantuml_jar" ]]; then
+        scripts/download_plantuml.sh >/dev/null
+      fi
+      export JAVA_OPTS="-Djava.awt.headless=true -Dapple.awt.UIElement=true -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 $JAVA_OPTS"
+      run java -jar "$plantuml_jar" -checkmetadata -o '../svg' -tsvg "$output_dir/plantuml/*.plantuml"
+    )
+  fi
+  if [[ -d "$output_dir/d2" ]]; then
+    (
+      cd "$output_dir/d2" || exit 2
+      gen() {
+        for item in "$1"/*; do
+          if [[ -d "$item" ]]; then
+            gen "$item"
+          elif [[ -f "$item" ]]; then
+            local svg_file="../svg/${item/.d2/}.svg"
+            mkdir -p "$(dirname "$svg_file")"
+            local graph="dagre"
+            if [[ -f "$HOME/.config/tstruct/auth.json" ]]; then
+              graph="tala"
+            fi
+            local gen_ok
+            run d2 --layout="$graph" "$item" "$svg_file" && gen_ok="true" || gen_ok="false"
+            if [[ "$gen_ok" ]]; then
+              echo -n ""
+            elif [[ "$gen_ok" == "false" && "$graph" != "dagre" ]]; then
+              run d2 --layout=dagre "$item" "$svg_file" || die "Failed to generate SVG file for $item"
+            else
+              die "Failed to generate SVG file for $item"
+            fi
+          fi
+        done
+      }
+      gen "."
+    )
+  fi
+  if [[ -d "$output_dir/mermaid" ]]; then
+    (
+      cd "$output_dir/mermaid" || exit 2
+      gen() {
+        for item in "$1"/*; do
+          if [[ -d "$item" ]]; then
+            gen "$item"
+          elif [[ -f "$item" ]]; then
+            local svg_file="../svg/${item/.mermaid/}.svg"
+            mkdir -p "$(dirname "$svg_file")"
+            run yarn mmdc -i "$output_dir/mermaid/$item" -o "$output_dir/mermaid/$svg_file"
+          fi
+        done
+      }
+      gen "."
+    )
+  fi
 else
   echo "Skipping SVG generation..." >&2
 fi
 
 if [[ "$gen_png_enabled" == "true" ]]; then
   echo "Generating PNG files..." >&2
-  cd "$output_dir/svg"
-  for file in *.svg; do
-    run convert -density 100 "$file" "../png/${file/.svg/}.png"
-  done
+  (
+    cd "$output_dir/svg"
+    for file in *.svg; do
+      run convert -density 100 "$file" "../png/${file/.svg/}.png" || exit 3
+    done
+  )
 else
   echo "Skipping PNG generation..." >&2
 fi

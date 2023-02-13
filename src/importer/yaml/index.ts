@@ -1,4 +1,5 @@
 import * as yup from "yup"
+import { toId } from "../../helpers"
 
 import {
   Component,
@@ -94,6 +95,7 @@ export const importComponent =
     return {
       partType: PartType.Component,
       uid: component.uid,
+      id: toId(component.name ?? component.uid),
       name: component.name ?? component.uid,
       type: component.ctype,
       relations: component.relations?.map(importRelation) ?? [],
@@ -115,6 +117,7 @@ export const ResourceImport: yup.ObjectSchema<ResourceImport> = yup
 export const importResource = (resource: ResourceImport): Resource => {
   return {
     uid: resource.uid,
+    id: toId(resource.name ?? resource.uid),
     name: resource.name ?? resource.uid,
   }
 }
@@ -162,7 +165,8 @@ export const importModule =
     return {
       partType: PartType.Module,
       uid: module.uid,
-      name: name,
+      id: module.name ?? module.uid,
+      name: toId(name),
       components: module.components?.map(importComponent(ctypes)) ?? [],
       apis: api ? [api] : [], // TODO allow to defined more than 1 API in YAML
       flags: importFlags(module.flags),
@@ -194,6 +198,7 @@ export const importExternalModule = (
   return {
     partType: PartType.ExternalModule,
     uid: externalModule.uid,
+    id: toId(externalModule.name ?? externalModule.uid),
     type: externalModule.mtype
       ? getExternalModuleTypeOrFail(externalModule.mtype)
       : ExternalModuleType.External,
@@ -265,6 +270,7 @@ export const importDomain =
     return {
       partType: PartType.Domain,
       uid: domain.uid,
+      id: toId(domain.name ?? domain.uid),
       name: domain.name ?? domain.uid,
       entities: domain.entities?.map(importEntity(ctypes)) ?? [],
       flags: importFlags(domain.flags),
@@ -294,6 +300,7 @@ export const importZone =
     return {
       partType: PartType.Zone,
       uid: zone.uid,
+      id: toId(zone.name ?? zone.uid),
       name: zone.name ?? zone.uid,
       domains: zone.domains?.map(importDomain(ctypes)) ?? [],
       flags: importFlags(zone.flags),

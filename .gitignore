@@ -1,5 +1,6 @@
 /build/
-/cache/
+/.notion_cache/
 /node_modules/
 /output/
 /plantuml*.jar
+/.env

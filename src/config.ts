@@ -71,9 +71,7 @@ export const diagramConfig: z.ZodType<DiagramConfig> = (() => {
             ? PruneLevel.Nothing
             : imported.relationLevel ??
               (imported.level
-                ? [PruneLevel.Module, PruneLevel.Component].includes(
-                    imported.level
-                  )
+                ? [PruneLevel.Module, PruneLevel.Component].includes(imported.level as any)
                   ? PruneLevel.Module
                   : PruneLevel.Nothing
                 : PruneLevel.Module)),
@@ -100,8 +98,18 @@ export type YamlConfig = {
   rootFile: string
 }
 
+export type HldConfig = {
+  output: string
+  extension: string
+  links: {
+    prefix?: string | undefined
+    suffix: string
+  }
+}
+
 export type Config = {
   input: NotionConfig | YamlConfig
+  hld?: HldConfig | undefined
   diagrams: DiagramConfig[]
 }
 export const config: z.ZodType<Config> = z.object({
@@ -118,6 +126,8 @@ export const config: z.ZodType<Config> = z.object({
   ).or(
     z
       .object({
+        useCache: z.boolean().default(true),
+        cacheDir: z.string().default(".notion_cache"),
         pages: z.object({
           projects: z.string(),
           modules: z.string(),
@@ -132,6 +142,14 @@ export const config: z.ZodType<Config> = z.object({
         configType: "NotionConfig",
       })) as unknown as z.ZodType<NotionConfig>
   ),
+  hld: z.object({
+    output: z.string(),
+    extension: z.string(),
+    links: z.object({
+      prefix: z.string().optional(),
+      suffix: z.string(),
+    }),
+  }).optional(),
   diagrams: z.array(diagramConfig),
 })
 

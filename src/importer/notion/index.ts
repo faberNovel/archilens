@@ -1,4 +1,6 @@
-import { Client } from "@notionhq/client"
+import * as fs from "node:fs/promises"
+
+import { Client as NotionClient } from "@notionhq/client"
 
 import { toId } from "../../helpers"
 
@@ -28,10 +30,11 @@ import {
   RelationType,
   Zone,
 } from "../../models"
-import * as fs from "fs"
 
 export type NotionConfig = {
   configType: "NotionConfig"
+  useCache: boolean
+  cacheDir: string
   pages: {
     projects: string
     modules: string
@@ -42,14 +45,15 @@ export type NotionConfig = {
   }
 }
 
-const notion = new Client({
-  auth: process.env.NOTION_TOKEN,
-})
+export type NotionContext = {
+  client: NotionClient
+  config: NotionConfig
+}
 
-const USE_CACHE = process.env.NOTION_USE_CACHE === "true"
-const CACHE_DIR = process.env.NOTION_CACHE_DIR || "cache"
-if (USE_CACHE && !fs.existsSync(CACHE_DIR)) {
-  fs.mkdirSync(CACHE_DIR)
+export function getNotionClient(token?: string | undefined) {
+  return new NotionClient({
+    auth: token ?? process.env.NOTION_TOKEN,
+  })
 }
 
 type RelationResult = {
@@ -67,7 +71,7 @@ type RelationRetrieveResult = {
 }
 
 const MAX_RELATION_IN_RESULT = 20
-async function completePageRelations(page: Page): Promise<Page> {
+async function completePageRelations(ctx: NotionContext, page: Page): Promise<Page> {
   for (const key of Object.keys(page.properties)) {
     const ppt = page.properties[key]
     if (
@@ -82,7 +86,7 @@ async function completePageRelations(page: Page): Promise<Page> {
       const retrievedRelations: RelationResult[] = []
       let nextCursor: string | null = null
       do {
-        const retrieved = (await notion.pages.properties.retrieve({
+        const retrieved = (await ctx.client.pages.properties.retrieve({
           page_id: page.id,
           property_id: ppt.id,
           // page_size: 30,
@@ -102,26 +106,33 @@ async function completePageRelations(page: Page): Promise<Page> {
   return page
 }
 
-async function completePagesRelations(pages: Page[]): Promise<Page[]> {
+async function completePagesRelations(ctx: NotionContext, pages: Page[]): Promise<Page[]> {
   const completed: Page[] = []
   for (const page of pages) {
-    const completedPage: Page = await completePageRelations(page)
+    const completedPage: Page = await completePageRelations(ctx, page)
     completed.push(completedPage)
   }
   return completed
 }
 
-async function getAllPages(dbId: string): Promise<Page[]> {
-  const cacheFile = `${CACHE_DIR}/${dbId}.json`
-  if (USE_CACHE && fs.existsSync(cacheFile)) {
-    return JSON.parse(fs.readFileSync(cacheFile).toString())
+function exists(path: string): Promise<boolean> {
+  return fs.access(path).then(() => true).catch(() => false)
+}
+
+async function getAllPages(ctx: NotionContext, dbId: string): Promise<Page[]> {
+  const cacheFile = `${ctx.config.cacheDir}/${dbId}.json`
+  if (ctx.config.useCache && !(await (await exists(ctx.config.cacheDir)))) {
+    await fs.mkdir(ctx.config.cacheDir, { recursive: true })
   }
-  let response = await notion.databases.query({
+  if (ctx.config.useCache && (await exists(cacheFile))) {
+    return JSON.parse((await fs.readFile(cacheFile)).toString())
+  }
+  let response = await ctx.client.databases.query({
     database_id: dbId,
   })
   let parts = [response.results]
   while (response.next_cursor) {
-    response = await notion.databases.query({
+    response = await ctx.client.databases.query({
       database_id: dbId,
       start_cursor: response.next_cursor || undefined,
     })
@@ -130,9 +141,9 @@ async function getAllPages(dbId: string): Promise<Page[]> {
   const filteredResults = (parts.flat() as Page[])
     .filter(isNotEmptyPage)
     .filter(isNotIgnoredPage)
-  const completedResults = await completePagesRelations(filteredResults)
-  if (USE_CACHE) {
-    fs.writeFileSync(
+  const completedResults = await completePagesRelations(ctx, filteredResults)
+  if (ctx.config.useCache) {
+    await fs.writeFile(
       cacheFile,
       JSON.stringify(completedResults, undefined, "  ")
     )
@@ -155,8 +166,8 @@ type ModuleEntry = {
   components: string[]
 }
 
-export async function getModules(config: NotionConfig): Promise<ModuleEntry[]> {
-  const database: Page[] = await getAllPages(config.pages.modules)
+async function getModules(ctx: NotionContext): Promise<ModuleEntry[]> {
+  const database: Page[] = await getAllPages(ctx, ctx.config.pages.modules)
   return database.map((page) => ({
     id: page.id,
     type: getPageSelectOrFail(page, { name: "Type" }),
@@ -183,10 +194,10 @@ type ComponentEntry = {
   tags: string[]
 }
 
-export async function getComponents(
-  config: NotionConfig
+async function getComponents(
+  ctx: NotionContext,
 ): Promise<ComponentEntry[]> {
-  const database: Page[] = await getAllPages(config.pages.components)
+  const database: Page[] = await getAllPages(ctx, ctx.config.pages.components)
   return database.map((page) => ({
     id: page.id,
     name: getPageNameOrFail(page),
@@ -208,11 +219,11 @@ type RelationEntry = {
   type: RelationType
 }
 
-export async function getRelations(
-  config: NotionConfig,
-  componentsEntryById: Map<string, ComponentEntry>
+async function getRelations(
+  ctx: NotionContext,
+  componentsEntryById: Map<string, ComponentEntry>,
 ): Promise<RelationEntry[]> {
-  const database: Page[] = await getAllPages(config.pages.relations)
+  const database: Page[] = await getAllPages(ctx, ctx.config.pages.relations)
   return database.map((page) => ({
     id: page.id,
     name: getPageName(page),
@@ -239,10 +250,10 @@ type ProjectEntry = {
   statut: string[]
 }
 
-export async function getProjects(
-  config: NotionConfig
+async function getProjects(
+  ctx: NotionContext,
 ): Promise<ProjectEntry[]> {
-  const database: Page[] = await getAllPages(config.pages.projects)
+  const database: Page[] = await getAllPages(ctx, ctx.config.pages.projects)
   return database.map((page) => ({
     id: page.id,
     name: getPageNameOrFail(page),
@@ -260,8 +271,8 @@ type ApiEntry = {
   resources: string[]
 }
 
-export async function getApis(config: NotionConfig): Promise<ApiEntry[]> {
-  const database: Page[] = await getAllPages(config.pages.apis)
+async function getApis(ctx: NotionContext): Promise<ApiEntry[]> {
+  const database: Page[] = await getAllPages(ctx, ctx.config.pages.apis)
   return database.map((page) => ({
     id: page.id,
     type: getPageSelectOrFail(page, { name: "Type" }),
@@ -277,10 +288,10 @@ type ResourceEntry = {
   name: string
 }
 
-export async function getResources(
-  config: NotionConfig
+async function getResources(
+  ctx: NotionContext,
 ): Promise<ResourceEntry[]> {
-  const database: Page[] = await getAllPages(config.pages.resources)
+  const database: Page[] = await getAllPages(ctx, ctx.config.pages.resources)
   return database.map((page) => ({
     id: page.id,
     name: getPageNameOrFail(page),
@@ -289,7 +300,7 @@ export async function getResources(
 
 // --- TEST ---
 
-export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
+export async function importFromNotion(ctx: NotionContext): Promise<Diagram> {
   function toMap<V, K extends keyof V>(arr: V[], key: K): Map<V[K], V> {
     const map = new Map<V[K], V>()
     arr.forEach((el) => map.set(el[key], el))
@@ -304,13 +315,13 @@ export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
     return map
   }
 
-  const projectEntries = await getProjects(config)
+  const projectEntries = await getProjects(ctx)
   const projectEntryById = toMap(projectEntries, "id")
 
-  const componentEntries = await getComponents(config)
+  const componentEntries = await getComponents(ctx)
   const componentEntryById = toMap(componentEntries, "id")
 
-  const moduleEntries = (await getModules(config)).filter((m) => !m.isFuture)
+  const moduleEntries = (await getModules(ctx)).filter((m) => !m.isFuture)
   const moduleEntryById = toMap(moduleEntries, "id")
 
   const moduleByComponentId = new Map<string, ModuleEntry>()
@@ -322,7 +333,7 @@ export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
   })
 
   const relationEntries = (
-    await getRelations(config, componentEntryById)
+    await getRelations(ctx, componentEntryById)
   ).filter((entry) => {
     return (
       componentEntryById.has(entry.componentId) &&
@@ -334,9 +345,9 @@ export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
     return relationEntriesBySource.get(cId) ?? []
   }
 
-  const apiEntries = await getApis(config)
+  const apiEntries = await getApis(ctx)
   const apiEntryById = toMap(apiEntries, "id")
-  const resourceEntries = await getResources(config)
+  const resourceEntries = await getResources(ctx)
   const resourceEntryById = toMap(resourceEntries, "id")
 
   const zoneNames = [...new Set(moduleEntries.map((s) => s.zone))]
@@ -379,6 +390,7 @@ export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
           return {
             partType: PartType.ExternalModule,
             uid: toId(`module_${module.name}_${module.id}`),
+            id: toId(module.name ?? module.id),
             type: externalModuleType,
             name:
               externalModuleType === ExternalModuleType.App
@@ -419,6 +431,7 @@ export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
           return {
             partType: PartType.Component,
             uid: toId(`component_${component.name}_${component.id}`),
+            id: toId(component.name),
             name: component.name,
             type: component.type,
             relations,
@@ -438,6 +451,7 @@ export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
             type: apiEntry.type,
             resources: resourceEntries.map((rs) => ({
               uid: toId(`resource_${apiEntry.name}_${rs.name}_${rs.id}`),
+              id: toId(rs.name),
               name: rs.name,
             })),
           }
@@ -445,6 +459,7 @@ export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
         return {
           partType: PartType.Module,
           uid: toId(`module_${module.name}_${module.id}`),
+          id: toId(module.name),
           name: module.name,
           components,
           apis,
@@ -455,6 +470,7 @@ export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
       return {
         partType: PartType.Domain,
         uid: toId(`domain_${zone}_${domain}`),
+        id: toId(domain),
         name: domain,
         entities,
         flags: undefined, // TODO
@@ -464,6 +480,7 @@ export async function importFromNotion(config: NotionConfig): Promise<Diagram> {
     return {
       partType: PartType.Zone,
       uid: toId(`zone_${zone}`),
+      id: toId(zone),
       name: zone,
       domains,
       flags: undefined, // TODO

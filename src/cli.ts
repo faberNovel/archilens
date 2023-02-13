@@ -171,9 +171,9 @@ program
     PruneType.Architecture as PruneType
   )
 
-export type CliOptions =
-  | { type: "config"; config: string }
-  | (Config & { type: "cli" })
+export type CliConfig = { type: "config"; config: string }
+export type CliInline = (Config & { type: "cli" })
+export type CliOptions = CliConfig | CliInline
 
 export function parseCli(args: string[]): CliOptions {
   program.parse(args)
