@@ -12,6 +12,13 @@ devmode_enabled=${DEV_MODE_ENABLED:-"false"}
 force_build_enabled=${FORCE_BUILD_ENABLED:-"false"}
 gen_svg_enabled=${GEN_SVG_ENABLED:-"true"}
 gen_png_enabled=${GEN_PNG_ENABLED:-"true"}
+use_tala=${USE_TALA:-"false"}
+
+trap die SIGINT SIGTERM
+
+if [[ -f "$HOME/.config/tstruct/auth.json" ]]; then
+  use_tala="true"
+fi
 
 args=()
 while true; do
@@ -38,6 +45,8 @@ while true; do
       echo "  --no-dev                   Disable dev mode" >&2
       echo "  -b, --force-build          Force build (default: false)" >&2
       echo "  -B, --no-force-build       Do not force build" >&2
+      echo "  -t, --tala                 Use tala (default: false)" >&2
+      echo "  -T, --no-tala              Do not use tala" >&2
       echo "" >&2
       # echo "Be sure to generate your diagrams into '<output-dir>/plantuml/<filename>.plantuml'" >&2
       echo "Be sure to generate your diagrams into '<output-dir>/d2/<filename>.d2'" >&2
@@ -108,6 +117,14 @@ while true; do
       ;;
     -B | --no-force-build)
       force_build_enabled=false
+      shift
+      ;;
+    -t | --tala)
+      use_tala=true
+      shift
+      ;;
+    -T | --no-tala)
+      use_tala=false
       shift
       ;;
     --)
@@ -220,18 +237,22 @@ if [[ "$gen_svg_enabled" == "true" ]]; then
             local svg_file="../svg/${item/.d2/}.svg"
             mkdir -p "$(dirname "$svg_file")"
             local graph="dagre"
-            if [[ -f "$HOME/.config/tstruct/auth.json" ]]; then
+            if [[ "$use_tala" == "true" ]]; then
               graph="tala"
             fi
-            local gen_ok
-            run d2 --layout="$graph" "$item" "$svg_file" && gen_ok="true" || gen_ok="false"
-            if [[ "$gen_ok" ]]; then
-              echo -n ""
-            elif [[ "$gen_ok" == "false" && "$graph" != "dagre" ]]; then
-              run d2 --layout=dagre "$item" "$svg_file" || die "Failed to generate SVG file for $item"
-            else
-              die "Failed to generate SVG file for $item"
-            fi
+            gen_graph() {
+              local graph_engine="$1"
+              local gen_ok
+              run d2 --layout="$graph_engine" "$item" "$svg_file" && gen_ok="true" || gen_ok="false"
+              if [[ "$gen_ok" ]]; then
+                : "noop"
+              elif [[ "$gen_ok" == "false" && "$graph_engine" != "dagre" ]]; then
+                gen_graph "dagre"
+              else
+                die "Failed to generate SVG file for $item"
+              fi
+            }
+            gen_graph "$graph" || exit "$?"
           fi
         done
       }
