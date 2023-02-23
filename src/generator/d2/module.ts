@@ -55,7 +55,7 @@ const getIconFromComponentType = (componentType: string): string | undefined => 
 }
 
 export const generateComponent =
-  (opts: D2Options, parentPath: string[]) =>
+  (opts: D2Options, diagram: PrunedDiagram, parentPath: string[]) =>
   (component: Component): GenerationResult => {
     const icon = getIconFromComponentType(component.type)
     const part = `${component.id}: "<<${component.type}>> ${component.name}"`
@@ -65,6 +65,7 @@ export const generateComponent =
       values: [
         `${part} {`,
         `  # uid: ${component.uid}`,
+        ...(diagram.selected.has(component.uid) ? ['  style.bold: true', `  style.fill: "#ebfdf7"`] : []),
         ...(icon ? ['  shape: image', `  icon: ${icon}`] : []),
         "}"
       ],
@@ -72,18 +73,19 @@ export const generateComponent =
   }
 
 export const generateModule =
-  (opts: D2Options, parentPath: string[]) =>
+  (opts: D2Options, diagram: PrunedDiagram, parentPath: string[]) =>
   (module: Module): GenerationResult => {
     const part = `${module.id}: "<<Service>> ${module.name}"`
     const path = [...parentPath, module.id]
     const { keys: componentsKeys, values: generatedComponents } = flattenGenerationResult(
-      module.components.map(generateComponent(opts, path))
+      module.components.map(generateComponent(opts, diagram, path))
     )
     return {
       keys: { ...componentsKeys, [module.uid]: path },
       values: [
         `${part} {`,
         `  # uid: ${module.uid}`,
+        ...(diagram.selected.has(module.uid) ? ['  style.bold: true', `  style.fill: "#ebfdf7"`] : []),
         ...genLink(opts, path),
         ...generatedComponents.map((s) => `  ${s}`),
         "}"
@@ -92,7 +94,7 @@ export const generateModule =
   }
 
 export const generateExternalModule =
-  (opts: D2Options, parentPath: string[]) =>
+  (opts: D2Options, diagram: PrunedDiagram, parentPath: string[]) =>
   (module: ExternalModule): GenerationResult => {
     let skin
     switch (module.type) {
@@ -120,6 +122,7 @@ export const generateExternalModule =
       values: [
         `${part} {`,
         `  # uid: ${module.uid}`,
+        ...(diagram.selected.has(module.uid) ? ['  style.bold: true', `  style.fill: "#ebfdf7"`] : []),
         ...genLink(opts, path),
         "}",
       ],
@@ -127,33 +130,34 @@ export const generateExternalModule =
   }
 
 export const generateEntity =
-  (opts: D2Options, parentPath: string[]) =>
+  (opts: D2Options, diagram: PrunedDiagram, parentPath: string[]) =>
   (entity: Entity): GenerationResult => {
     if (isModule(entity)) {
-      return generateModule(opts, parentPath)(entity)
+      return generateModule(opts, diagram, parentPath)(entity)
     }
     if (isComponent(entity)) {
-      return generateComponent(opts, parentPath)(entity)
+      return generateComponent(opts, diagram, parentPath)(entity)
     }
     if (isExternalModule(entity)) {
-      return generateExternalModule(opts, parentPath)(entity)
+      return generateExternalModule(opts, diagram, parentPath)(entity)
     }
     throw new Error(`Unknown entity type: ${entity}`)
   }
 
 export const generateDomain =
-  (opts: D2Options, parentPath: string[]) =>
+  (opts: D2Options, diagram: PrunedDiagram, parentPath: string[]) =>
   (domain: Domain): GenerationResult => {
     const part = `${domain.id}: "<<Domain>> ${domain.name}"`
     const path = [...parentPath, domain.id]
     const { keys: entitiesKeys, values: generatedEntities } = flattenGenerationResult(
-      domain.entities.map(generateEntity(opts, path))
+      domain.entities.map(generateEntity(opts, diagram, path))
     )
     return {
       keys: { ...entitiesKeys, [domain.uid]: path },
       values: [
         `${part} {`,
         `  # uid: ${domain.uid}`,
+        ...(diagram.selected.has(domain.uid) ? ['  style.bold: true', `  style.fill: "#a7e2d0"`] : []),
         ...genLink(opts, path),
         ...generatedEntities.map((s) => `  ${s}`),
         "}",
@@ -162,18 +166,19 @@ export const generateDomain =
   }
 
 export const generateZone =
-  (opts: D2Options, parentPath: string[]) =>
+  (opts: D2Options, diagram: PrunedDiagram, parentPath: string[]) =>
   (zone: Zone): GenerationResult => {
     const part = `${zone.id}: "<<Zone>> ${zone.name}"`
     const path = [...parentPath, zone.id]
     const { keys: domainsKeys, values: generatedDomains } = flattenGenerationResult(
-      zone.domains.map(generateDomain(opts, path))
+      zone.domains.map(generateDomain(opts, diagram, path))
     )
     return {
       keys: { ...domainsKeys, [zone.uid]: path },
       values: [
         `${part} {`,
         `  # uid: ${zone.uid}`,
+        ...(diagram.selected.has(zone.uid) ? ['  style.bold: true', `  style.fill: "#49bc99"`] : []),
         ...genLink(opts, path),
         ...generatedDomains.map((s) => `  ${s}`),
         "}",
@@ -182,7 +187,7 @@ export const generateZone =
   }
 
 export const generateRelation =
-  (opts: D2Options, keys: Record<string, string[]>) =>
+  (opts: D2Options, diagram: PrunedDiagram, keys: Record<string, string[]>) =>
   (relation: CompleteRelation): string => {
     let arrow: string
     let dashed: boolean = false
@@ -209,7 +214,7 @@ export const generateRelation =
     }
     const sourceId = keys[relation.sourceId].join(".")
     const targetId = keys[relation.targetId].join(".")
-    const stroke = dashed ? `${desc ? '' : ' :'} { style.stroke-dash: 3 }` : ""
+    const stroke = dashed ? `${desc ? '' : ' :'} { style.stroke-dash: 3; style.animated: true }` : ""
     return `${sourceId} ${arrow} ${targetId}${desc}${stroke}`
   }
 
@@ -218,9 +223,9 @@ export function generateDiagram(
   diagram: PrunedDiagram
 ): string {
   const { keys, values: generatedZones } = flattenGenerationResult(
-    diagram.zones.map(generateZone(opts, []))
+    diagram.zones.map(generateZone(opts, diagram, []))
   )
-  const relations = diagram.relations.flatMap(generateRelation(opts, keys))
+  const relations = diagram.relations.flatMap(generateRelation(opts, diagram, keys))
   return [
     ...generatedZones,
     "",

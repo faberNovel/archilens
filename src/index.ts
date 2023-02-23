@@ -121,14 +121,13 @@ async function main(): Promise<void> {
     })
     diagram.zones.forEach(zone => {
       gen(['hld', `${zone.id}.${ext}`], {
-        open: [zone.uid, ...zone.domains.map(d => d.uid)],
+        open: zone.domains.map(d => d.uid),
       })
       zone.domains.forEach(domain => {
         gen(['hld', zone.id, `${domain.id}.${ext}`], {
           reverseRelationTypes: AllRelationTypes,
           relationLevel: PruneLevel.Module,
           open: [domain.uid],
-          focus: domain.entities.map(e => e.uid),
         })
         domain.entities.forEach(entity => {
           if (isModule(entity)) {

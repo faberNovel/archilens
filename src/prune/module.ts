@@ -32,6 +32,7 @@ type DiagramInfos = {
   readonly descent: ReadonlyMap<string, readonly Part[]>
   readonly relations: ReadonlyArray<CompleteRelation>
   readonly componentTypes: ReadonlyArray<string>
+  readonly selected: ReadonlyArray<Part>
 }
 
 function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
@@ -42,6 +43,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
   const children: Map<string, readonly Part[]> = new Map()
   const descent: Map<string, readonly Part[]> = new Map()
   const allRelations: { source: Part; relation: Relation }[] = []
+  const selected: Part[] = []
 
   const complete = (part: Part): void => {
     if (ids.get(part.uid)) {
@@ -116,13 +118,11 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
   })
   ids.forEach((part) => {
     const parent = parents.get(part.uid)
-    const hasFocus =
-      !(
-        opts.exclude.includes(part.uid) ||
-        opts.completelyExclude.includes(part.uid) ||
-        opts.excludeTags.some((tag) => part.tags.includes(tag))
-      ) &&
-      (computeHasFocus(opts, part, ancestors) ||
+    if (computeIsExcluded(opts, part)) return
+    if (computeIsSelected(opts, part)) {
+      selected.push(part)
+    }
+    const hasFocus = (computeHasFocus(opts, part, ancestors) ||
         (parent !== undefined &&
           (opts.open.includes(parent.uid) ||
             parent.tags.some((t) => opts.openTags.includes(t)))))
@@ -342,6 +342,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     containsFocused,
     relations,
     componentTypes,
+    selected,
   }
 }
 
@@ -363,16 +364,33 @@ const relationAcceptDomain = (opts: PruneOptions): boolean =>
 const relationAcceptZone = (opts: PruneOptions): boolean =>
   opts.relationLevel === PruneLevel.Zone || relationAcceptDomain(opts)
 
+const computeIsExcluded = (opts: PruneOptions, part: Part) => {
+  return (
+    opts.exclude.includes(part.uid) ||
+    opts.completelyExclude.includes(part.uid) ||
+    opts.excludeTags.some((tag) => part.tags.includes(tag))
+  )
+}
+const computeIsSelected = (
+  opts: PruneOptions,
+  part: Part,
+): boolean => {
+  if (computeIsExcluded(opts, part)) {
+    return false
+  }
+  return (
+    opts.focus.includes(part.uid) ||
+    opts.open.includes(part.uid) ||
+    part.tags.find((t) => opts.focusTags.includes(t)) !== undefined ||
+    part.tags.find((t) => opts.openTags.includes(t)) !== undefined
+  )
+}
 const computeHasFocus = (
   opts: PruneOptions,
   part: Part,
   ancestors: ReadonlyMap<string, readonly Part[]>
 ): boolean => {
-  if (
-    opts.exclude.includes(part.uid) ||
-    opts.completelyExclude.includes(part.uid) ||
-    part.tags.find((t) => opts.excludeTags.includes(t)) !== undefined
-  ) {
+  if (computeIsExcluded(opts, part)) {
     return false
   }
   if (
@@ -486,6 +504,7 @@ const partContainsFocused =
 
 export type PrunedDiagram = Diagram & {
   readonly relations: readonly CompleteRelation[]
+  readonly selected: ReadonlySet<string>
 }
 
 export function pruneDiagram(
@@ -506,5 +525,6 @@ export function pruneDiagram(
   return {
     ...filterDiagram(predicates)(diagram),
     relations: infos.relations,
+    selected: new Set(infos.selected.map((part) => part.uid)),
   }
 }
