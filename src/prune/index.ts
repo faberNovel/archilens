@@ -15,6 +15,7 @@ export type PruneOptions = {
   readonly focus: string[]
   readonly focusTags: string[]
   readonly completelyExclude: string[]
+  readonly completelyExcludeTags: string[]
   readonly exclude: string[]
   readonly excludeTags: string[]
   readonly softExclude: string[]
@@ -31,6 +32,7 @@ export function PruneOptions(args: Partial<PruneOptions>): PruneOptions {
     focus: args.focus ?? [],
     focusTags: args.focusTags ?? [],
     completelyExclude: args.completelyExclude ?? [],
+    completelyExcludeTags: args.completelyExcludeTags ?? [],
     exclude: args.exclude ?? [],
     excludeTags: args.excludeTags ?? [],
     softExclude: args.softExclude ?? [],

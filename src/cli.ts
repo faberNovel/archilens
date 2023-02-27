@@ -210,6 +210,7 @@ export function parseCli(args: string[]): CliOptions {
           focus: cliOpts.focus,
           focusTags: cliOpts.focusTag,
           completelyExclude: cliOpts.completelyExclude,
+          completelyExcludeTags: cliOpts.completelyExcludeTags,
           exclude: cliOpts.exclude,
           excludeTags: cliOpts.excludeTag,
           softExclude: cliOpts.softExclude,

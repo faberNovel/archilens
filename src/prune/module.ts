@@ -117,8 +117,8 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     descent.set(zone.uid, zoneDescent)
   })
   ids.forEach((part) => {
-    const parent = parents.get(part.uid)
     if (computeIsExcluded(opts, part)) return
+    const parent = parents.get(part.uid)
     if (computeIsSelected(opts, part)) {
       selected.push(part)
     }
@@ -155,7 +155,9 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
             ) !== undefined ||
             targetAncestors.find((a) =>
               opts.completelyExclude.includes(a.uid)
-            ) !== undefined
+            ) !== undefined ||
+            opts.completelyExcludeTags.some((tag) => source.tags.includes(tag)) ||
+            opts.completelyExcludeTags.some((tag) => target.tags.includes(tag))
           ) {
             return []
           }
@@ -368,7 +370,8 @@ const computeIsExcluded = (opts: PruneOptions, part: Part) => {
   return (
     opts.exclude.includes(part.uid) ||
     opts.completelyExclude.includes(part.uid) ||
-    opts.excludeTags.some((tag) => part.tags.includes(tag))
+    opts.excludeTags.some((tag) => part.tags.includes(tag)) ||
+    opts.completelyExcludeTags.some((tag) => part.tags.includes(tag))
   )
 }
 const computeIsSelected = (
