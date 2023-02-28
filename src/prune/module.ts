@@ -302,9 +302,10 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
 
   // Remove duplicates
   const relationsMap = new Map<string, CompleteRelation>()
-  cleanedRelations.forEach((r) =>
-    relationsMap.set(`${r.sourceId},${r.targetId}`, r)
-  )
+  for (const cleanedRelation of cleanedRelations) {
+    const key = [cleanedRelation.sourceId, cleanedRelation.targetId, opts.mergeRelations ? undefined : cleanedRelation.description].join('.')
+    relationsMap.set(key, cleanedRelation)
+  }
   const relations = Array.from(relationsMap.values())
 
   const containsFocused = Array.from(ids.keys()).reduce(

@@ -170,6 +170,12 @@ program
     },
     PruneType.Architecture as PruneType
   )
+  .option(
+    "--merge-relations",
+    "Merge relations between the same parts",
+    () => true,
+    false
+  )
 
 export type CliConfig = { type: "config"; config: string }
 export type CliInline = (Config & { type: "cli" })
@@ -221,6 +227,7 @@ export function parseCli(args: string[]): CliOptions {
           reverseRelationTypes: [
             ...new Set(cliOpts.reverseRelationType as RelationType[]),
           ],
+          mergeRelations: cliOpts.mergeRelations,
         },
       },
     ],

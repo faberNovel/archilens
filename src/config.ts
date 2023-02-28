@@ -42,6 +42,7 @@ export const pruneOptionsPartial: z.ZodType<Partial<PruneOptions>> = z.object({
   openTags: z.array(z.string().min(1)).optional(),
   close: z.array(z.string().min(1)).optional(),
   reverseRelationTypes: z.array(relationType).optional(),
+  mergeRelations: z.boolean().optional(),
 })
 
 export type DiagramConfig = {
@@ -88,6 +89,7 @@ export const diagramConfig: z.ZodType<DiagramConfig> = (() => {
         openTags: imported.openTags ?? [],
         close: imported.close ?? [],
         reverseRelationTypes: imported.reverseRelationTypes ?? [],
+        mergeRelations: imported.mergeRelations ?? false,
       },
     })
   )

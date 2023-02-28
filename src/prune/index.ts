@@ -24,6 +24,7 @@ export type PruneOptions = {
   readonly openTags: string[]
   readonly close: string[]
   readonly reverseRelationTypes: RelationType[]
+  readonly mergeRelations: boolean
 }
 export function PruneOptions(args: Partial<PruneOptions>): PruneOptions {
   return {
@@ -41,5 +42,6 @@ export function PruneOptions(args: Partial<PruneOptions>): PruneOptions {
     openTags: args.openTags ?? [],
     close: args.close ?? [],
     reverseRelationTypes: args.reverseRelationTypes ?? [],
+    mergeRelations: args.mergeRelations ?? false,
   }
 }
