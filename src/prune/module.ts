@@ -6,10 +6,10 @@ import {
   Domain,
   Entity,
   filterDiagram,
-  isAsyncRelation,
   isComponent,
   isDomain,
   isExternalModule,
+  isListenRelation,
   isModule,
   isZone,
   Part,
@@ -144,8 +144,8 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
           if (!target) {
             return []
           }
-          const sourceAncestors = ancestors.get(source.uid) || []
-          const targetAncestors = ancestors.get(target.uid) || []
+          const sourceAncestors: readonly Part[] = ancestors.get(source.uid) || []
+          const targetAncestors: readonly Part[] = ancestors.get(target.uid) || []
 
           if (
             opts.completelyExclude.includes(source.uid) ||
@@ -215,29 +215,29 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
           ]
         })
 
-  const asyncRelationsPerTarget = new Map<string, CompleteRelation[]>()
-  computedRelations.filter(isAsyncRelation).forEach((rel) => {
-    asyncRelationsPerTarget.set(rel.origTargetId, [
-      ...(asyncRelationsPerTarget.get(rel.origTargetId) ?? []),
+  const listenRelationsPerTarget = new Map<string, CompleteRelation[]>()
+  for (const rel of computedRelations.filter(isListenRelation)) {
+    listenRelationsPerTarget.set(rel.origTargetId, [
+      ...(listenRelationsPerTarget.get(rel.origTargetId) ?? []),
       rel,
     ])
-  })
-  const asyncRelationsTargetSeen = new Set<string>()
+  }
+  const listenRelationsTargetSeen = new Set<string>()
   const mergedRelations = computedRelations.flatMap((relation) => {
-    const relatedAsyncRelations = asyncRelationsPerTarget.get(
-      relation.origTargetId
-    )
-    if (isAsyncRelation(relation)) {
+    if (isListenRelation(relation)) {
       return []
     }
+    const relatedListenRelations = listenRelationsPerTarget.get(
+      relation.origTargetId
+    )
     if (
       relation.type === RelationType.Ask &&
       ids.get(relation.origTargetId)?.partType === PartType.Component &&
       !focused.has(relation.origTargetId) &&
-      relatedAsyncRelations !== undefined
+      relatedListenRelations !== undefined
     ) {
-      asyncRelationsTargetSeen.add(relation.origTargetId)
-      return relatedAsyncRelations.map((rel) => {
+      listenRelationsTargetSeen.add(relation.origTargetId)
+      return relatedListenRelations.map((rel) => {
         return {
           ...rel,
           targetId: relation.sourceId,
@@ -247,12 +247,12 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     }
     return [relation]
   })
-  const unrelatedAsyncRelations: CompleteRelation[] = [
-    ...asyncRelationsPerTarget.entries(),
+  const unrelatedListenRelations: CompleteRelation[] = [
+    ...listenRelationsPerTarget.entries(),
   ]
-    .filter(([origTargetId]) => !asyncRelationsTargetSeen.has(origTargetId))
+    .filter(([origTargetId]) => !listenRelationsTargetSeen.has(origTargetId))
     .flatMap(([_, rels]) => rels)
-  const newRelations = [...mergedRelations, ...unrelatedAsyncRelations]
+  const newRelations = [...mergedRelations, ...unrelatedListenRelations]
 
   const acceptComponents =
     opts.level === PruneLevel.Component ||

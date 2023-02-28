@@ -98,6 +98,9 @@ export const AllRelationTypes: RelationType[] = [RelationType.Ask, RelationType.
 export function isAsyncRelationType(rt: RelationType): boolean {
   return rt !== RelationType.Ask
 }
+export function isListenRelationType(rt: RelationType): boolean {
+  return rt === RelationType.Listen
+}
 export function getRelationTypeOrFail(uid: string): RelationType {
   switch (uid.toLowerCase()) {
     case "ask":
@@ -119,6 +122,9 @@ export type Relation = {
 
 export function isAsyncRelation(rel: Relation): boolean {
   return isAsyncRelationType(rel.type)
+}
+export function isListenRelation(rel: Relation): boolean {
+  return isListenRelationType(rel.type)
 }
 
 export type CompleteRelation = {
