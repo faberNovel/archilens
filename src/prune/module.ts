@@ -247,11 +247,10 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     }
     return [relation]
   })
-  const unrelatedListenRelations: CompleteRelation[] = [
-    ...listenRelationsPerTarget.entries(),
-  ]
-    .filter(([origTargetId]) => !listenRelationsTargetSeen.has(origTargetId))
-    .flatMap(([_, rels]) => rels)
+  const unrelatedListenRelations: CompleteRelation[] =
+    [...listenRelationsPerTarget.entries()]
+      .filter(([origTargetId]) => !listenRelationsTargetSeen.has(origTargetId))
+      .flatMap(([_, rels]) => rels)
   const newRelations = [...mergedRelations, ...unrelatedListenRelations]
 
   const acceptComponents =
@@ -261,7 +260,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     ? computedRelations
     : newRelations
 
-  const setFocus = (partId: string) => {
+  function setFocus(partId: string) {
     const parent = parents.get(partId)
     if (parent && opts.close.includes(parent.uid)) {
       focused.delete(partId)
@@ -303,7 +302,12 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
   // Remove duplicates
   const relationsMap = new Map<string, CompleteRelation>()
   for (const cleanedRelation of cleanedRelations) {
-    const key = [cleanedRelation.sourceId, cleanedRelation.targetId, opts.mergeRelations ? undefined : cleanedRelation.description].join('.')
+    const key = [
+      cleanedRelation.sourceId,
+      cleanedRelation.targetId,
+      cleanedRelation.type,
+      opts.mergeRelations ? undefined : cleanedRelation.description
+    ].join('.')
     relationsMap.set(key, cleanedRelation)
   }
   const relations = Array.from(relationsMap.values())
@@ -367,7 +371,7 @@ const relationAcceptDomain = (opts: PruneOptions): boolean =>
 const relationAcceptZone = (opts: PruneOptions): boolean =>
   opts.relationLevel === PruneLevel.Zone || relationAcceptDomain(opts)
 
-const computeIsExcluded = (opts: PruneOptions, part: Part) => {
+function computeIsExcluded(opts: PruneOptions, part: Part) {
   return (
     opts.exclude.includes(part.uid) ||
     opts.completelyExclude.includes(part.uid) ||
@@ -375,10 +379,11 @@ const computeIsExcluded = (opts: PruneOptions, part: Part) => {
     opts.completelyExcludeTags.some((tag) => part.tags.includes(tag))
   )
 }
-const computeIsSelected = (
+
+function computeIsSelected(
   opts: PruneOptions,
   part: Part,
-): boolean => {
+): boolean {
   if (computeIsExcluded(opts, part)) {
     return false
   }
@@ -389,11 +394,12 @@ const computeIsSelected = (
     part.tags.find((t) => opts.openTags.includes(t)) !== undefined
   )
 }
-const computeHasFocus = (
+
+function computeHasFocus(
   opts: PruneOptions,
   part: Part,
   ancestors: ReadonlyMap<string, readonly Part[]>
-): boolean => {
+): boolean {
   if (computeIsExcluded(opts, part)) {
     return false
   }
@@ -425,12 +431,12 @@ const computeHasFocus = (
   return focusAcceptComponent(opts)
 }
 
-const getFirstRelationSource = (
+function getFirstRelationSource(
   opts: PruneOptions,
   parents: ReadonlyMap<string, Part>,
   focused: ReadonlySet<string>,
   part: Part
-): Part | undefined => {
+): Part | undefined {
   if (focused.has(part.uid)) {
     return part
   }
@@ -440,11 +446,12 @@ const getFirstRelationSource = (
   }
   return getFirstRelationSource(opts, parents, focused, parent)
 }
-const computeIsRelationTarget = (
+
+function computeIsRelationTarget(
   opts: PruneOptions,
   focused: ReadonlySet<string>,
   part: Part
-): boolean => {
+): boolean {
   if (focused.has(part.uid)) {
     return true
   }
@@ -460,13 +467,14 @@ const computeIsRelationTarget = (
   if (isExternalModule(part)) return relationAcceptModule(opts)
   return relationAcceptComponent(opts)
 }
-const getFirstRelationTarget = (
+
+function getFirstRelationTarget(
   opts: PruneOptions,
   parents: ReadonlyMap<string, Part>,
   focused: ReadonlySet<string>,
   commonFocusedAncestors: readonly Part[],
   part: Part
-): Part | undefined => {
+): Part | undefined {
   if (computeIsRelationTarget(opts, focused, part)) {
     return part
   }
@@ -486,11 +494,11 @@ const getFirstRelationTarget = (
   )
 }
 
-const findFirstFocusedParent = (
+function findFirstFocusedParent(
   partId: string,
   parents: ReadonlyMap<string, Part>,
   focused: ReadonlySet<string>
-): string | undefined => {
+): string | undefined {
   if (focused.has(partId)) {
     return partId
   }

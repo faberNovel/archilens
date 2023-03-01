@@ -190,18 +190,18 @@ export const generateRelation =
   (opts: D2Options, diagram: PrunedDiagram, keys: Record<string, string[]>) =>
   (relation: CompleteRelation): string => {
     let arrow: string
-    let dashed: boolean = false
+    let custom: string = ''
     switch (relation.type) {
       case RelationType.Ask:
         arrow = "->"
         break
       case RelationType.Tell:
         arrow = "->"
-        dashed = true
+        custom = '{ style.stroke-dash: 1 }'
         break
       case RelationType.Listen:
         arrow = "<-"
-        dashed = true
+        custom = '{ style.stroke-dash: 3; style.animated: true }'
         break
       default:
         throw new Error(
@@ -214,8 +214,8 @@ export const generateRelation =
     }
     const sourceId = keys[relation.sourceId].join(".")
     const targetId = keys[relation.targetId].join(".")
-    const stroke = dashed ? `${desc ? '' : ' :'} { style.stroke-dash: 3; style.animated: true }` : ""
-    return `${sourceId} ${arrow} ${targetId}${desc}${stroke}`
+    const sep = desc && custom ? " : " : " "
+    return `${sourceId} ${arrow} ${targetId}${desc}${sep}${custom}`
   }
 
 export function generateDiagram(
