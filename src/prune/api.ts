@@ -18,7 +18,7 @@ type DiagramInfos = {
   readonly opts: PruneOptions
   readonly ids: ReadonlyMap<string, Part>
   readonly focused: ReadonlySet<string>
-  readonly containsFocused: ReadonlySet<string>
+  readonly unprunedIds: ReadonlySet<string>
   readonly parents: ReadonlyMap<string, Part>
   readonly ancestors: ReadonlyMap<string, readonly Part[]>
   readonly children: ReadonlyMap<string, readonly Part[]>
@@ -82,12 +82,12 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     children.set(zone.uid, zoneChildren)
     descent.set(zone.uid, zoneDescent)
   })
-  const containsFocused = Array.from(ids.keys()).reduce(
+  const unprunedIds = Array.from(ids.keys()).reduce(
     (acc, partId): Set<string> => {
-      const containsFocused =
+      const unprunedIds =
         focused.has(partId) ||
         descent.get(partId)?.find((d) => focused.has(d.uid)) !== undefined
-      if (containsFocused) {
+      if (unprunedIds) {
         acc.add(partId)
       }
       return acc
@@ -103,7 +103,7 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     ancestors,
     children,
     descent,
-    containsFocused,
+    unprunedIds,
   }
 }
 
@@ -139,7 +139,7 @@ const computeHasFocus = (opts: PruneOptions, part: Part): boolean => {
 const partContainsFocused =
   (infos: DiagramInfos) =>
   (part: Part): boolean =>
-    infos.containsFocused.has(part.uid)
+    infos.unprunedIds.has(part.uid)
 
 export function pruneDiagram(opts: PruneOptions, diagram: Diagram): Diagram {
   const infos = prepareDiagram(opts, diagram)

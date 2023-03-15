@@ -236,27 +236,29 @@ if [[ "$gen_svg_enabled" == "true" ]]; then
           elif [[ -f "$item" ]]; then
             local svg_file="../svg/${item/.d2/}.svg"
             mkdir -p "$(dirname "$svg_file")"
-            local graph="dagre"
+            local graphs=("elk" "dagre")
             if [[ "$use_tala" == "true" ]]; then
-              graph="tala"
+              graphs=("tala" "${graphs[@]}")
             fi
             gen_graph() {
-              local graph_engine="$1"
-              local gen_ok
-              run d2 --layout="$graph_engine" "$item" "$svg_file" && gen_ok="true" || gen_ok="false"
-              if [[ "$gen_ok" ]]; then
-                : "noop"
-              elif [[ "$gen_ok" == "false" && "$graph_engine" != "dagre" ]]; then
-                gen_graph "dagre"
-              else
+              local graph_idx="$1"
+              local graph_engine="${graphs[$graph_idx]}"
+              if [[ -z "$graph_engine" ]]; then
                 die "Failed to generate SVG file for $item"
               fi
+              local gen_ok
+              run d2 --layout="$graph_engine" "$item" "$svg_file" && gen_ok="true" || gen_ok="false"
+              if [[ "$gen_ok" == "true" ]]; then
+                : "noop"
+              else
+                gen_graph "$(( graph_idx + 1 ))" || exit "$?"
+              fi
             }
-            gen_graph "$graph" || exit "$?"
+            gen_graph "0" || exit "$?"
           fi
         done
       }
-      gen "."
+      gen "." || exit "$?"
     )
   fi
   if [[ -d "$output_dir/mermaid" ]]; then

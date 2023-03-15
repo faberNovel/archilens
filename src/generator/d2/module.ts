@@ -65,7 +65,7 @@ export const generateComponent =
       values: [
         `${part} {`,
         `  # uid: ${component.uid}`,
-        ...(diagram.selected.has(component.uid) ? ['  style.bold: true', `  style.fill: "#ebfdf7"`] : []),
+        ...(diagram.isSelected(component) ? ['  style.bold: true', `  style.fill: "#ebfdf7"`] : []),
         ...(icon ? ['  shape: image', `  icon: ${icon}`] : []),
         "}"
       ],
@@ -85,7 +85,7 @@ export const generateModule =
       values: [
         `${part} {`,
         `  # uid: ${module.uid}`,
-        ...(diagram.selected.has(module.uid) ? ['  style.bold: true', `  style.fill: "#ebfdf7"`] : []),
+        ...(diagram.isSelected(module) ? ['  style.bold: true', `  style.fill: "#ebfdf7"`] : []),
         ...genLink(opts, path),
         ...generatedComponents.map((s) => `  ${s}`),
         "}"
@@ -122,7 +122,7 @@ export const generateExternalModule =
       values: [
         `${part} {`,
         `  # uid: ${module.uid}`,
-        ...(diagram.selected.has(module.uid) ? ['  style.bold: true', `  style.fill: "#ebfdf7"`] : []),
+        ...(diagram.isSelected(module) ? ['  style.bold: true', `  style.fill: "#ebfdf7"`] : []),
         ...genLink(opts, path),
         "}",
       ],
@@ -157,7 +157,7 @@ export const generateDomain =
       values: [
         `${part} {`,
         `  # uid: ${domain.uid}`,
-        ...(diagram.selected.has(domain.uid) ? ['  style.bold: true', `  style.fill: "#a7e2d0"`] : []),
+        ...(diagram.isSelected(domain) ? ['  style.bold: true', `  style.fill: "#a7e2d0"`] : []),
         ...genLink(opts, path),
         ...generatedEntities.map((s) => `  ${s}`),
         "}",
@@ -178,7 +178,7 @@ export const generateZone =
       values: [
         `${part} {`,
         `  # uid: ${zone.uid}`,
-        ...(diagram.selected.has(zone.uid) ? ['  style.bold: true', `  style.fill: "#49bc99"`] : []),
+        ...(diagram.isSelected(zone) ? ['  style.bold: true', `  style.fill: "#49bc99"`] : []),
         ...genLink(opts, path),
         ...generatedDomains.map((s) => `  ${s}`),
         "}",
@@ -194,14 +194,15 @@ export const generateRelation =
     switch (relation.type) {
       case RelationType.Ask:
         arrow = "->"
+        custom = '{ border-radius: 5; }'
         break
       case RelationType.Tell:
         arrow = "->"
-        custom = '{ style.stroke-dash: 1 }'
+        custom = '{ border-radius: 5; style.stroke-dash: 1 }'
         break
       case RelationType.Listen:
         arrow = "<-"
-        custom = '{ style.stroke-dash: 3; style.animated: true }'
+        custom = '{ border-radius: 5; style.stroke-dash: 3; style.animated: true }'
         break
       default:
         throw new Error(

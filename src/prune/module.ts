@@ -6,7 +6,6 @@ import {
   Domain,
   Entity,
   filterDiagram,
-  isComponent,
   isDomain,
   isExternalModule,
   isListenRelation,
@@ -17,35 +16,37 @@ import {
   Predicates,
   Relation,
   RelationType,
+  Zone,
 } from "../models"
 import { PruneLevel, PruneOptions } from "./index"
 
 type DiagramInfos = {
-  readonly diagram: Diagram
-  readonly opts: PruneOptions
-  readonly ids: ReadonlyMap<string, Part>
-  readonly focused: ReadonlySet<string>
-  readonly containsFocused: ReadonlySet<string>
-  readonly parents: ReadonlyMap<string, Part>
-  readonly ancestors: ReadonlyMap<string, readonly Part[]>
-  readonly children: ReadonlyMap<string, readonly Part[]>
-  readonly descent: ReadonlyMap<string, readonly Part[]>
   readonly relations: ReadonlyArray<CompleteRelation>
-  readonly componentTypes: ReadonlyArray<string>
-  readonly selected: ReadonlyArray<Part>
+  isUnpruned(part: Part): boolean
+  isSelected(part: Part): boolean
 }
 
-function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
-  const ids: Map<string, Part> = new Map()
-  const focused: Set<string> = new Set()
-  const parents: Map<string, Part> = new Map()
-  const ancestors: Map<string, readonly Part[]> = new Map()
-  const children: Map<string, readonly Part[]> = new Map()
-  const descent: Map<string, readonly Part[]> = new Map()
-  const allRelations: { source: Part; relation: Relation }[] = []
-  const selected: Part[] = []
+type BasicRelation = { source: Part; relation: Relation }
 
-  const complete = (part: Part): void => {
+function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
+  /** ids found in the diagram */
+  const ids: Map<string, Part> = new Map()
+  /** parent part of a part (by its uid) */
+  const parents: Map<string, Part> = new Map()
+  /** children of a part (by its uid) */
+  const children: Map<string, readonly Part[]> = new Map()
+  /** ancestors (parent of parent, recursively) of a part (by its uid) */
+  const ancestors: Map<string, readonly Part[]> = new Map()
+  /** descent (children of children, recursively) of a part (by its uid) */
+  const descent: Map<string, readonly Part[]> = new Map()
+  /** relations found in the diagram */
+  const allRelations: BasicRelation[] = []
+  /** parts directly selected by the prune options (does not include the relationships) */
+  const selected: Part[] = []
+  /** ids of parts that will be displayed (their parents might not be included in this set) */
+  const focused: Set<string> = new Set()
+
+  function populateIds(part: Part) {
     if (ids.get(part.uid)) {
       throw new Error(
         `Trying to add a part with a duplicate uid '${
@@ -62,61 +63,63 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     }
     ids.set(part.uid, part)
   }
-  diagram.zones.forEach((zone) => {
-    complete(zone)
-    const zoneChildren: Domain[] = []
-    const zoneDescent: Part[] = []
-    zone.domains.forEach((domain) => {
-      complete(domain)
-      parents.set(domain.uid, zone)
-      ancestors.set(domain.uid, [zone])
-      zoneChildren.push(domain)
-      zoneDescent.push(domain)
-      const domainChildren: Entity[] = []
-      const domainDescent: Part[] = []
-      domain.entities.forEach((entity) => {
-        complete(entity)
-        parents.set(entity.uid, domain)
-        ancestors.set(entity.uid, [zone, domain])
-        domainChildren.push(entity)
-        domainDescent.push(entity)
-        zoneDescent.push(entity)
-        if (isModule(entity)) {
-          const moduleChildren: Component[] = []
-          const moduleDescent: Part[] = []
-          entity.components.forEach((component) => {
-            complete(component)
-            parents.set(component.uid, entity)
-            ancestors.set(component.uid, [zone, domain, entity])
-            moduleChildren.push(component)
-            moduleDescent.push(component)
-            domainDescent.push(component)
-            zoneDescent.push(component)
+  function populateFromParts(zones: readonly Zone[]) {
+    for (const zone of zones) {
+      populateIds(zone)
+      const zoneChildren: Domain[] = []
+      const zoneDescent: Part[] = []
+      zone.domains.forEach((domain) => {
+        populateIds(domain)
+        parents.set(domain.uid, zone)
+        ancestors.set(domain.uid, [zone])
+        zoneChildren.push(domain)
+        zoneDescent.push(domain)
+        const domainChildren: Entity[] = []
+        const domainDescent: Part[] = []
+        domain.entities.forEach((entity) => {
+          populateIds(entity)
+          parents.set(entity.uid, domain)
+          ancestors.set(entity.uid, [zone, domain])
+          domainChildren.push(entity)
+          domainDescent.push(entity)
+          zoneDescent.push(entity)
+          if (isModule(entity)) {
+            const moduleChildren: Component[] = []
+            const moduleDescent: Part[] = []
+            entity.components.forEach((component) => {
+              populateIds(component)
+              parents.set(component.uid, entity)
+              ancestors.set(component.uid, [zone, domain, entity])
+              moduleChildren.push(component)
+              moduleDescent.push(component)
+              domainDescent.push(component)
+              zoneDescent.push(component)
+              allRelations.push(
+                ...component.relations.map((relation) => ({
+                  source: component,
+                  relation,
+                }))
+              )
+            })
+            children.set(entity.uid, moduleChildren)
+            descent.set(entity.uid, moduleDescent)
+          } else if (isExternalModule(entity)) {
             allRelations.push(
-              ...component.relations.map((relation) => ({
-                source: component,
+              ...entity.relations.map((relation) => ({
+                source: entity,
                 relation,
               }))
             )
-          })
-          children.set(entity.uid, moduleChildren)
-          descent.set(entity.uid, moduleDescent)
-        } else if (isExternalModule(entity)) {
-          allRelations.push(
-            ...entity.relations.map((relation) => ({
-              source: entity,
-              relation,
-            }))
-          )
-        }
+          }
+        })
+        children.set(domain.uid, domainChildren)
+        descent.set(domain.uid, domainDescent)
       })
-      children.set(domain.uid, domainChildren)
-      descent.set(domain.uid, domainDescent)
-    })
-    children.set(zone.uid, zoneChildren)
-    descent.set(zone.uid, zoneDescent)
-  })
-  ids.forEach((part) => {
+      children.set(zone.uid, zoneChildren)
+      descent.set(zone.uid, zoneDescent)
+    }
+  }
+  function addToSelectedOrFocused(part: Part) {
     if (computeIsExcluded(opts, part)) return
     const parent = parents.get(part.uid)
     if (computeIsSelected(opts, part)) {
@@ -129,137 +132,129 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
     if (hasFocus) {
       focused.add(part.uid)
     }
-  })
-  const isDisplayed = (part: Part): boolean => {
+  }
+  function isDisplayed(part: Part): boolean {
     return (
       focused.has(part.uid) ||
       descent.get(part.uid)?.find((d) => focused.has(d.uid)) !== undefined
     )
   }
-  const computedRelations: CompleteRelation[] =
-    opts.relationLevel === PruneLevel.Nothing
-      ? []
-      : allRelations.flatMap(({ source, relation }) => {
-          const target = ids.get(relation.targetId)
-          if (!target) {
-            return []
-          }
-          const sourceAncestors: readonly Part[] = ancestors.get(source.uid) || []
-          const targetAncestors: readonly Part[] = ancestors.get(target.uid) || []
+  function filterAndCompleteRelations(relations: BasicRelation[]): CompleteRelation[] {
+    return relations.flatMap(({ source, relation }) => {
+      const target = ids.get(relation.targetId)
+      if (!target) {
+        return []
+      }
+      const sourceAncestors: readonly Part[] = ancestors.get(source.uid) || []
+      const targetAncestors: readonly Part[] = ancestors.get(target.uid) || []
 
-          if (
-            opts.completelyExclude.includes(source.uid) ||
-            opts.completelyExclude.includes(target.uid) ||
-            sourceAncestors.find((a) =>
-              opts.completelyExclude.includes(a.uid)
-            ) !== undefined ||
-            targetAncestors.find((a) =>
-              opts.completelyExclude.includes(a.uid)
-            ) !== undefined ||
-            opts.completelyExcludeTags.some((tag) => source.tags.includes(tag)) ||
-            opts.completelyExcludeTags.some((tag) => target.tags.includes(tag))
-          ) {
-            return []
-          }
+      if (
+        opts.completelyExclude.includes(source.uid) ||
+        opts.completelyExclude.includes(target.uid) ||
+        sourceAncestors.find((a) =>
+          opts.completelyExclude.includes(a.uid)
+        ) !== undefined ||
+        targetAncestors.find((a) =>
+          opts.completelyExclude.includes(a.uid)
+        ) !== undefined ||
+        opts.completelyExcludeTags.some((tag) => source.tags.includes(tag)) ||
+        opts.completelyExcludeTags.some((tag) => target.tags.includes(tag))
+      ) {
+        return []
+      }
 
-          const commonDisplayedAncestors = sourceAncestors.filter(
-            (a) => targetAncestors.includes(a) && isDisplayed(a)
-          )
-          let firstSource: Part | undefined = getFirstRelationSource(
-            opts,
-            parents,
-            focused,
-            source
-          )
-          let firstTarget: Part | undefined = getFirstRelationTarget(
-            opts,
-            parents,
-            focused,
-            commonDisplayedAncestors,
-            target
-          )
-          let reversed = false
-          if (
-            !firstSource &&
-            firstTarget &&
-            opts.reverseRelationTypes.includes(relation.type)
-          ) {
-            firstSource = getFirstRelationTarget(
-              opts,
-              parents,
-              focused,
-              commonDisplayedAncestors,
-              source
-            )
-            firstTarget = getFirstRelationSource(opts, parents, focused, target)
-            reversed = true
-          }
-          if (
-            firstSource &&
-            (reversed ? sourceAncestors : targetAncestors).includes(firstSource)
-          ) {
-            return []
-          }
-          if (!firstSource || !firstTarget || firstSource === firstTarget) {
-            return []
-          }
-          return [
-            {
-              sourceId: firstSource.uid,
-              targetId: firstTarget.uid,
-              type: relation.type,
-              description: relation.description,
-              origSourceId: source.uid,
-              origTargetId: target.uid,
-            },
-          ]
-        })
-
-  const listenRelationsPerTarget = new Map<string, CompleteRelation[]>()
-  for (const rel of computedRelations.filter(isListenRelation)) {
-    listenRelationsPerTarget.set(rel.origTargetId, [
-      ...(listenRelationsPerTarget.get(rel.origTargetId) ?? []),
-      rel,
-    ])
+      const commonDisplayedAncestors = sourceAncestors.filter(
+        (a) => targetAncestors.includes(a) && isDisplayed(a)
+      )
+      let firstSource: Part | undefined = getFirstRelationSource(
+        opts,
+        parents,
+        focused,
+        source
+      )
+      let firstTarget: Part | undefined = getFirstRelationTarget(
+        opts,
+        parents,
+        focused,
+        commonDisplayedAncestors,
+        target
+      )
+      let reversed = false
+      if (
+        !firstSource &&
+        firstTarget &&
+        opts.reverseRelationTypes.includes(relation.type)
+      ) {
+        firstSource = getFirstRelationTarget(
+          opts,
+          parents,
+          focused,
+          commonDisplayedAncestors,
+          source
+        )
+        firstTarget = getFirstRelationSource(opts, parents, focused, target)
+        reversed = true
+      }
+      if (
+        firstSource &&
+        (reversed ? sourceAncestors : targetAncestors).includes(firstSource)
+      ) {
+        return []
+      }
+      if (!firstSource || !firstTarget || firstSource === firstTarget) {
+        return []
+      }
+      return [
+        {
+          sourceId: firstSource.uid,
+          targetId: firstTarget.uid,
+          type: relation.type,
+          description: relation.description,
+          origSourceId: source.uid,
+          origTargetId: target.uid,
+        },
+      ]
+    })
   }
-  const listenRelationsTargetSeen = new Set<string>()
-  const mergedRelations = computedRelations.flatMap((relation) => {
-    if (isListenRelation(relation)) {
-      return []
+  function mergeAskToListenRelations(relations: CompleteRelation[]): CompleteRelation[] {
+    const listenRelationsPerTarget = new Map<string, CompleteRelation[]>()
+    for (const rel of relations.filter(isListenRelation)) {
+      listenRelationsPerTarget.set(rel.origTargetId, [
+        ...(listenRelationsPerTarget.get(rel.origTargetId) ?? []),
+        rel,
+      ])
     }
-    const relatedListenRelations = listenRelationsPerTarget.get(
-      relation.origTargetId
-    )
-    if (
-      relation.type === RelationType.Ask &&
-      ids.get(relation.origTargetId)?.partType === PartType.Component &&
-      !focused.has(relation.origTargetId) &&
-      relatedListenRelations !== undefined
-    ) {
-      listenRelationsTargetSeen.add(relation.origTargetId)
-      return relatedListenRelations.map((rel) => {
-        return {
-          ...rel,
-          targetId: relation.sourceId,
-          origTargetId: relation.origSourceId,
-        }
-      })
-    }
-    return [relation]
-  })
-  const unrelatedListenRelations: CompleteRelation[] =
-    [...listenRelationsPerTarget.entries()]
-      .filter(([origTargetId]) => !listenRelationsTargetSeen.has(origTargetId))
-      .flatMap(([_, rels]) => rels)
-  const newRelations = [...mergedRelations, ...unrelatedListenRelations]
-
-  const acceptComponents =
-    opts.level === PruneLevel.Component ||
-    opts.relationLevel === PruneLevel.Component
-  const maybeMergedRelations = acceptComponents
-    ? computedRelations
-    : newRelations
-
+    const listenRelationsTargetSeen = new Set<string>()
+    const mergedRelations = relations.flatMap((relation) => {
+      if (isListenRelation(relation)) {
+        return []
+      }
+      const relatedListenRelations = listenRelationsPerTarget.get(
+        relation.origTargetId
+      )
+      if (
+        relation.type === RelationType.Ask &&
+        ids.get(relation.origTargetId)?.partType === PartType.Component &&
+        !focused.has(relation.origTargetId) &&
+        relatedListenRelations !== undefined
+      ) {
+        listenRelationsTargetSeen.add(relation.origTargetId)
+        return relatedListenRelations.map((rel) => {
+          return {
+            ...rel,
+            targetId: relation.sourceId,
+            origTargetId: relation.origSourceId,
+          }
+        })
+      }
+      return [relation]
+    })
+    const unrelatedListenRelations: CompleteRelation[] =
+      [...listenRelationsPerTarget.entries()]
+        .filter(([origTargetId]) => !listenRelationsTargetSeen.has(origTargetId))
+        .flatMap(([_, rels]) => rels)
+    return [...mergedRelations, ...unrelatedListenRelations]
+  }
   function setFocus(partId: string) {
     const parent = parents.get(partId)
     if (parent && opts.close.includes(parent.uid)) {
@@ -269,13 +264,12 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
       focused.add(partId)
     }
   }
-  maybeMergedRelations.forEach((relation) => {
+  function setFocusFromRelation(relation: CompleteRelation) {
     setFocus(relation.sourceId)
     setFocus(relation.targetId)
-  })
-
-  const cleanedRelations = maybeMergedRelations.flatMap<CompleteRelation>(
-    (relation) => {
+  }
+  function levelupRelations(relations: CompleteRelation[]): CompleteRelation[] {
+    return relations.flatMap<CompleteRelation>((relation) => {
       const sourceId = findFirstFocusedParent(
         relation.origSourceId,
         parents,
@@ -296,61 +290,57 @@ function prepareDiagram(opts: PruneOptions, diagram: Diagram): DiagramInfos {
           targetId,
         },
       ]
-    }
-  )
-
-  // Remove duplicates
-  const relationsMap = new Map<string, CompleteRelation>()
-  for (const cleanedRelation of cleanedRelations) {
-    const key = [
-      cleanedRelation.sourceId,
-      cleanedRelation.targetId,
-      cleanedRelation.type,
-      opts.mergeRelations ? undefined : cleanedRelation.description
-    ].join('.')
-    relationsMap.set(key, cleanedRelation)
+    })
   }
-  const relations = Array.from(relationsMap.values())
-
-  const containsFocused = Array.from(ids.keys()).reduce(
-    (acc, partId): Set<string> => {
-      const containsFocused =
+  function computeUnprunedIds(): Set<string> {
+    const unprunedIds = new Set<string>()
+    for (const partId of ids.keys()) {
+      const isOrContainsFocused =
         focused.has(partId) ||
         descent.get(partId)?.find((d) => focused.has(d.uid)) !== undefined
-      if (containsFocused) {
-        acc.add(partId)
+      if (isOrContainsFocused) {
+        unprunedIds.add(partId)
       }
-      return acc
-    },
-    new Set<string>()
-  )
-  const componentTypes: string[] = [
-    ...new Set(
-      Array.from(containsFocused.entries()).flatMap(([partId, value]) => {
-        if (value) {
-          const part = ids.get(partId)
-          if (part && isComponent(part)) {
-            return [part.type]
-          }
-        }
-        return []
-      })
-    ),
-  ]
-  return {
-    diagram,
-    opts,
-    ids,
-    focused,
-    parents,
-    ancestors,
-    children,
-    descent,
-    containsFocused,
-    relations,
-    componentTypes,
-    selected,
+    }
+    return unprunedIds
   }
+
+  populateFromParts(diagram.zones)
+  for (const part of ids.values()) {
+    addToSelectedOrFocused(part)
+  }
+  const computedRelations: CompleteRelation[] =
+    opts.relationLevel === PruneLevel.Nothing ? [] : filterAndCompleteRelations(allRelations)
+  const acceptComponents =
+    opts.level === PruneLevel.Component || opts.relationLevel === PruneLevel.Component
+  const maybeMergedRelations =
+    acceptComponents ? computedRelations : mergeAskToListenRelations(computedRelations)
+  for (const maybeMergedRelation of maybeMergedRelations) {
+    setFocusFromRelation(maybeMergedRelation)
+  }
+  const cleanedRelations = levelupRelations(maybeMergedRelations)
+  const relations = mergeDuplicateRelations(opts, cleanedRelations)
+  const unprunedIds = computeUnprunedIds()
+  const selectedUids = new Set<string>([...selected].map((p) => p.uid))
+  return {
+    relations,
+    isUnpruned: (part: Part) => unprunedIds.has(part.uid),
+    isSelected: (part: Part) => selectedUids.has(part.uid),
+  }
+}
+
+function mergeDuplicateRelations(opts: PruneOptions, relations: CompleteRelation[]) {
+  const relationsMap = new Map<string, CompleteRelation>()
+  for (const relation of relations) {
+    const key = [
+      relation.sourceId,
+      relation.targetId,
+      relation.type,
+      opts.mergeRelations ? undefined : relation.description
+    ].join('.')
+    relationsMap.set(key, relation)
+  }
+  return Array.from(relationsMap.values())
 }
 
 const focusAcceptComponent = (opts: PruneOptions): boolean =>
@@ -509,14 +499,9 @@ function findFirstFocusedParent(
   return findFirstFocusedParent(parent.uid, parents, focused)
 }
 
-const partContainsFocused =
-  (infos: DiagramInfos) =>
-  (part: Part): boolean =>
-    infos.containsFocused.has(part.uid)
-
 export type PrunedDiagram = Diagram & {
   readonly relations: readonly CompleteRelation[]
-  readonly selected: ReadonlySet<string>
+  isSelected(part: Part): boolean
 }
 
 export function pruneDiagram(
@@ -526,17 +511,17 @@ export function pruneDiagram(
   const infos = prepareDiagram(opts, diagram)
   const predicates: DiagramPredicates = {
     componentTypes: Predicates.ACCEPT,
-    zone: partContainsFocused(infos),
-    domain: partContainsFocused(infos),
-    module: partContainsFocused(infos),
-    externalModule: partContainsFocused(infos),
-    component: partContainsFocused(infos),
+    zone: infos.isUnpruned,
+    domain: infos.isUnpruned,
+    module: infos.isUnpruned,
+    externalModule: infos.isUnpruned,
+    component: infos.isUnpruned,
     relation: Predicates.REJECT,
     resource: Predicates.REJECT,
   }
   return {
     ...filterDiagram(predicates)(diagram),
     relations: infos.relations,
-    selected: new Set(infos.selected.map((part) => part.uid)),
+    isSelected: infos.isSelected,
   }
 }
