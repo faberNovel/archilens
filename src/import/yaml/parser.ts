@@ -1,42 +1,65 @@
 import { z } from "zod"
 
-import { relationType, uid } from "../../shared/parser"
+import { RelationType } from "../../shared/models"
+import { zModuleType, zRelationType, zUid } from "../../shared/parser"
 
 import * as Import from "../models"
 
 const zRelation = (): z.ZodType<Import.Relation> => z.object({
   description: z.string().optional(),
-  target: uid(),
-  type: relationType(),
+  target: zUid(),
+  rtype: zRelationType().optional(),
 }).transform(data => ({
   description: data.description,
   targetUid: data.target,
-  relationType: data.type,
+  relationType: data.rtype ?? RelationType.Ask,
 }) satisfies Import.Relation) as unknown as z.ZodType<Import.Relation>
 
 const zComponent = (): z.ZodType<Import.Component> => z.object({
-  uid: uid(),
-  label: z.string(),
+  uid: zUid(),
+  ctype: z.string(),
+  label: z.string().optional(),
   relations: z.array(zRelation()).default([]),
-}).transform(data => data satisfies Import.Component) as unknown as z.ZodType<Import.Component>
+}).transform(data => ({
+  uid: data.uid,
+  type: data.ctype,
+  label: data.label,
+  relations: data.relations,
+} satisfies Import.Component)) as unknown as z.ZodType<Import.Component>
 
 const zModule = (): z.ZodType<Import.Module> => z.object({
-  uid: uid(),
+  uid: zUid(),
+  mtype: zModuleType(),
   label: z.string(),
   components: z.array(zComponent()).default([]),
-}).transform(data => data satisfies Import.Module) as unknown as z.ZodType<Import.Module>
+  relations: z.array(zRelation()).default([]),
+}).transform(data => ({
+  uid: data.uid,
+  type: data.mtype,
+  label: data.label,
+  components: data.components,
+  relations: data.relations,
+} satisfies Import.Module)) as unknown as z.ZodType<Import.Module>
 
 const zDomain = (): z.ZodType<Import.Domain> => z.object({
-  uid: uid(),
+  uid: zUid(),
   label: z.string(),
   domains: z.lazy(() => z.array(zDomain()).default([])),
   modules: z.array(zModule()).default([]),
-}).transform(data => data satisfies Import.Domain) as unknown as z.ZodType<Import.Domain>
+}).transform(data => ({
+  uid: data.uid,
+  label: data.label,
+  domains: data.domains,
+  modules: data.modules,
+} satisfies Import.Domain)) as unknown as z.ZodType<Import.Domain>
 
 const zSystem = (): z.ZodType<Import.System> => z.object({
   lastUpdateAt: z.date(),
   domains: z.array(zDomain()).default([]),
-}).transform(data => data satisfies Import.System) as unknown as z.ZodType<Import.System>
+}).transform(data => ({
+  lastUpdateAt: data.lastUpdateAt,
+  domains: data.domains,
+} satisfies Import.System)) as unknown as z.ZodType<Import.System>
 
 export function parse(raw: unknown): Import.System {
   return zSystem().parse(raw)

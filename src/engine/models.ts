@@ -1,62 +1,77 @@
-import { RelationType, Uid } from "../shared/models"
+import { ModuleType, RelationType, Uid } from "../shared/models"
 
-export type System = {
-  readonly lastUpdateAt: Date
-  readonly domains: readonly Domain[]
-  readonly parts: ReadonlyMap<Uid, Part>
+export abstract class System {
+  abstract readonly lastUpdateAt: Date
+  abstract readonly domains: readonly Domain[]
+  abstract readonly parts: ReadonlyMap<Uid, Part>
 
-  partByUid(uid: Uid): Part | undefined
-  domainByUid(uid: Uid): Domain | undefined
-  moduleByUid(uid: Uid): Module | undefined
-  componentByUid(uid: Uid): Component | undefined
+  abstract partByUid(uid: Uid): Part | undefined
+  abstract partByUid<T extends Part>(uid: Uid, refine?: (p: Part) => p is T): T | undefined
+  domainByUid(uid: Uid): Domain | undefined {
+    return this.partByUid(uid, isDomain)
+  }
+  moduleByUid(uid: Uid): Module | undefined {
+    return this.partByUid(uid, isModule)
+  }
+  componentByUid(uid: Uid): Component | undefined {
+    return this.partByUid(uid, isComponent)
+  }
 }
 
-export type Domain = {
-  readonly partType: "Domain"
-  readonly parent: Domain | undefined
+export interface Part {
+  readonly parent: Domain | Module | undefined
   readonly uid: Uid
-  readonly label: string
-  readonly domains: readonly Domain[]
-  readonly modules: readonly Module[]
+  readonly label: string | undefined
   readonly parts: ReadonlyMap<Uid, Part>
 }
-export function isDomain(part: Part): part is Domain;
+
+export abstract class Domain implements Part {
+  abstract readonly parent: Domain | undefined
+  abstract readonly uid: Uid
+  abstract readonly label: string
+  abstract readonly domains: readonly Domain[]
+  abstract readonly modules: readonly Module[]
+  abstract readonly parts: ReadonlyMap<Uid, Part>
+}
 export function isDomain(value: unknown): value is Domain {
-  return (value as Part).partType === "Domain"
+  return value instanceof Domain
 }
 
-export type Module = {
-  readonly partType: "Module"
-  readonly parent: Domain
-  readonly uid: Uid
-  readonly label: string
-  readonly components: readonly Component[]
-  readonly parts: ReadonlyMap<Uid, Module | Component>
+export abstract class Module implements Part {
+  abstract readonly parent: Domain
+  abstract readonly uid: Uid
+  abstract readonly type: ModuleType
+  abstract readonly label: string
+  abstract readonly components: readonly Component[]
+  abstract readonly relations: readonly Relation[]
+  abstract readonly inverseRelations: readonly Relation[]
+  abstract readonly parts: ReadonlyMap<Uid, Module | Component>
 }
-export function isModule(part: Part): part is Module;
 export function isModule(value: unknown): value is Module {
-  return (value as Part).partType === "Module"
+  return value instanceof Module
 }
 
-export type Component = {
-  readonly partType: "Component"
-  readonly parent: Module
-  readonly uid: Uid
-  readonly label: string
-  readonly relations: readonly Relation[]
-  readonly inverseRelations: readonly Relation[]
-  readonly parts: ReadonlyMap<Uid, Component>
+export abstract class Component implements Part {
+  abstract readonly parent: Module
+  abstract readonly uid: Uid
+  abstract readonly type: string
+  abstract readonly label: string | undefined
+  abstract readonly relations: readonly Relation[]
+  abstract readonly inverseRelations: readonly Relation[]
+  abstract readonly parts: ReadonlyMap<Uid, Component>
 }
-export function isComponent(part: Part): part is Component;
 export function isComponent(value: unknown): value is Component {
-  return (value as Part).partType === "Component"
+  return value instanceof Component
 }
 
-export type Part = Domain | Module | Component
+export type RelationEnd = Module | Component
+export function isRelationEnd(value: unknown): value is RelationEnd {
+  return isModule(value) || isComponent(value)
+}
 
-export type Relation = {
-  readonly source: Component
-  readonly target: Component
-  readonly relationType: RelationType
-  readonly description: string | undefined
+export abstract class Relation {
+  abstract readonly source: RelationEnd
+  abstract readonly target: RelationEnd
+  abstract readonly relationType: RelationType
+  abstract readonly description: string | undefined
 }

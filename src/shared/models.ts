@@ -1,5 +1,11 @@
 import { ValueOf } from "../utils/types"
 
+export const ModuleType = {
+  Application: "app",
+  Service: "service",
+}
+export type ModuleType = ValueOf<typeof ModuleType>
+
 export const RelationType = {
   Ask: "ask",
   Listen: "listen",

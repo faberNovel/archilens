@@ -1,65 +1,71 @@
 lastUpdateAt: 2023-03-16
 domains:
-  - uid: zone-1
-    label: "Zone 1"
+  - uid: zone-a
+    label: "Zone A"
     domains:
-      - uid: domain-1-1
+      - uid: domain-a1
         label: "Domain 1"
         modules:
-          - uid: module-1-1-1
-            label: "Module 1"
+          - uid: a1-service
+            mtype: service
+            label: "Service SA1"
             components:
-              - uid: component-1-1-1-1
-                label: "Component 1"
+              - uid: a1-service-api
+                ctype: API
                 relations:
-                  - target: component-1-1-2-2
-                    type: ask
-              - uid: component-1-1-1-2
-                label: "Component 2"
-                relations:
-                  - target: component-1-1-1-1
-                    type: ask
-          - uid: module-1-1-2
-            label: "Module 2"
-            components:
-              - uid: component-1-1-2-1
-                label: "Component 1"
-                relations:
-                  - target: component-1-1-2-2
-                    type: listen
-              - uid: component-1-1-2-2
-                label: "Component 2"
-      - uid: domain-1-2
-        label: "Domain 2"
+                  - target: a1-service-db
+              - uid: a1-service-db
+                ctype: DB
+          - uid: a1-app
+            mtype: app
+            label: "App MA2"
+            relations:
+              - target: a1-service-api
+      - uid: domain-a2
+        label: "Domain A2"
         modules:
-          - uid: module-1-2-1
-            label: "Module 1"
+          - uid: a2-service-1
+            mtype: service
+            label: "Service A2 1"
             components:
-              - uid: component-1-2-1-1
-                label: "Component 1"
-              - uid: component-1-2-1-2
-                label: "Component 2"
-          - uid: module-1-2-2
-            label: "Module 2"
+              - uid: a2-service-1-api
+                ctype: API
+                relations:
+                  - target: a2-service-1-db
+              - uid: a2-service-1-db
+                ctype: DB
+          - uid: a2-service-2
+            mtype: service
+            label: "Service A2 1"
             components:
-              - uid: component-1-2-2-1
-                label: "Component 1"
-              - uid: component-1-2-2-2
-                label: "Component 2"
-  - uid: zone-2
-    label: "Zone 2"
+              - uid: a2-service-2-api
+                ctype: API
+                relations:
+                  - target: a2-service-2-db
+              - uid: a2-service-2-db
+                ctype: DB
+  - uid: zone-b
+    label: "Zone B"
     modules:
-      - uid: module-2-1
-        label: "Module 1"
+      - uid: b-service-1
+        mtype: service
+        label: "Service B1"
         components:
-          - uid: component-2-1-1
-            label: "Component 1"
-          - uid: component-2-1-2
-            label: "Component 2"
-      - uid: module-2-2
-        label: "Module 2"
+          - uid: b-service-1-api
+            ctype: API
+            relations:
+              - target: b-service-1-db
+          - uid: b-service-1-db
+            ctype: BO
+      - uid: b-service-2
+        mtype: service
+        label: "Service B2"
         components:
-          - uid: component-2-2-1
-            label: "Component 1"
-          - uid: component-2-2-2
-            label: "Component 2"
+          - uid: b-service-2-api
+            ctype: API
+            relations:
+              - target: b-service-2-db
+              - target: b-service-1-api
+                rtype: listen
+          - uid: b-service-2-db
+            ctype: BO

@@ -1,6 +1,6 @@
 import * as Engine from "../engine/models"
-import { Uid } from "../shared/models"
-import { asWritable, tryFocus } from "../utils/types"
+import { ModuleType, RelationType, Uid } from "../shared/models"
+import { asWritable } from "../utils/types"
 
 import * as Import from "./models"
 
@@ -10,95 +10,124 @@ export class ConvertionError extends Error {
   }
 }
 
-export function convert(
-  imported: Import.System
-): Engine.System {
-  const domains = imported.domains.map(d => convertDomain(d))
-  const parts = new Map<Uid, Engine.Part>(domains.flatMap(d => [...d.parts]))
-  const system: Engine.System = {
-    lastUpdateAt: imported.lastUpdateAt,
-    domains,
-    get parts() { return parts },
-    partByUid: (uid: Uid): Engine.Part | undefined => parts.get(uid),
-    domainByUid: (uid: Uid): Engine.Domain | undefined => tryFocus(parts.get(uid), Engine.isDomain),
-    moduleByUid: (uid: Uid): Engine.Module | undefined => tryFocus(parts.get(uid), Engine.isModule),
-    componentByUid: (uid: Uid): Engine.Component | undefined => tryFocus(parts.get(uid), Engine.isComponent),
-  }
-  populateRelations(imported, system)
-  return system
+export function convert(imported: Import.System): Engine.System {
+  return new System(imported)
 }
 
-function convertDomain(
-  imported: Import.Domain,
-  parent: Engine.Domain | undefined = undefined
-): Engine.Domain {
-  const domains: Engine.Domain[] = []
-  const modules: Engine.Module[] = []
-  const parts: Map<Uid, Engine.Part> = new Map()
-  const domain: Engine.Domain = {
-    partType: "Domain",
-    parent,
-    uid: imported.uid,
-    label: imported.label,
-    domains,
-    modules,
-    parts,
+class System extends Engine.System {
+  readonly lastUpdateAt: Date
+  readonly domains: readonly Engine.Domain[]
+
+  readonly #parts: ReadonlyMap<Uid, Engine.Part>
+
+  get parts() {
+    return this.#parts
   }
-  parts.set(domain.uid, domain)
-  domains.push(...imported.domains.map((d) => convertDomain(d, domain)))
-  modules.push(...imported.modules.map((m) => convertModule(m, domain)))
-  for (const [uid, part] of [
-    ...domains.flatMap((d) => [...d.parts]),
-    ...modules.flatMap((m) => [...m.parts]),
-  ]) {
-    parts.set(uid, part)
+
+  constructor(imported: Import.System) {
+    super()
+    this.lastUpdateAt = imported.lastUpdateAt
+    this.domains = imported.domains.map((d) => new Domain(d))
+    this.#parts = new Map<Uid, Engine.Part>(
+      this.domains.flatMap((d) => [...d.parts])
+    )
+    populateRelations(imported, this)
   }
-  return domain
+
+  partByUid(uid: Uid): Engine.Part | undefined
+  partByUid<T extends Engine.Part>(
+    uid: Uid,
+    refine?: (p: Engine.Part) => p is T
+  ): T | undefined
+  partByUid(uid: Uid, filter?: (p: Engine.Part) => boolean) {
+    const part = this.#parts.get(uid)
+    if (part && (!filter || filter(part))) {
+      return part
+    }
+  }
 }
 
-function convertModule(
-  imported: Import.Module,
-  parent: Engine.Domain
-): Engine.Module {
-  const components: Engine.Component[] = []
-  const parts: Map<Uid, Engine.Module | Engine.Component> = new Map()
-  const module: Engine.Module = {
-    partType: "Module",
-    parent,
-    uid: imported.uid,
-    label: imported.label,
-    components: components,
-    parts,
+class Domain extends Engine.Domain {
+  readonly parent: Engine.Domain | undefined
+  readonly uid: Uid
+  readonly label: string
+  readonly domains: Engine.Domain[]
+  readonly modules: Engine.Module[]
+  readonly #parts: ReadonlyMap<Uid, Engine.Part>
+
+  get parts() {
+    return this.#parts
   }
-  parts.set(module.uid, module)
-  components.push(
-    ...imported.components.map((c) => convertComponent(c, module))
-  )
-  for (const component of components) {
-    parts.set(component.uid, component)
+  constructor(
+    imported: Import.Domain,
+    parent: Engine.Domain | undefined = undefined
+  ) {
+    super()
+    this.parent = parent
+    this.uid = imported.uid
+    this.label = imported.label
+    this.domains = imported.domains.map((d) => new Domain(d, this))
+    this.modules = imported.modules.map((m) => new Module(m, this))
+    this.#parts = new Map<Uid, Engine.Part>([
+      [this.uid, this],
+      ...this.domains.flatMap((d) => [...d.parts]),
+      ...this.modules.flatMap((m) => [...m.parts]),
+    ])
   }
-  return module
 }
 
-function convertComponent(
-  imported: Import.Component,
-  parent: Engine.Module
-): Engine.Component {
-  const parts: Map<Uid, Engine.Component> = new Map()
-  const component: Engine.Component = {
-    partType: "Component",
-    parent,
-    uid: imported.uid,
-    label: imported.label,
-    relations: [],
-    inverseRelations: [],
-    parts,
+class Module extends Engine.Module {
+  readonly parent: Engine.Domain
+  readonly uid: Uid
+  readonly type: ModuleType
+  readonly label: string
+  readonly components: Engine.Component[]
+  readonly relations: Engine.Relation[]
+  readonly inverseRelations: Engine.Relation[]
+  readonly #parts: Map<Uid, Engine.Module | Engine.Component>
+  get parts() {
+    return this.#parts
   }
-  parts.set(component.uid, component)
-  return component
+  constructor(imported: Import.Module, parent: Engine.Domain) {
+    super()
+    this.parent = parent
+    this.uid = imported.uid
+    this.type = imported.type
+    this.label = imported.label
+    this.components = imported.components.map((c) => new Component(c, this))
+    this.relations = []
+    this.inverseRelations = []
+    this.#parts = new Map<Uid, Engine.Module | Engine.Component>([
+      [this.uid, this],
+      ...this.components.map(
+        (c) => [c.uid, c] satisfies [Uid, Engine.Module | Engine.Component]
+      ),
+    ])
+  }
 }
 
+class Component extends Engine.Component {
+  readonly uid: Uid
+  readonly type: string
+  readonly label: string | undefined
+  readonly relations: Engine.Relation[]
+  readonly inverseRelations: Engine.Relation[]
+  readonly #parts: Map<Uid, Engine.Component>
 
+  get parts() {
+    return this.#parts
+  }
+
+  constructor(imported: Import.Component, readonly parent: Engine.Module) {
+    super()
+    this.uid = imported.uid
+    this.type = imported.type
+    this.label = imported.label
+    this.relations = []
+    this.inverseRelations = []
+    this.#parts = new Map([[this.uid, this]])
+  }
+}
 
 function populateRelations(imported: Import.System, system: Engine.System) {
   imported.domains.forEach((d) => populateRelationsForDomain(d, system))
@@ -117,6 +146,7 @@ function populateRelationsForModule(
   system: Engine.System
 ) {
   imported.components.forEach((c) => populateRelationsForComponent(c, system))
+  imported.relations.forEach((r) => populateRelation(imported.uid, r, system))
 }
 
 function populateRelationsForComponent(
@@ -131,28 +161,36 @@ function populateRelation(
   imported: Import.Relation,
   system: Engine.System
 ) {
-  const source = system.componentByUid(sourceUid)
-  const target = system.componentByUid(imported.targetUid)
+  const source = system.partByUid(sourceUid, Engine.isRelationEnd)
   if (source === undefined) {
     throw new ConvertionError(
-      `Source component ${sourceUid} not found (relation: ${JSON.stringify(
-        imported
-      )})`
+      `Source component ${sourceUid} not found` +
+        ` (relation: ${JSON.stringify(imported)})`
     )
   }
-  if (target === undefined) {
+  const target = system.partByUid(imported.targetUid, Engine.isRelationEnd)
+  if (target === undefined ) {
     throw new ConvertionError(
-      `Target component ${
-        imported.targetUid
-      } not found (relation: ${JSON.stringify({ sourceUid, ...imported })})`
+      `Target component ${imported.targetUid} not found` +
+        ` (relation: ${JSON.stringify({ sourceUid, ...imported })})`
     )
   }
-  const relation: Engine.Relation = {
-    description: imported.description,
-    source,
-    target,
-    relationType: imported.relationType,
-  }
+  const relation = new Relation(imported, source, target)
   asWritable(source.relations).push(relation)
   asWritable(target.inverseRelations).push(relation)
+}
+
+class Relation extends Engine.Relation {
+  readonly source: Engine.RelationEnd
+  readonly target: Engine.RelationEnd
+  readonly relationType: RelationType
+  readonly description: string | undefined
+
+  constructor(imported: Import.Relation, source: Engine.RelationEnd, target: Engine.RelationEnd) {
+    super()
+    this.source = source
+    this.target = target
+    this.relationType = imported.relationType
+    this.description = imported.description
+  }
 }
