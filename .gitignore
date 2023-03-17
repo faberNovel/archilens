@@ -1,0 +1,10 @@
+# config
+/.env
+
+# generated during build
+/build/
+/node_modules/
+
+# generated during run
+/.notion_cache/
+/output/

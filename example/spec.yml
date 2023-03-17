@@ -1,0 +1,65 @@
+lastUpdateAt: 2023-03-16
+domains:
+  - uid: zone-1
+    label: "Zone 1"
+    domains:
+      - uid: domain-1-1
+        label: "Domain 1"
+        modules:
+          - uid: module-1-1-1
+            label: "Module 1"
+            components:
+              - uid: component-1-1-1-1
+                label: "Component 1"
+                relations:
+                  - target: component-1-1-2-2
+                    type: ask
+              - uid: component-1-1-1-2
+                label: "Component 2"
+                relations:
+                  - target: component-1-1-1-1
+                    type: ask
+          - uid: module-1-1-2
+            label: "Module 2"
+            components:
+              - uid: component-1-1-2-1
+                label: "Component 1"
+                relations:
+                  - target: component-1-1-2-2
+                    type: listen
+              - uid: component-1-1-2-2
+                label: "Component 2"
+      - uid: domain-1-2
+        label: "Domain 2"
+        modules:
+          - uid: module-1-2-1
+            label: "Module 1"
+            components:
+              - uid: component-1-2-1-1
+                label: "Component 1"
+              - uid: component-1-2-1-2
+                label: "Component 2"
+          - uid: module-1-2-2
+            label: "Module 2"
+            components:
+              - uid: component-1-2-2-1
+                label: "Component 1"
+              - uid: component-1-2-2-2
+                label: "Component 2"
+  - uid: zone-2
+    label: "Zone 2"
+    modules:
+      - uid: module-2-1
+        label: "Module 1"
+        components:
+          - uid: component-2-1-1
+            label: "Component 1"
+          - uid: component-2-1-2
+            label: "Component 2"
+      - uid: module-2-2
+        label: "Module 2"
+        components:
+          - uid: component-2-2-1
+            label: "Component 1"
+          - uid: component-2-2-2
+            label: "Component 2"
