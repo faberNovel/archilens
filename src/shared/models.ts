@@ -1,16 +1,7 @@
-import { ValueOf } from "../utils/types"
-
-export const ModuleType = {
-  Application: "app",
-  Service: "service",
+export enum RelationType {
+  Ask = "ask",
+  Listen = "listen",
 }
-export type ModuleType = ValueOf<typeof ModuleType>
-
-export const RelationType = {
-  Ask: "ask",
-  Listen: "listen",
-} as const
-export type RelationType = ValueOf<typeof RelationType>
 
 export type Uid = string & { readonly _uid: unique symbol }
 export function Uid(uid: string): Uid {

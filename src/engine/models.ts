@@ -1,12 +1,22 @@
-import { ModuleType, RelationType, Uid } from "../shared/models"
+import { RelationType, Uid } from "../shared/models"
 
 export abstract class System {
   abstract readonly lastUpdateAt: Date
   abstract readonly domains: readonly Domain[]
   abstract readonly parts: ReadonlyMap<Uid, Part>
+  abstract relations: readonly Relation[]
 
-  abstract partByUid(uid: Uid): Part | undefined
-  abstract partByUid<T extends Part>(uid: Uid, refine?: (p: Part) => p is T): T | undefined
+  partByUid(uid: Uid): Part | undefined
+  partByUid<T extends Part>(
+    uid: Uid,
+    refine?: (p: Part) => p is T
+  ): T | undefined
+  partByUid(uid: Uid, filter?: (p: Part) => boolean) {
+    const part = this.parts.get(uid)
+    if (part && (!filter || filter(part))) {
+      return part
+    }
+  }
   domainByUid(uid: Uid): Domain | undefined {
     return this.partByUid(uid, isDomain)
   }
@@ -18,47 +28,66 @@ export abstract class System {
   }
 }
 
-export interface Part {
-  readonly parent: Domain | Module | undefined
-  readonly uid: Uid
-  readonly label: string | undefined
-  readonly parts: ReadonlyMap<Uid, Part>
-}
+export type ParentPart = Domain | Module
 
-export abstract class Domain implements Part {
-  abstract readonly parent: Domain | undefined
+export abstract class Part {
+  abstract readonly parent: ParentPart | undefined
   abstract readonly uid: Uid
   abstract readonly label: string
+  abstract readonly descendents: ReadonlyMap<Uid, Part>
+
+  get ancestors(): Part[] {
+    return this.parent ? this.parent.path : []
+  }
+  get path(): Part[] {
+    const parentPath = this.parent ? this.parent.path : []
+    return [...parentPath, this]
+  }
+  descendentsRelations(): Relation[] {
+    return [this, ...this.descendents.values()].flatMap((part) => {
+      if (isRelationEnd(part)) {
+        return part.relations
+      } else {
+        return []
+      }
+    })
+  }
+  descendentsInverseRelations(): Relation[] {
+    return [this, ...this.descendents.values()].flatMap((part) => {
+      if (isRelationEnd(part)) {
+        return part.inverseRelations
+      } else {
+        return []
+      }
+    })
+  }
+}
+
+export abstract class Domain extends Part {
+  abstract readonly parent: Domain | undefined
   abstract readonly domains: readonly Domain[]
   abstract readonly modules: readonly Module[]
-  abstract readonly parts: ReadonlyMap<Uid, Part>
 }
 export function isDomain(value: unknown): value is Domain {
   return value instanceof Domain
 }
 
-export abstract class Module implements Part {
+export abstract class Module extends Part {
   abstract readonly parent: Domain
-  abstract readonly uid: Uid
-  abstract readonly type: ModuleType
-  abstract readonly label: string
+  abstract readonly type: string
   abstract readonly components: readonly Component[]
   abstract readonly relations: readonly Relation[]
   abstract readonly inverseRelations: readonly Relation[]
-  abstract readonly parts: ReadonlyMap<Uid, Module | Component>
 }
 export function isModule(value: unknown): value is Module {
   return value instanceof Module
 }
 
-export abstract class Component implements Part {
+export abstract class Component extends Part {
   abstract readonly parent: Module
-  abstract readonly uid: Uid
   abstract readonly type: string
-  abstract readonly label: string | undefined
   abstract readonly relations: readonly Relation[]
   abstract readonly inverseRelations: readonly Relation[]
-  abstract readonly parts: ReadonlyMap<Uid, Component>
 }
 export function isComponent(value: unknown): value is Component {
   return value instanceof Component
@@ -74,4 +103,10 @@ export abstract class Relation {
   abstract readonly target: RelationEnd
   abstract readonly relationType: RelationType
   abstract readonly description: string | undefined
+  get endsHash(): string {
+    return `${this.source.uid}-${this.target.uid}`
+  }
+  get endsTypeHash(): string {
+    return `${this.source.uid}-${this.target.uid}-${this.relationType}`
+  }
 }

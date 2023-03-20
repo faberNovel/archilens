@@ -1,12 +1,12 @@
 import { z } from "zod"
 
 import { RelationType } from "../../shared/models"
-import { zModuleType, zRelationType, zUid } from "../../shared/parser"
+import { zRelationType, zUid } from "../../shared/parser"
 
 import * as Import from "../models"
 
 const zRelation = (): z.ZodType<Import.Relation> => z.object({
-  description: z.string().optional(),
+  description: z.string().nonempty().optional(),
   target: zUid(),
   rtype: zRelationType().optional(),
 }).transform(data => ({
@@ -17,8 +17,8 @@ const zRelation = (): z.ZodType<Import.Relation> => z.object({
 
 const zComponent = (): z.ZodType<Import.Component> => z.object({
   uid: zUid(),
-  ctype: z.string(),
-  label: z.string().optional(),
+  ctype: z.string().nonempty(),
+  label: z.string().nonempty().optional(),
   relations: z.array(zRelation()).default([]),
 }).transform(data => ({
   uid: data.uid,
@@ -29,8 +29,8 @@ const zComponent = (): z.ZodType<Import.Component> => z.object({
 
 const zModule = (): z.ZodType<Import.Module> => z.object({
   uid: zUid(),
-  mtype: zModuleType(),
-  label: z.string(),
+  mtype: z.string().nonempty(),
+  label: z.string().nonempty(),
   components: z.array(zComponent()).default([]),
   relations: z.array(zRelation()).default([]),
 }).transform(data => ({
@@ -43,7 +43,7 @@ const zModule = (): z.ZodType<Import.Module> => z.object({
 
 const zDomain = (): z.ZodType<Import.Domain> => z.object({
   uid: zUid(),
-  label: z.string(),
+  label: z.string().nonempty(),
   domains: z.lazy(() => z.array(zDomain()).default([])),
   modules: z.array(zModule()).default([]),
 }).transform(data => ({

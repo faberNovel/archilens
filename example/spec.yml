@@ -1,71 +1,149 @@
 lastUpdateAt: 2023-03-16
 domains:
-  - uid: zone-a
-    label: "Zone A"
+  - uid: front-office
+    label: "Front Office"
     domains:
-      - uid: domain-a1
-        label: "Domain 1"
+      - uid: retail
+        label: "Retail"
         modules:
-          - uid: a1-service
-            mtype: service
-            label: "Service SA1"
+          - uid: orders
+            mtype: Service
+            label: "Orders"
             components:
-              - uid: a1-service-api
-                ctype: API
+              - uid: orders-apigw
+                ctype: APIGW
+                api:
+                  prefix: "/orders"
+                  resources:
+                    - Order
                 relations:
-                  - target: a1-service-db
-              - uid: a1-service-db
-                ctype: DB
-          - uid: a1-app
-            mtype: app
-            label: "App MA2"
+                  - target: orders-api
+              - uid: orders-api
+                ctype: ECS
+                api:
+                  prefix: "/orders"
+                  resources:
+                    - Order
+                relations:
+                  - target: orders-db
+                  - target: orders-events
+              - uid: orders-db
+                ctype: RDS
+                resources:
+                  - Order
+              - uid: orders-events
+                ctype: KDS
+                resources:
+                  - Order
+          - uid: customers
+            mtype: Service
+            label: "Customers"
+            components:
+              - uid: customers-apigw
+                ctype: APIGW
+                api:
+                  prefix: "/customers"
+                  resources:
+                    - Customer
+                relations:
+                  - target: customers-api
+              - uid: customers-api
+                ctype: ECS
+                relations:
+                  - target: customers-db
+              - uid: customers-db
+                ctype: RDS
+          - uid: sellers-app
+            mtype: MobileApp
+            label: "App Sellers"
             relations:
-              - target: a1-service-api
-      - uid: domain-a2
-        label: "Domain A2"
+              - target: orders-api
+                resources:
+                  - Order
+              - target: customers-api
+                resources:
+                  - Customer
+      - uid: supply
+        label: "Supply"
         modules:
-          - uid: a2-service-1
-            mtype: service
-            label: "Service A2 1"
+          - uid: stocks
+            mtype: Service
+            label: "Stocks"
             components:
-              - uid: a2-service-1-api
-                ctype: API
+              - uid: stocks-apigw
+                ctype: APIGW
+                api:
+                  prefix: "/stocks"
+                  resources:
+                    - Stock
                 relations:
-                  - target: a2-service-1-db
-              - uid: a2-service-1-db
-                ctype: DB
-          - uid: a2-service-2
-            mtype: service
-            label: "Service A2 1"
-            components:
-              - uid: a2-service-2-api
-                ctype: API
+                  - target: stocks-api
+              - uid: stocks-api
+                ctype: ECS
                 relations:
-                  - target: a2-service-2-db
-              - uid: a2-service-2-db
-                ctype: DB
-  - uid: zone-b
-    label: "Zone B"
+                  - target: stocks-db
+                  - target: stocks-events
+              - uid: stocks-db
+                ctype: RDS
+                resources:
+                  - Stock
+              - uid: stocks-events
+                ctype: KDS
+                resources:
+                  - Stock
+          - uid: stockists-app
+            mtype: MobileApp
+            label: "App Stockists"
+            relations:
+              - target: stocks-api
+                resources:
+                  - Stocks
+  - uid: back-office
+    label: "Back Office"
     modules:
-      - uid: b-service-1
-        mtype: service
-        label: "Service B1"
+      - uid: management
+        mtype: Service
+        label: "Management"
         components:
-          - uid: b-service-1-api
-            ctype: API
+          - uid: management-apigw
+            ctype: APIGW
+            api:
+              prefix: /management
+              resources:
+                - Order
+                - Customer
+                - Stock
             relations:
-              - target: b-service-1-db
-          - uid: b-service-1-db
-            ctype: BO
-      - uid: b-service-2
-        mtype: service
-        label: "Service B2"
-        components:
-          - uid: b-service-2-api
-            ctype: API
+              - target: management-api
+          - uid: management-api
+            ctype: ECS
             relations:
-              - target: b-service-2-db
-              - target: b-service-1-api
+              - target: orders-api
+              - target: customers-api
+              - target: stocks-api
+              - target: management-db
+          - uid: management-db
+            ctype: RDS
+            resources:
+              - Order
+              - Customer
+              - Stock
+          - uid: management-orders-listener
+            ctype: Lambda
+            relations:
+              - target: orders-events
                 rtype: listen
-          - uid: b-service-2-db
-            ctype: BO
+                description: "Watch for order updates"
+              - target: management-db
+          - uid: management-stocks-listener
+            ctype: Lambda
+            relations:
+              - target: stocks-events
+                rtype: listen
+                description: "Watch for stock movements"
+              - target: management-db
+      - uid: dashboard
+        mtype: WebApp
+        label: "Dashboard"
+        relations:
+          - target: management-api
