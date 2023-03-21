@@ -57,10 +57,10 @@ domains:
             mtype: MobileApp
             label: "App Sellers"
             relations:
-              - target: orders-api
+              - target: orders-apigw
                 resources:
                   - Order
-              - target: customers-api
+              - target: customers-apigw
                 resources:
                   - Customer
       - uid: supply
@@ -77,7 +77,7 @@ domains:
                   resources:
                     - Stock
                 relations:
-                  - target: stocks-api
+                  - target: stocks-apigw
               - uid: stocks-api
                 ctype: ECS
                 relations:
@@ -95,7 +95,7 @@ domains:
             mtype: MobileApp
             label: "App Stockists"
             relations:
-              - target: stocks-api
+              - target: stocks-apigw
                 resources:
                   - Stocks
   - uid: back-office
@@ -118,9 +118,9 @@ domains:
           - uid: management-api
             ctype: ECS
             relations:
-              - target: orders-api
-              - target: customers-api
-              - target: stocks-api
+              - target: orders-apigw
+              - target: customers-apigw
+              - target: stocks-apigw
               - target: management-db
           - uid: management-db
             ctype: RDS
@@ -146,4 +146,4 @@ domains:
         mtype: WebApp
         label: "Dashboard"
         relations:
-          - target: management-api
+          - target: management-apigw

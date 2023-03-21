@@ -36,12 +36,19 @@ export abstract class Part {
   abstract readonly label: string
   abstract readonly descendents: ReadonlyMap<Uid, Part>
 
+  get isDomain(): boolean { return isDomain(this) }
+  get isModule(): boolean { return isModule(this) }
+  get isComponent(): boolean { return isComponent(this) }
+
   get ancestors(): Part[] {
-    return this.parent ? this.parent.path : []
+    return this.parent ? this.parent.path() : []
   }
-  get path(): Part[] {
-    const parentPath = this.parent ? this.parent.path : []
-    return [...parentPath, this]
+  path(): Part[]
+  path(sep: string): string
+  path(sep?: undefined | string) {
+    const parentPath = this.parent ? this.parent.path() : []
+    const path = [...parentPath, this]
+    return sep === undefined ? path : path.map(p => p.uid).join(sep)
   }
   descendentsRelations(): Relation[] {
     return [this, ...this.descendents.values()].flatMap((part) => {

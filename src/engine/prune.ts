@@ -13,6 +13,15 @@ import {
   System,
 } from "./models"
 
+export function prune(system: System, opts: PruneOpts): [System, (part: Part) => boolean] {
+  const realOpts = new RealPruneOpts(opts)
+  const [displayedParts, displayedRelations] = computeDisplayedParts(
+    system,
+    realOpts
+  )
+  return [new PrunedSystem(system, displayedParts, displayedRelations), realOpts.isSelected.bind(realOpts)]
+}
+
 export class PruneError extends Error {
   constructor(message: string) {
     super(message)
@@ -20,53 +29,47 @@ export class PruneError extends Error {
 }
 
 export type RelationInclusion = false | number | "all"
-function isRelationIncluded(config: RelationInclusion, value: number): boolean {
-  return config === "all" || (typeof config === "number" && config > value)
-}
 
 export type PruneOpts = {
   readonly include?: undefined | readonly (Uid | string)[]
   readonly open?: undefined | readonly (Uid | string)[]
-  readonly includeRelations?: undefined | RelationInclusion
-  readonly includeInverseRelations?: undefined | RelationInclusion
+  readonly followRelations?: undefined | RelationInclusion
+  readonly followInverseRelations?: undefined | RelationInclusion
 }
 
 class RealPruneOpts implements PruneOpts {
   readonly include: readonly Uid[]
   readonly open: readonly Uid[]
-  readonly includeRelations: RelationInclusion
-  readonly includeInverseRelations: RelationInclusion
+  readonly followRelations: RelationInclusion
+  readonly followInverseRelations: RelationInclusion
   constructor(opts: PruneOpts) {
     this.include = (opts.include ?? []).map((uid) => Uid(uid.toString()))
     this.open = (opts.open ?? []).map((uid) => Uid(uid.toString()))
-    this.includeRelations = opts.includeRelations ?? 1
-    this.includeInverseRelations = opts.includeInverseRelations ?? false
+    this.followRelations = opts.followRelations ?? 1
+    this.followInverseRelations = opts.followInverseRelations ?? false
   }
   isSelected(part: Part): boolean {
     return (
       this.include.includes(part.uid) ||
+      this.open.includes(part.uid) ||
       (part.parent !== undefined && this.open.includes(part.parent.uid))
     )
   }
+  #isRelationIncluded(config: RelationInclusion, value: number): boolean {
+    return config === "all" || (typeof config === "number" && config > value)
+  }
   includedRelations(part: Part, depth: number): Relation[] {
-    return isRelationEnd(part) && isRelationIncluded(this.includeRelations, depth)
+    return isRelationEnd(part) &&
+      this.#isRelationIncluded(this.followRelations, depth)
       ? part.descendentsRelations()
       : []
   }
   includedInverseRelations(part: Part, depth: number): Relation[] {
-    return isRelationEnd(part) && isRelationIncluded(this.includeInverseRelations, depth)
+    return isRelationEnd(part) &&
+      this.#isRelationIncluded(this.followInverseRelations, depth)
       ? part.descendentsInverseRelations()
       : []
   }
-}
-
-export function prune(system: System, opts: PruneOpts): System {
-  const realOpts = new RealPruneOpts(opts)
-  const [displayedParts, displayedRelations] = computeDisplayedParts(
-    system,
-    realOpts
-  )
-  return new PrunedSystem(system, displayedParts, displayedRelations)
 }
 
 function computeDisplayedParts(
@@ -133,7 +136,6 @@ class PrunedSystem extends System {
     this.parts = new Map<Uid, Part>(
       this.domains.flatMap((d) => [...d.descendents])
     )
-    console.log([...this.parts.values()].map((p) => p.uid))
     this.relations = populateRelations(original, this, displayedRelations)
   }
 }
@@ -155,11 +157,7 @@ function filterDomain(
 ): Domain | undefined {
   const domains = filterDomains(domain.domains, domain, displayedParts)
   const modules = filterModules(domain.modules, domain, displayedParts)
-  if (
-    displayedParts.has(domain) ||
-    domains.length > 0 ||
-    modules.length > 0
-  ) {
+  if (displayedParts.has(domain) || domains.length > 0 || modules.length > 0) {
     return new PrunedDomain(domain, parent, domains, modules)
   }
 }
