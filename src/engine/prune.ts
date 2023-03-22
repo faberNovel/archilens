@@ -371,14 +371,14 @@ function populateRelation(
 class PrunedRelation extends Relation {
   readonly source: RelationEnd
   readonly target: RelationEnd
-  readonly relationType: RelationType
+  readonly type: RelationType
   readonly description: string | undefined
 
   constructor(original: Relation, source: RelationEnd, target: RelationEnd) {
     super()
     this.source = source
     this.target = target
-    this.relationType = original.relationType
+    this.type = original.type
     this.description = original.description
   }
 }

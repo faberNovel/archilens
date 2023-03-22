@@ -169,7 +169,7 @@ function generateRelation(relation: Relation, opts: RealD2Options): string[] {
   }
   let arrow: string
   let custom: string
-  switch (relation.relationType) {
+  switch (relation.type) {
     case RelationType.Ask:
       arrow = "->"
       custom = "{ style.border-radius: 5 }"

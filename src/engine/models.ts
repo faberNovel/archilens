@@ -108,12 +108,12 @@ export function isRelationEnd(value: unknown): value is RelationEnd {
 export abstract class Relation {
   abstract readonly source: RelationEnd
   abstract readonly target: RelationEnd
-  abstract readonly relationType: RelationType
+  abstract readonly type: RelationType
   abstract readonly description: string | undefined
   get endsHash(): string {
     return `${this.source.uid}-${this.target.uid}`
   }
   get endsTypeHash(): string {
-    return `${this.source.uid}-${this.target.uid}-${this.relationType}`
+    return `${this.source.uid}-${this.target.uid}-${this.type}`
   }
 }

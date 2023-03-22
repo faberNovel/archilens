@@ -162,14 +162,14 @@ function populateRelation(
 class ImportedRelation extends Engine.Relation {
   readonly source: Engine.RelationEnd
   readonly target: Engine.RelationEnd
-  readonly relationType: RelationType
+  readonly type: RelationType
   readonly description: string | undefined
 
   constructor(imported: Import.Relation, source: Engine.RelationEnd, target: Engine.RelationEnd) {
     super()
     this.source = source
     this.target = target
-    this.relationType = imported.relationType
+    this.type = imported.relationType
     this.description = imported.description
   }
 }
