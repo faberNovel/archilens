@@ -2,29 +2,29 @@ import { RelationType, Uid } from "../shared/models"
 
 export type System = {
   readonly lastUpdateAt: Date
-  readonly domains: Domain[]
+  readonly domains: readonly Domain[]
 }
 
 export type Domain = {
   readonly uid: Uid
   readonly label: string
-  readonly domains: Domain[]
-  readonly modules: Module[]
+  readonly domains: readonly Domain[]
+  readonly modules: readonly Module[]
 }
 
 export type Module = {
   readonly uid: Uid
   readonly type: string
   readonly label: string
-  readonly components: Component[]
-  readonly relations: Relation[]
+  readonly components: readonly Component[]
+  readonly relations: readonly Relation[]
 }
 
 export type Component = {
   readonly uid: Uid
   readonly type: string
   readonly label: string | undefined
-  readonly relations: Relation[]
+  readonly relations: readonly Relation[]
 }
 
 export type Relation = {
