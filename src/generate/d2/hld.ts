@@ -124,7 +124,7 @@ async function genDiagram(
     followRelations: opts.followRelations ?? 1,
     followInverseRelations: opts.followInverseRelations ?? 1,
     displayRelatedComponents,
-    header: title,
+    header: `# ${title}`,
     footer: Object.entries(links)
       .map(([k, v]) => `[${k}](${genRelLink(v)})`)
       .join(" | "),
