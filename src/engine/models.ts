@@ -9,7 +9,7 @@ export abstract class System {
   partByUid(uid: Uid): Part | undefined
   partByUid<T extends Part>(
     uid: Uid,
-    refine?: (p: Part) => p is T
+    refine?: (p: Part) => p is T,
   ): T | undefined
   partByUid(uid: Uid, filter?: (p: Part) => boolean) {
     const part = this.parts.get(uid)
@@ -37,9 +37,15 @@ export abstract class Part {
   abstract readonly label: string
   abstract readonly descendents: ReadonlyMap<Uid, Part>
 
-  get isDomain(): boolean { return isDomain(this) }
-  get isModule(): boolean { return isModule(this) }
-  get isComponent(): boolean { return isComponent(this) }
+  get isDomain(): boolean {
+    return isDomain(this)
+  }
+  get isModule(): boolean {
+    return isModule(this)
+  }
+  get isComponent(): boolean {
+    return isComponent(this)
+  }
 
   get ancestors(): Part[] {
     return this.parent ? this.parent.path() : []
@@ -49,7 +55,7 @@ export abstract class Part {
   path(sep?: undefined | string) {
     const parentPath = this.parent ? this.parent.path() : []
     const path = [...parentPath, this]
-    return sep === undefined ? path : path.map(p => p.id).join(sep)
+    return sep === undefined ? path : path.map((p) => p.id).join(sep)
   }
   descendentsRelations(): Relation[] {
     return [this, ...this.descendents.values()].flatMap((part) => {

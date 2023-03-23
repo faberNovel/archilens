@@ -1,4 +1,4 @@
-export{}
+export {}
 declare global {
   interface Set<T> {
     addAll(other: ReadonlyArray<T>): this
@@ -8,10 +8,13 @@ declare global {
 }
 
 if (!Set.prototype.addAll) {
-  Set.prototype.addAll = function<T>(this: Set<T>, other: ReadonlyArray<T> | ReadonlySet<T> | IterableIterator<T>) {
+  Set.prototype.addAll = function <T>(
+    this: Set<T>,
+    other: ReadonlyArray<T> | ReadonlySet<T> | IterableIterator<T>,
+  ) {
     for (const entry of other) {
       this.add(entry)
     }
-    return this;
+    return this
   }
 }

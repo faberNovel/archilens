@@ -13,13 +13,19 @@ import {
   System,
 } from "./models"
 
-export function prune(system: System, opts: PruneOpts): [System, (part: Part) => boolean] {
+export function prune(
+  system: System,
+  opts: PruneOpts,
+): [System, (part: Part) => boolean] {
   const realOpts = new RealPruneOpts(opts)
   const [displayedParts, displayedRelations] = computeDisplayedParts(
     system,
-    realOpts
+    realOpts,
   )
-  return [new PrunedSystem(system, displayedParts, displayedRelations), realOpts.isSelected.bind(realOpts)]
+  return [
+    new PrunedSystem(system, displayedParts, displayedRelations),
+    realOpts.isSelected.bind(realOpts),
+  ]
 }
 
 export class PruneError extends Error {
@@ -74,7 +80,7 @@ class RealPruneOpts implements PruneOpts {
 
 function computeDisplayedParts(
   system: System,
-  opts: RealPruneOpts
+  opts: RealPruneOpts,
 ): [Set<Part>, Set<Relation>] {
   const displayedParts = new Set<Part>()
   const displayedRelations = new Set<Relation>()
@@ -128,13 +134,13 @@ class PrunedSystem extends System {
   constructor(
     original: System,
     displayedParts: ReadonlySet<Part>,
-    displayedRelations: ReadonlySet<Relation>
+    displayedRelations: ReadonlySet<Relation>,
   ) {
     super()
     this.lastUpdateAt = original.lastUpdateAt
     this.domains = filterDomains(original.domains, undefined, displayedParts)
     this.parts = new Map<Uid, Part>(
-      this.domains.flatMap((d) => [...d.descendents])
+      this.domains.flatMap((d) => [...d.descendents]),
     )
     this.relations = populateRelations(original, this, displayedRelations)
   }
@@ -143,7 +149,7 @@ class PrunedSystem extends System {
 function filterDomains(
   domains: readonly Domain[],
   parent: Domain | undefined,
-  displayedParts: ReadonlySet<Part>
+  displayedParts: ReadonlySet<Part>,
 ): Domain[] {
   return domains
     .map((d) => filterDomain(d, parent, displayedParts))
@@ -153,7 +159,7 @@ function filterDomains(
 function filterDomain(
   domain: Domain,
   parent: Domain | undefined,
-  displayedParts: ReadonlySet<Part>
+  displayedParts: ReadonlySet<Part>,
 ): Domain | undefined {
   const domains = filterDomains(domain.domains, domain, displayedParts)
   const modules = filterModules(domain.modules, domain, displayedParts)
@@ -175,7 +181,7 @@ class PrunedDomain extends Domain {
     original: Domain,
     parent: Domain | undefined,
     domains: readonly Domain[],
-    modules: readonly Module[]
+    modules: readonly Module[],
   ) {
     super()
     this.parent = parent
@@ -195,7 +201,7 @@ class PrunedDomain extends Domain {
 function filterModules(
   modules: readonly Module[],
   parent: Domain,
-  displayedParts: ReadonlySet<Part>
+  displayedParts: ReadonlySet<Part>,
 ): Module[] {
   return modules
     .map((m) => filterModule(m, parent, displayedParts))
@@ -205,7 +211,7 @@ function filterModules(
 function filterModule(
   mod: Module,
   parent: Domain,
-  displayedParts: ReadonlySet<Part>
+  displayedParts: ReadonlySet<Part>,
 ): Module | undefined {
   const components = filterComponents(mod.components, mod, displayedParts)
   if (displayedParts.has(mod) || components.length > 0) {
@@ -227,7 +233,7 @@ class PrunedModule extends Module {
   constructor(
     original: Module,
     parent: Domain,
-    components: readonly Component[]
+    components: readonly Component[],
   ) {
     super()
     this.parent = parent
@@ -248,7 +254,7 @@ class PrunedModule extends Module {
 function filterComponents(
   components: readonly Component[],
   parent: Module,
-  displayedParts: ReadonlySet<Part>
+  displayedParts: ReadonlySet<Part>,
 ): Component[] {
   return components
     .map((c) => filterComponent(c, parent, displayedParts))
@@ -258,7 +264,7 @@ function filterComponents(
 function filterComponent(
   component: Component,
   parent: Module,
-  displayedParts: ReadonlySet<Part>
+  displayedParts: ReadonlySet<Part>,
 ): Component | undefined {
   if (displayedParts.has(component)) {
     return new PrunedComponent(component, parent)
@@ -291,24 +297,24 @@ class PrunedComponent extends Component {
 function populateRelations(
   original: System,
   system: System,
-  displayedRelations: ReadonlySet<Relation>
+  displayedRelations: ReadonlySet<Relation>,
 ): Relation[] {
   return original.domains.flatMap((d) =>
-    populateRelationsForDomain(d, system, displayedRelations)
+    populateRelationsForDomain(d, system, displayedRelations),
   )
 }
 
 function populateRelationsForDomain(
   original: Domain,
   system: System,
-  displayedRelations: ReadonlySet<Relation>
+  displayedRelations: ReadonlySet<Relation>,
 ): Relation[] {
   return [
     ...original.domains.flatMap((d) =>
-      populateRelationsForDomain(d, system, displayedRelations)
+      populateRelationsForDomain(d, system, displayedRelations),
     ),
     ...original.modules.flatMap((m) =>
-      populateRelationsForModule(m, system, displayedRelations)
+      populateRelationsForModule(m, system, displayedRelations),
     ),
   ]
 }
@@ -316,14 +322,14 @@ function populateRelationsForDomain(
 function populateRelationsForModule(
   original: Module,
   system: System,
-  displayedRelations: ReadonlySet<Relation>
+  displayedRelations: ReadonlySet<Relation>,
 ): Relation[] {
   return [
     ...original.components.flatMap((c) =>
-      populateRelationsForComponent(c, system, displayedRelations)
+      populateRelationsForComponent(c, system, displayedRelations),
     ),
     ...original.relations.flatMap(
-      (r) => populateRelation(r, system, displayedRelations) ?? []
+      (r) => populateRelation(r, system, displayedRelations) ?? [],
     ),
   ]
 }
@@ -331,17 +337,17 @@ function populateRelationsForModule(
 function populateRelationsForComponent(
   original: Component,
   system: System,
-  displayedRelations: ReadonlySet<Relation>
+  displayedRelations: ReadonlySet<Relation>,
 ): Relation[] {
   return original.relations.flatMap(
-    (r) => populateRelation(r, system, displayedRelations) ?? []
+    (r) => populateRelation(r, system, displayedRelations) ?? [],
   )
 }
 
 function populateRelation(
   original: Relation,
   system: System,
-  displayedRelations: ReadonlySet<Relation>
+  displayedRelations: ReadonlySet<Relation>,
 ): Relation | undefined {
   if (!displayedRelations.has(original)) {
     return undefined
@@ -354,7 +360,7 @@ function populateRelation(
           ...original,
           source: original.source.uid,
           target: original.target.uid,
-        })})`
+        })})`,
     )
   }
   const target = system.partByUid(original.target.uid, isRelationEnd)
@@ -365,7 +371,7 @@ function populateRelation(
           ...original,
           source: original.source.uid,
           target: original.target.uid,
-        })})`
+        })})`,
     )
   }
   const relation = new PrunedRelation(original, source, target)

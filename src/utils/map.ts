@@ -1,4 +1,4 @@
-export{}
+export {}
 declare global {
   interface Map<K, V> {
     addAll(other: ReadonlyArray<[K, V]>): this
@@ -8,10 +8,13 @@ declare global {
 }
 
 if (!Map.prototype.addAll) {
-  Map.prototype.addAll = function<K, V>(this: Map<K, V>, other: ReadonlyArray<[K, V]> | ReadonlyMap<K, V> | IterableIterator<[K, V]>) {
+  Map.prototype.addAll = function <K, V>(
+    this: Map<K, V>,
+    other: ReadonlyArray<[K, V]> | ReadonlyMap<K, V> | IterableIterator<[K, V]>,
+  ) {
     for (const [key, value] of other) {
       this.set(key, value)
     }
-    return this;
+    return this
   }
 }

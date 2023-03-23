@@ -25,7 +25,7 @@ class ImportedSystem extends Engine.System {
     this.lastUpdateAt = imported.lastUpdateAt
     this.domains = imported.domains.map((d) => new ImportedDomain(d))
     this.parts = new Map<Uid, Engine.Part>(
-      this.domains.flatMap((d) => [...d.descendents])
+      this.domains.flatMap((d) => [...d.descendents]),
     )
     this.relations = populateRelations(imported, this)
   }
@@ -42,7 +42,7 @@ class ImportedDomain extends Engine.Domain {
 
   constructor(
     imported: Import.Domain,
-    parent: Engine.Domain | undefined = undefined
+    parent: Engine.Domain | undefined = undefined,
   ) {
     super()
     this.parent = parent
@@ -76,13 +76,15 @@ class ImportedModule extends Engine.Module {
     this.id = imported.id ?? Id(imported.uid)
     this.type = imported.type
     this.label = imported.label
-    this.components = imported.components.map((c) => new ImportedComponent(c, this))
+    this.components = imported.components.map(
+      (c) => new ImportedComponent(c, this),
+    )
     this.relations = []
     this.inverseRelations = []
     this.descendents = new Map<Uid, Engine.Module | Engine.Component>([
       [this.uid, this],
       ...this.components.map(
-        (c) => [c.uid, c] satisfies [Uid, Engine.Module | Engine.Component]
+        (c) => [c.uid, c] satisfies [Uid, Engine.Module | Engine.Component],
       ),
     ])
   }
@@ -109,13 +111,16 @@ class ImportedComponent extends Engine.Component {
   }
 }
 
-function populateRelations(imported: Import.System, system: Engine.System): Engine.Relation[] {
+function populateRelations(
+  imported: Import.System,
+  system: Engine.System,
+): Engine.Relation[] {
   return imported.domains.flatMap((d) => populateRelationsForDomain(d, system))
 }
 
 function populateRelationsForDomain(
   imported: Import.Domain,
-  system: Engine.System
+  system: Engine.System,
 ): Engine.Relation[] {
   return [
     ...imported.domains.flatMap((d) => populateRelationsForDomain(d, system)),
@@ -125,38 +130,44 @@ function populateRelationsForDomain(
 
 function populateRelationsForModule(
   imported: Import.Module,
-  system: Engine.System
+  system: Engine.System,
 ): Engine.Relation[] {
   return [
-    ...imported.components.flatMap((c) => populateRelationsForComponent(c, system)),
-    ...imported.relations.flatMap((r) => populateRelation(imported.uid, r, system)),
+    ...imported.components.flatMap((c) =>
+      populateRelationsForComponent(c, system),
+    ),
+    ...imported.relations.flatMap((r) =>
+      populateRelation(imported.uid, r, system),
+    ),
   ]
 }
 
 function populateRelationsForComponent(
   imported: Import.Component,
-  system: Engine.System
+  system: Engine.System,
 ): Engine.Relation[] {
-  return imported.relations.map((r) => populateRelation(imported.uid, r, system))
+  return imported.relations.map((r) =>
+    populateRelation(imported.uid, r, system),
+  )
 }
 
 function populateRelation(
   sourceUid: Uid,
   imported: Import.Relation,
-  system: Engine.System
+  system: Engine.System,
 ): Engine.Relation {
   const source = system.partByUid(sourceUid, Engine.isRelationEnd)
   if (source === undefined) {
     throw new ConvertionError(
       `Source component ${sourceUid} not found` +
-        ` (relation: ${JSON.stringify(imported)})`
+        ` (relation: ${JSON.stringify(imported)})`,
     )
   }
   const target = system.partByUid(imported.targetUid, Engine.isRelationEnd)
-  if (target === undefined ) {
+  if (target === undefined) {
     throw new ConvertionError(
       `Target component ${imported.targetUid} not found` +
-        ` (relation: ${JSON.stringify({ sourceUid, ...imported })})`
+        ` (relation: ${JSON.stringify({ sourceUid, ...imported })})`,
     )
   }
   const relation = new ImportedRelation(imported, source, target)
@@ -171,7 +182,11 @@ class ImportedRelation extends Engine.Relation {
   readonly type: RelationType
   readonly description: string | undefined
 
-  constructor(imported: Import.Relation, source: Engine.RelationEnd, target: Engine.RelationEnd) {
+  constructor(
+    imported: Import.Relation,
+    source: Engine.RelationEnd,
+    target: Engine.RelationEnd,
+  ) {
     super()
     this.source = source
     this.target = target

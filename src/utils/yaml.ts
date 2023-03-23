@@ -26,7 +26,7 @@ function parseInDir(opts: IncludeFileOpts, path: string): unknown {
             : p.join(opts.srcDir, dirname)
           return parseInDir({ ...opts, srcDir }, filename)
         },
-      })
+      }),
     ),
     filename: path,
   })

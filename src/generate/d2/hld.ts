@@ -53,7 +53,7 @@ async function generate(
   target: { include: Uid[] } | { open: Uid[] } | Uid[],
   index: string = "index.svg",
   opts: GenerateHldOpts,
-) {
+): Promise<void> {
   const hldFilepath = path.join("..", "hld", svgRelativePath)
   const lldFilepath = path.join("..", "lld", svgRelativePath)
   await genDiagram(
@@ -116,7 +116,7 @@ async function genDiagram(
       }
       return genRelLink(partPath)
     }
-  return await generateSVG(svgFilepath, diagram, {
+  await generateSVG(svgFilepath, diagram, {
     ...target,
     getLink: getLink(alt),
     d2Filepath,

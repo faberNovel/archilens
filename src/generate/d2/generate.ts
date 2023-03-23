@@ -22,18 +22,18 @@ export type D2DisplayInfo = {
 
 export type D2GetDisplayInfo = (
   type: string,
-  partType: "Module" | "Component"
+  partType: "Module" | "Component",
 ) => D2DisplayInfo | undefined
 export function D2GetDisplayInfo(
-  icons: Record<string, string | undefined>
+  icons: Record<string, string | undefined>,
 ): D2GetDisplayInfo
 export function D2GetDisplayInfo(
   moduleIcons: Record<string, string | undefined>,
-  componentIcons: Record<string, string | undefined>
+  componentIcons: Record<string, string | undefined>,
 ): D2GetDisplayInfo
 export function D2GetDisplayInfo(
   moduleIcons: Record<string, string | undefined>,
-  componentIcons?: Record<string, string | undefined>
+  componentIcons?: Record<string, string | undefined>,
 ): D2GetDisplayInfo {
   const icons = {
     Module: moduleIcons,
@@ -61,7 +61,7 @@ export type D2Options = PruneOpts & {
 export async function generateSVG(
   svgFilepath: string,
   system: System,
-  opts: D2Options
+  opts: D2Options,
 ): Promise<void> {
   const d2Filepath = opts.d2Filepath ?? svgFilepath.replace(".svg", ".d2")
   console.log(`generating ${svgFilepath} using D2...`)
@@ -69,15 +69,19 @@ export async function generateSVG(
   await fs.access(dirname).catch(() => fs.mkdir(dirname, { recursive: true }))
   const d2 = generateD2(system, opts)
   await fs.writeFile(d2Filepath, d2)
-  return generateSvgFromD2(d2Filepath, svgFilepath)
+  await generateSvgFromD2(d2Filepath, svgFilepath)
 }
 
 export async function generateCustomSVG(
   svgFilepath: string,
   content: string,
-  opts: D2Options
+  opts: D2Options,
 ): Promise<void> {
-  const realOpts = new RealD2Options(opts, () => false, undefined as unknown as System)
+  const realOpts = new RealD2Options(
+    opts,
+    () => false,
+    undefined as unknown as System,
+  )
   const d2Filepath = opts.d2Filepath ?? svgFilepath.replace(".svg", ".d2")
   console.log(`generating ${svgFilepath} using D2...`)
   const dirname = path.dirname(d2Filepath)
@@ -90,10 +94,13 @@ export async function generateCustomSVG(
     ...generateFooter(realOpts),
   ].join("\n")
   await fs.writeFile(d2Filepath, d2)
-  return generateSvgFromD2(d2Filepath, svgFilepath)
+  await generateSvgFromD2(d2Filepath, svgFilepath)
 }
 
-export async function generateSvgFromD2(d2Filepath: string, svgFilepath: string): Promise<void> {
+export async function generateSvgFromD2(
+  d2Filepath: string,
+  svgFilepath: string,
+): Promise<void> {
   const executable = process.env.D2_EXECUTABLE ?? "d2"
   const args = [
     `--layout=${process.env.D2_LAYOUT ?? "elk"}`,
@@ -101,18 +108,25 @@ export async function generateSvgFromD2(d2Filepath: string, svgFilepath: string)
     svgFilepath,
   ]
   const process_child = spawn(executable, args)
-  await (new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     process_child.on("error", reject)
     process_child.on("exit", (code) => {
       if (code !== 0) {
-        console.error(`--- Error from ${executable}\n` + process_child.stderr.read().toString().trim() + "\n---")
-        reject(new Error(`d2 exited with code ${code} when generating ${svgFilepath}`))
+        console.error(
+          `--- Error from ${executable}\n` +
+            process_child.stderr.read().toString().trim() +
+            "\n---",
+        )
+        reject(
+          new Error(
+            `d2 exited with code ${code} when generating ${svgFilepath}`,
+          ),
+        )
       } else {
         resolve(undefined)
       }
     })
-  }))
-  return undefined
+  })
 }
 
 export function generateD2(system: System, opts: D2Options): string {
@@ -127,15 +141,23 @@ export function generateD2(system: System, opts: D2Options): string {
     "",
     ...pruned.domains.flatMap((d) => generateDomain(d, realOpts)),
     "",
-    ...[...new Set(pruned.relations.flatMap((r) => generateRelation(r, realOpts)))],
+    ...[
+      ...new Set(
+        pruned.relations.flatMap((r) => generateRelation(r, realOpts)),
+      ),
+    ],
   ].join("\n")
 }
 
 function generateHeader(opts: RealD2Options): string[] {
-  return opts.header ? [`__header: |||md\n${opts.header}\n||| { near: top-center }`] : []
+  return opts.header
+    ? [`__header: |||md\n${opts.header}\n||| { near: top-center }`]
+    : []
 }
 function generateFooter(opts: RealD2Options): string[] {
-  return opts.footer ? [`__footer: |||md\n${opts.footer}\n||| { near: bottom-center }`] : []
+  return opts.footer
+    ? [`__footer: |||md\n${opts.footer}\n||| { near: bottom-center }`]
+    : []
 }
 
 function generateDomain(domain: Domain, opts: RealD2Options): string[] {
@@ -173,7 +195,7 @@ function generateModule(module: Module, opts: RealD2Options): string[] {
 
 function generateComponent(
   component: Component,
-  opts: RealD2Options
+  opts: RealD2Options,
 ): string[] {
   if (!opts.isSelected(component) && !opts.displayRelatedComponents) {
     return []
@@ -239,7 +261,7 @@ class RealD2Options {
     opts: Partial<RealD2Options> | undefined,
     isSelected: (part: Part) => boolean,
     system: System,
-    depth: number = 0
+    depth: number = 0,
   ) {
     this.system = system
     this.depth = depth
