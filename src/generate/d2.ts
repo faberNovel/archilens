@@ -1,7 +1,6 @@
 import path from "path"
 import fs from "node:fs/promises"
 import { spawn } from "node:child_process"
-import { promisify } from "node:util"
 
 import {
   Component,
@@ -51,37 +50,34 @@ export function D2GetDisplayInfo(
 }
 
 export type D2Options = PruneOpts & {
-  readonly getDisplayInfo?: undefined | D2GetDisplayInfo
-  readonly displayRelatedComponents?: undefined | boolean
+  readonly getDisplayInfo?: D2GetDisplayInfo | undefined
+  readonly displayRelatedComponents?: boolean | undefined
+  readonly d2Filepath?: string | undefined
+  readonly linkPath?: string | undefined
+  readonly links?: Map<string, string> | undefined
 }
 
 export async function generateSVG(
-  /** name without the extension */ filename: string,
+  svgFilepath: string,
   system: System,
   opts: D2Options
 ): Promise<void> {
-  const d2Filename = `${filename}.d2`
-  const svgFilename = `${filename}.svg`
-  console.log(`generating ${svgFilename} using D2...`)
-  const dirname = path.dirname(d2Filename)
+  const d2Filepath = opts.d2Filepath ?? svgFilepath.replace(".svg", ".d2")
+  console.log(`generating ${svgFilepath} using D2...`)
+  const dirname = path.dirname(d2Filepath)
   await fs.access(dirname).catch(() => fs.mkdir(dirname, { recursive: true }))
-  // console.log(`  generating ${d2Filename}...`)
   const d2 = generateD2(system, opts)
-  await fs.writeFile(d2Filename, d2)
-  // console.log(`  generating ${d2Filename}... OK`)
-  // console.log(`  generating ${svgFilename}...`)
+  await fs.writeFile(d2Filepath, d2)
   const executable = process.env.D2_EXECUTABLE ?? "d2"
   const args = [
     `--layout=${process.env.D2_LAYOUT ?? "elk"}`,
-    d2Filename,
-    svgFilename,
+    d2Filepath,
+    svgFilepath,
   ]
-  // console.log(`    ${executable} ${args.map(a => JSON.stringify(a)).join(" ")}...`)
   const process_child = spawn(executable, args)
   await (new Promise((resolve, reject) => {
     process_child.on("error", reject)
     process_child.on("exit", (code) => {
-      // console.log(`    ${executable} ${args.map(a => JSON.stringify(a)).join(" ")}... OK`)
       if (code !== 0) {
         reject(new Error(`d2 exited with code ${code}`))
       } else {
@@ -89,7 +85,6 @@ export async function generateSVG(
       }
     })
   }))
-  // console.log(`  generating ${svgFilename}... OK`)
   return undefined
 }
 
@@ -100,16 +95,30 @@ export function generateD2(system: System, opts: D2Options): string {
     `# data updated at ${system.lastUpdateAt.toISOString()}`,
     `# schema generated at ${new Date().toISOString()}`,
     "",
+    ...generateLinks(realOpts),
+    "",
     ...pruned.domains.flatMap((d) => generateDomain(d, realOpts)),
     "",
-    ...pruned.relations.flatMap((r) => generateRelation(r, realOpts)),
+    ...[...new Set(pruned.relations.flatMap((r) => generateRelation(r, realOpts)))],
   ].join("\n")
+}
+
+function generateLinks(opts: RealD2Options): string[] {
+  return [...opts.links.entries()].filter(([n, _v]) => n !== "_alt").map(([name, link], idx) => {
+    return `__link${idx}: "${name}" {
+      top: 0
+      left: ${idx ? idx * 200 + 5 : 0}
+      width: 200
+      link: "${link}"
+    }`
+  })
 }
 
 function generateDomain(domain: Domain, opts: RealD2Options): string[] {
   return [
     `${domain.uid}: "${domain.label}" {`,
     ...opts.selectedStyle(domain),
+    ...generateLink(domain, opts),
     ...domain.domains
       .flatMap((d) => generateDomain(d, opts.addDepth()))
       .map(indent),
@@ -129,6 +138,7 @@ function generateModule(module: Module, opts: RealD2Options): string[] {
   return [
     `${module.uid}: "${moduleType}${module.label}" {`,
     ...opts.selectedStyle(module),
+    ...generateLink(module, opts),
     ...(icon ? [...shape, icon].map(indent) : []),
     ...module.components
       .flatMap((c) => generateComponent(c, opts.addDepth()))
@@ -152,6 +162,7 @@ function generateComponent(
   return [
     `${component.uid}: "${componentType}${component.label}" {`,
     ...opts.selectedStyle(component),
+    ...generateLink(component, opts),
     ...(icon ? [...shape, icon] : []).map(indent),
     "}",
   ]
@@ -186,12 +197,19 @@ function generateRelation(relation: Relation, opts: RealD2Options): string[] {
   ]
 }
 
+function generateLink(part: Part, opts: RealD2Options): string[] {
+  const link = opts.getLink(part)
+  return link ? [`  link: ${link}`] : []
+}
+
 class RealD2Options {
   readonly system: System
   readonly depth: number
   readonly isSelected: (part: Part) => boolean
   readonly getDisplayInfo: D2GetDisplayInfo
   readonly displayRelatedComponents: boolean
+  readonly linkPath: string | undefined
+  readonly links: Map<string, string>
   constructor(
     opts: Partial<RealD2Options> | undefined,
     isSelected: (part: Part) => boolean,
@@ -203,6 +221,8 @@ class RealD2Options {
     this.isSelected = isSelected
     this.getDisplayInfo = opts?.getDisplayInfo ?? (() => undefined)
     this.displayRelatedComponents = opts?.displayRelatedComponents ?? false
+    this.linkPath = opts?.linkPath
+    this.links = opts?.links ?? new Map()
   }
 
   uptoModule(part: Module): Module
@@ -238,6 +258,19 @@ class RealD2Options {
         break
     }
     return ["  style.bold: true", `  style.fill: "${color}"`]
+  }
+
+  getLink(part: Part): string | undefined {
+    if (this.linkPath === undefined) {
+      return
+    }
+    const partPath = part.path(path.sep)
+    if (this.linkPath === partPath) {
+      return this.links.get("_alt")
+    }
+    const from = path.dirname(this.linkPath)
+    const to = `${partPath}.svg`
+    return path.relative(from, to)
   }
 }
 

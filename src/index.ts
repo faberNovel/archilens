@@ -9,9 +9,26 @@ import { Domain } from "./engine/models"
 async function main() {
   const model = importFromYaml({ file: "spec.yml", dir: "example" })
 
-  async function gen(filename: string, target: {include: Uid[]} | {open: Uid[]}, type: "HLD" | "LLD") {
-    return await generateSVG(filename, model, {
+  async function gen(
+    basePath: string,
+    filepath: string,
+    target: { include: Uid[] } | { open: Uid[] },
+    type: "HLD" | "LLD",
+    links: Record<string, string> = {}
+  ) {
+    const d2Filepath = path.join(basePath, "d2", filepath + ".d2")
+    const svgFilepath = path.join(basePath, "svg", filepath + ".svg")
+
+    return await generateSVG(svgFilepath, model, {
       ...target,
+      linkPath: filepath,
+      links: new Map(
+        Object.entries(links).map(([k, v]) => [
+          k,
+          path.relative(path.dirname(filepath), v),
+        ])
+      ),
+      d2Filepath,
       followRelations: 1,
       followInverseRelations: 1,
       displayRelatedComponents: type === "LLD",
@@ -36,14 +53,29 @@ async function main() {
     })
   }
 
-  const outputDir = "export/hld"
-  await gen(`${outputDir}/index`, { include: model.domains.map(d => d.uid) }, "HLD")
+  const outputDir = "export"
+  await gen(
+    outputDir,
+    "index",
+    { include: model.domains.map((d) => d.uid) },
+    "HLD"
+  )
   for (const [uid, part] of model.parts) {
     if (part.isDomain) {
-      await gen(`${outputDir}/${part.path(path.sep)}`, { open: [uid] }, "HLD")
+      await gen(outputDir, part.path(path.sep), { open: [uid] }, "HLD", {
+        index: "index.svg",
+      })
     } else if (part.isModule) {
-      await gen(`${outputDir}/${part.path(path.sep)}`, { include: [uid] }, "HLD")
-      await gen(`${outputDir}/${part.path(path.sep)}-detailled`, { open: [uid] }, "LLD")
+      const modulePath = part.path(path.sep)
+      const componentsPath = `${modulePath}-components`
+      await gen(outputDir, modulePath, { include: [uid] }, "HLD", {
+        index: "index.svg",
+        _alt: componentsPath + ".svg",
+      })
+      await gen(outputDir, componentsPath, { open: [uid] }, "LLD", {
+        index: "index.svg",
+        _alt: modulePath + ".svg",
+      })
     }
   }
 }
