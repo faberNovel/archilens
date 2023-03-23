@@ -1,6 +1,6 @@
 import path from "path"
 
-import { D2GetDisplayInfo, generateSVG } from "./generate"
+import { D2GetDisplayInfo, generateCustomSVG, generateSVG } from "./generate"
 import { Uid } from "../../shared/models"
 import { Part, System } from "../../engine/models"
 import { RelationInclusion } from "../../engine/prune"
@@ -10,7 +10,17 @@ export type GenerateHldOpts = {
   readonly followRelations?: undefined | RelationInclusion
   readonly followInverseRelations?: undefined | RelationInclusion
 }
-export async function generateHld(outputDir: string, diagram: System, opts: GenerateHldOpts) {
+export async function generateHld(
+  outputDir: string,
+  diagram: System,
+  opts: GenerateHldOpts,
+): Promise<void> {
+  await generateCustomSVG(`${outputDir}/svg/index.svg`, "", {
+    ...opts,
+    d2Filepath: `${outputDir}/d2/index.d2`,
+    header: "Index",
+    footer: `[HLD](hld/index.svg) | [LLD](lld/index.svg)`,
+  })
   await generate(
     diagram,
     "Index",
@@ -52,7 +62,7 @@ async function generate(
     basePath,
     "hld",
     svgRelativePath,
-    Array.isArray(target) ? {include: target } : target,
+    Array.isArray(target) ? { include: target } : target,
     false,
     lldFilepath,
     {
@@ -67,7 +77,7 @@ async function generate(
     basePath,
     "lld",
     svgRelativePath,
-    Array.isArray(target) ? {open: target } : target,
+    Array.isArray(target) ? { open: target } : target,
     Array.isArray(target),
     hldFilepath,
     { index, HLD: hldFilepath },

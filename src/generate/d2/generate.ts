@@ -69,6 +69,31 @@ export async function generateSVG(
   await fs.access(dirname).catch(() => fs.mkdir(dirname, { recursive: true }))
   const d2 = generateD2(system, opts)
   await fs.writeFile(d2Filepath, d2)
+  return generateSvgFromD2(d2Filepath, svgFilepath)
+}
+
+export async function generateCustomSVG(
+  svgFilepath: string,
+  content: string,
+  opts: D2Options
+): Promise<void> {
+  const realOpts = new RealD2Options(opts, () => false, undefined as unknown as System)
+  const d2Filepath = opts.d2Filepath ?? svgFilepath.replace(".svg", ".d2")
+  console.log(`generating ${svgFilepath} using D2...`)
+  const dirname = path.dirname(d2Filepath)
+  await fs.access(dirname).catch(() => fs.mkdir(dirname, { recursive: true }))
+  const d2 = [
+    `# generated at ${new Date().toISOString()}`,
+    "",
+    ...generateHeader(realOpts),
+    content,
+    ...generateFooter(realOpts),
+  ].join("\n")
+  await fs.writeFile(d2Filepath, d2)
+  return generateSvgFromD2(d2Filepath, svgFilepath)
+}
+
+export async function generateSvgFromD2(d2Filepath: string, svgFilepath: string): Promise<void> {
   const executable = process.env.D2_EXECUTABLE ?? "d2"
   const args = [
     `--layout=${process.env.D2_LAYOUT ?? "elk"}`,
