@@ -11,9 +11,9 @@ import {
   Relation,
   RelationEnd,
   System,
-} from "../engine/models"
-import { prune, PruneOpts } from "../engine/prune"
-import { RelationType } from "../shared/models"
+} from "../../engine/models"
+import { prune, PruneOpts } from "../../engine/prune"
+import { RelationType } from "../../shared/models"
 
 export type D2DisplayInfo = {
   readonly type?: string | undefined
@@ -53,8 +53,9 @@ export type D2Options = PruneOpts & {
   readonly getDisplayInfo?: D2GetDisplayInfo | undefined
   readonly displayRelatedComponents?: boolean | undefined
   readonly d2Filepath?: string | undefined
-  readonly linkPath?: string | undefined
-  readonly links?: Map<string, string> | undefined
+  readonly getLink?: (part: Part) => string | undefined
+  readonly header?: string | undefined
+  readonly footer?: string | undefined
 }
 
 export async function generateSVG(
@@ -79,7 +80,8 @@ export async function generateSVG(
     process_child.on("error", reject)
     process_child.on("exit", (code) => {
       if (code !== 0) {
-        reject(new Error(`d2 exited with code ${code}`))
+        console.error(`--- Error from ${executable}\n` + process_child.stderr.read().toString().trim() + "\n---")
+        reject(new Error(`d2 exited with code ${code} when generating ${svgFilepath}`))
       } else {
         resolve(undefined)
       }
@@ -95,7 +97,7 @@ export function generateD2(system: System, opts: D2Options): string {
     `# data updated at ${system.lastUpdateAt.toISOString()}`,
     `# schema generated at ${new Date().toISOString()}`,
     "",
-    ...generateLinks(realOpts),
+    ...generateHeader(realOpts),
     "",
     ...pruned.domains.flatMap((d) => generateDomain(d, realOpts)),
     "",
@@ -103,15 +105,10 @@ export function generateD2(system: System, opts: D2Options): string {
   ].join("\n")
 }
 
-function generateLinks(opts: RealD2Options): string[] {
-  return [...opts.links.entries()].filter(([n, _v]) => n !== "_alt").map(([name, link], idx) => {
-    return `__link${idx}: "${name}" {
-      top: 0
-      left: ${idx ? idx * 200 + 5 : 0}
-      width: 200
-      link: "${link}"
-    }`
-  })
+function generateHeader(opts: RealD2Options): string[] {
+  const header = opts.header ? [`__header: |||md\n${opts.header}\n||| { near: top-center }`] : []
+  const footer = opts.footer ? [`__footer: |||md\n${opts.footer}\n||| { near: bottom-center }`] : []
+  return [...header, ...footer]
 }
 
 function generateDomain(domain: Domain, opts: RealD2Options): string[] {
@@ -208,8 +205,9 @@ class RealD2Options {
   readonly isSelected: (part: Part) => boolean
   readonly getDisplayInfo: D2GetDisplayInfo
   readonly displayRelatedComponents: boolean
-  readonly linkPath: string | undefined
-  readonly links: Map<string, string>
+  readonly getLink: (part: Part) => string | undefined
+  readonly header: string | undefined
+  readonly footer: string | undefined
   constructor(
     opts: Partial<RealD2Options> | undefined,
     isSelected: (part: Part) => boolean,
@@ -221,8 +219,9 @@ class RealD2Options {
     this.isSelected = isSelected
     this.getDisplayInfo = opts?.getDisplayInfo ?? (() => undefined)
     this.displayRelatedComponents = opts?.displayRelatedComponents ?? false
-    this.linkPath = opts?.linkPath
-    this.links = opts?.links ?? new Map()
+    this.getLink = opts?.getLink ?? (() => undefined)
+    this.header = opts?.header
+    this.footer = opts?.footer
   }
 
   uptoModule(part: Module): Module
@@ -258,19 +257,6 @@ class RealD2Options {
         break
     }
     return ["  style.bold: true", `  style.fill: "${color}"`]
-  }
-
-  getLink(part: Part): string | undefined {
-    if (this.linkPath === undefined) {
-      return
-    }
-    const partPath = part.path(path.sep)
-    if (this.linkPath === partPath) {
-      return this.links.get("_alt")
-    }
-    const from = path.dirname(this.linkPath)
-    const to = `${partPath}.svg`
-    return path.relative(from, to)
   }
 }
 
