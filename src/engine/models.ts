@@ -1,4 +1,4 @@
-import { RelationType, Uid } from "../shared/models"
+import { Id, RelationType, Uid } from "../shared/models"
 
 export abstract class System {
   abstract readonly lastUpdateAt: Date
@@ -33,6 +33,7 @@ export type ParentPart = Domain | Module
 export abstract class Part {
   abstract readonly parent: ParentPart | undefined
   abstract readonly uid: Uid
+  abstract readonly id: Id
   abstract readonly label: string
   abstract readonly descendents: ReadonlyMap<Uid, Part>
 
@@ -48,7 +49,7 @@ export abstract class Part {
   path(sep?: undefined | string) {
     const parentPath = this.parent ? this.parent.path() : []
     const path = [...parentPath, this]
-    return sep === undefined ? path : path.map(p => p.uid).join(sep)
+    return sep === undefined ? path : path.map(p => p.id).join(sep)
   }
   descendentsRelations(): Relation[] {
     return [this, ...this.descendents.values()].flatMap((part) => {

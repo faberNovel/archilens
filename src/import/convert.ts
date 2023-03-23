@@ -1,5 +1,5 @@
 import * as Engine from "../engine/models"
-import { RelationType, Uid } from "../shared/models"
+import { Id, RelationType, Uid } from "../shared/models"
 import { asWritable } from "../utils/types"
 
 import * as Import from "./models"
@@ -34,6 +34,7 @@ class ImportedSystem extends Engine.System {
 class ImportedDomain extends Engine.Domain {
   readonly parent: Engine.Domain | undefined
   readonly uid: Uid
+  readonly id: Id
   readonly label: string
   readonly domains: Engine.Domain[]
   readonly modules: Engine.Module[]
@@ -46,6 +47,7 @@ class ImportedDomain extends Engine.Domain {
     super()
     this.parent = parent
     this.uid = imported.uid
+    this.id = imported.id ?? Id(imported.uid)
     this.label = imported.label
     this.domains = imported.domains.map((d) => new ImportedDomain(d, this))
     this.modules = imported.modules.map((m) => new ImportedModule(m, this))
@@ -60,6 +62,7 @@ class ImportedDomain extends Engine.Domain {
 class ImportedModule extends Engine.Module {
   readonly parent: Engine.Domain
   readonly uid: Uid
+  readonly id: Id
   readonly type: string
   readonly label: string
   readonly components: Engine.Component[]
@@ -70,6 +73,7 @@ class ImportedModule extends Engine.Module {
     super()
     this.parent = parent
     this.uid = imported.uid
+    this.id = imported.id ?? Id(imported.uid)
     this.type = imported.type
     this.label = imported.label
     this.components = imported.components.map((c) => new ImportedComponent(c, this))
@@ -86,6 +90,7 @@ class ImportedModule extends Engine.Module {
 
 class ImportedComponent extends Engine.Component {
   readonly uid: Uid
+  readonly id: Id
   readonly type: string
   readonly label: string
   readonly relations: Engine.Relation[]
@@ -95,6 +100,7 @@ class ImportedComponent extends Engine.Component {
   constructor(imported: Import.Component, readonly parent: Engine.Module) {
     super()
     this.uid = imported.uid
+    this.id = imported.id ?? Id(imported.uid)
     this.type = imported.type
     this.label = imported.label ?? imported.uid
     this.relations = []

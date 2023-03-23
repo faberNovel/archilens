@@ -113,7 +113,7 @@ function generateHeader(opts: RealD2Options): string[] {
 
 function generateDomain(domain: Domain, opts: RealD2Options): string[] {
   return [
-    `${domain.uid}: "${domain.label}" {`,
+    `${domain.id}: "${domain.label}" {`,
     ...opts.selectedStyle(domain),
     ...generateLink(domain, opts),
     ...domain.domains
@@ -133,7 +133,7 @@ function generateModule(module: Module, opts: RealD2Options): string[] {
   const shape = icon && module.components.length === 0 ? ["shape: image"] : []
   const moduleType = displayInfo.type ? `«${module.type}»\\n` : ""
   return [
-    `${module.uid}: "${moduleType}${module.label}" {`,
+    `${module.id}: "${moduleType}${module.label}" {`,
     ...opts.selectedStyle(module),
     ...generateLink(module, opts),
     ...(icon ? [...shape, icon].map(indent) : []),
@@ -157,7 +157,7 @@ function generateComponent(
   const shape = icon ? ["shape: image"] : []
   const componentType = displayInfo.type ? `«${component.type}»\\n` : ""
   return [
-    `${component.uid}: "${componentType}${component.label}" {`,
+    `${component.id}: "${componentType}${component.label}" {`,
     ...opts.selectedStyle(component),
     ...generateLink(component, opts),
     ...(icon ? [...shape, icon] : []).map(indent),

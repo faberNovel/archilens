@@ -1,4 +1,4 @@
-import { RelationType, Uid } from "../shared/models"
+import { Id, RelationType, Uid } from "../shared/models"
 import "../utils/set" // Set#addAll
 import { asWritable } from "../utils/types"
 
@@ -165,6 +165,7 @@ function filterDomain(
 class PrunedDomain extends Domain {
   readonly parent: Domain | undefined
   readonly uid: Uid
+  readonly id: Id
   readonly label: string
   readonly domains: readonly Domain[]
   readonly modules: readonly Module[]
@@ -179,6 +180,7 @@ class PrunedDomain extends Domain {
     super()
     this.parent = parent
     this.uid = original.uid
+    this.id = original.id
     this.label = original.label
     this.domains = domains
     this.modules = modules
@@ -214,6 +216,7 @@ function filterModule(
 class PrunedModule extends Module {
   readonly parent: Domain
   readonly uid: Uid
+  readonly id: Id
   readonly type: string
   readonly label: string
   readonly relations: readonly Relation[]
@@ -229,6 +232,7 @@ class PrunedModule extends Module {
     super()
     this.parent = parent
     this.uid = original.uid
+    this.id = original.id
     this.type = original.type
     this.label = original.label
     this.relations = []
@@ -264,6 +268,7 @@ function filterComponent(
 class PrunedComponent extends Component {
   readonly parent: Module
   readonly uid: Uid
+  readonly id: Id
   readonly type: string
   readonly label: string
   readonly relations: readonly Relation[]
@@ -274,6 +279,7 @@ class PrunedComponent extends Component {
     super()
     this.parent = parent
     this.uid = original.uid
+    this.id = original.id
     this.type = original.type
     this.label = original.label
     this.relations = []
