@@ -31,17 +31,15 @@ export async function generateHld(
     opts,
   )
   for (const [uid, part] of diagram.parts) {
-    if (part.isDomain || part.isModule) {
-      await generate(
-        diagram,
-        part.label,
-        outputDir,
-        part.path(path.sep) + ".svg",
-        part.isModule ? [uid] : { open: [uid] },
-        "index.svg",
-        opts,
-      )
-    }
+    await generate(
+      diagram,
+      part.label,
+      outputDir,
+      part.path(path.sep) + ".svg",
+      part.isDomain ? { open: [uid] } : [uid],
+      "index.svg",
+      opts,
+    )
   }
 }
 
