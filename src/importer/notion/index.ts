@@ -377,6 +377,19 @@ export async function importFromNotion(ctx: NotionContext): Promise<Diagram> {
                 .map((rel): Relation | undefined => {
                   const target = componentEntryById.get(rel.targetId)
                   if (target) {
+                    const targetModule = moduleByComponentId.get(rel.targetId)
+                    if (
+                      targetModule?.type &&
+                      getExternalModuleType(targetModule.type)
+                    ) {
+                      return {
+                        type: rel.type,
+                        targetId: toId(
+                          `module_${targetModule.name}_${targetModule.id}`
+                        ),
+                        description: rel.name,
+                      }
+                    }
                     return {
                       type: rel.type,
                       targetId: toId(`component_${target.name}_${target.id}`),
