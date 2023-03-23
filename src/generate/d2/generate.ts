@@ -98,6 +98,7 @@ export function generateD2(system: System, opts: D2Options): string {
     `# schema generated at ${new Date().toISOString()}`,
     "",
     ...generateHeader(realOpts),
+    ...generateFooter(realOpts),
     "",
     ...pruned.domains.flatMap((d) => generateDomain(d, realOpts)),
     "",
@@ -106,9 +107,10 @@ export function generateD2(system: System, opts: D2Options): string {
 }
 
 function generateHeader(opts: RealD2Options): string[] {
-  const header = opts.header ? [`__header: |||md\n${opts.header}\n||| { near: top-center }`] : []
-  const footer = opts.footer ? [`__footer: |||md\n${opts.footer}\n||| { near: bottom-center }`] : []
-  return [...header, ...footer]
+  return opts.header ? [`__header: |||md\n${opts.header}\n||| { near: top-center }`] : []
+}
+function generateFooter(opts: RealD2Options): string[] {
+  return opts.footer ? [`__footer: |||md\n${opts.footer}\n||| { near: bottom-center }`] : []
 }
 
 function generateDomain(domain: Domain, opts: RealD2Options): string[] {
