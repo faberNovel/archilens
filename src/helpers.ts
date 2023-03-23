@@ -3,5 +3,8 @@ export function toId(name: string): string {
     .normalize("NFD")
     .toLowerCase()
     .replace(/[^a-z0-9_]/gu, "_")
-    .replace(" ", "")
+    .replace("_", "")
+    .replace("__", "_")
+    .replace(/_$/, "")
+    .trim()
 }
