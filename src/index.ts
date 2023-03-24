@@ -1,8 +1,8 @@
 import { importFromYaml } from "./import"
 import { cleanParserError } from "./utils/parser-errors"
-import { D2GetDisplayInfo } from "./generate/schemas/generate"
-import { generateHld } from "./generate/schemas/hld"
-import { generateDependencies } from "./generate/data/dependencies"
+import { D2GetDisplayInfo } from "./generate/d2/schema"
+import { generateHld } from "./generate/d2/hld"
+import { generateDependencies } from "./generate/yaml/dependencies"
 
 async function main() {
   const model = importFromYaml({ file: "spec.yml", dir: "example" })

@@ -5,7 +5,7 @@ import {
   generateCustomSVG,
   generateSVG,
   wrapInMd,
-} from "./generate"
+} from "./schema"
 import { Uid } from "../../shared/models"
 import { Part, Resource, System } from "../../engine/models"
 import { RelationInclusion } from "../../engine/prune"
