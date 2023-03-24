@@ -237,6 +237,13 @@ function generateRelation(relation: Relation, opts: RealD2Options): string[] {
   ) {
     return []
   }
+  if (
+    // links between a container to its children
+    source.parent.uid === target.uid ||
+    target.parent.uid === source.uid
+  ) {
+    return []
+  }
   let arrow: string
   let custom: string
   switch (relation.type) {
