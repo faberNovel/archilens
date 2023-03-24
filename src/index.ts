@@ -1,10 +1,13 @@
 import { importFromYaml } from "./import"
 import { cleanParserError } from "./utils/parser-errors"
-import { D2GetDisplayInfo } from "./generate/d2/generate"
-import { generateHld } from "./generate/d2/hld"
+import { D2GetDisplayInfo } from "./generate/schemas/generate"
+import { generateHld } from "./generate/schemas/hld"
+import { generateDependencies } from "./generate/data/dependencies"
 
 async function main() {
   const model = importFromYaml({ file: "spec.yml", dir: "example" })
+
+  await generateDependencies("export/data/dependencies.yaml", model)
 
   await generateHld("export", model, {
     // followRelations: 1,

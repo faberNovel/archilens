@@ -28,13 +28,12 @@ export abstract class System {
   }
 
   resources(): Resource[] {
-    return [
-      ...new Map(
-        this.domains
-          .flatMap((d) => d.descendentsResources())
-          .map((r) => [r.uid, r]),
-      ).values(),
-    ]
+    const descendentsResources = this.domains.flatMap((d) =>
+      d.descendentsResources(),
+    )
+    const relationsResources = this.relations.flatMap((r) => r.resources)
+    const resources = [...descendentsResources, ...relationsResources]
+    return [...new Map(resources.map((r) => [r.uid, r])).values()]
   }
 }
 
@@ -68,16 +67,20 @@ export abstract class Part {
     return sep === undefined ? path : path.map((p) => p.id).join(sep)
   }
   descendentsRelations(): Relation[] {
-    return [this, ...this.descendents.values()].flatMap((part) => {
-      if (isRelationEnd(part)) {
-        return part.relations
-      } else {
-        return []
-      }
-    })
+    return [
+      ...new Set(
+        [...this.descendents.values()].flatMap((part) => {
+          if (isRelationEnd(part)) {
+            return part.relations
+          } else {
+            return []
+          }
+        }),
+      ),
+    ]
   }
   descendentsInverseRelations(): Relation[] {
-    return [this, ...this.descendents.values()].flatMap((part) => {
+    return [...this.descendents.values()].flatMap((part) => {
       if (isRelationEnd(part)) {
         return part.inverseRelations
       } else {
@@ -85,11 +88,72 @@ export abstract class Part {
       }
     })
   }
+
+  directDependencies(): Module[] {
+    return [
+      ...new Set(
+        this.descendentsRelations().map((rel) => {
+          const target = rel.target
+          if (isComponent(target)) {
+            return target.parent
+          } else {
+            return target
+          }
+        }),
+      ),
+    ].filter((m) => m.uid !== this.uid)
+  }
+  indirectDependencies(): Module[] {
+    const seen = new Set<Module>()
+    function iter(part: Module) {
+      if (!seen.has(part)) {
+        seen.add(part)
+        part.directDependencies().forEach(iter)
+      }
+    }
+    this.directDependencies().forEach(iter)
+    if (isModule(this)) {
+      seen.delete(this)
+    }
+    return [...seen]
+  }
+
+  directDependents(): Module[] {
+    return [
+      ...new Set(
+        this.descendentsInverseRelations().map((rel) => {
+          const source = rel.source
+          if (isComponent(source)) {
+            return source.parent
+          } else {
+            return source
+          }
+        }),
+      ),
+    ].filter((m) => m.uid !== this.uid)
+  }
+  indirectDependents(): Module[] {
+    const seen = new Set<Module>()
+    function indirect(part: Module) {
+      if (!seen.has(part)) {
+        seen.add(part)
+        part.directDependents().forEach(indirect)
+      }
+    }
+    this.directDependents().forEach(indirect)
+    if (isModule(this)) {
+      seen.delete(this)
+    }
+    return [...seen]
+  }
+
   descendentsResources(): Resource[] {
     return [
       ...new Set(
-        [this, ...this.descendents.values()].flatMap((part) => {
-          if (isComponent(part)) {
+        [...this.descendents.values()].flatMap((part) => {
+          if (isModule(part)) {
+            return part.ownedResources
+          } else if (isComponent(part)) {
             return part.resources
           } else {
             return []
@@ -97,6 +161,9 @@ export abstract class Part {
         }),
       ),
     ]
+  }
+  descendentRelationEnds(): RelationEnd[] {
+    return [...this.descendents.values()].filter(isRelationEnd)
   }
 }
 
@@ -111,6 +178,7 @@ export function isDomain(value: unknown): value is Domain {
 
 export abstract class Module extends Part {
   abstract readonly parent: Domain
+  abstract readonly descendents: ReadonlyMap<Uid, RelationEnd>
   abstract readonly type: string
   abstract readonly components: readonly Component[]
   abstract readonly relations: readonly Relation[]
@@ -123,6 +191,7 @@ export function isModule(value: unknown): value is Module {
 
 export abstract class Component extends Part {
   abstract readonly parent: Module
+  abstract readonly descendents: ReadonlyMap<Uid, Component>
   abstract readonly type: string
   abstract readonly relations: readonly Relation[]
   abstract readonly inverseRelations: readonly Relation[]

@@ -275,7 +275,7 @@ class PrunedModule extends Module {
   readonly relations: readonly Relation[]
   readonly inverseRelations: readonly Relation[]
   readonly components: readonly Component[]
-  readonly descendents: ReadonlyMap<Uid, Part>
+  readonly descendents: ReadonlyMap<Uid, RelationEnd>
   readonly ownedResources: readonly Resource[]
 
   constructor(
@@ -293,7 +293,7 @@ class PrunedModule extends Module {
     this.inverseRelations = []
     this.components = components
     this.ownedResources = original.ownedResources
-    this.descendents = new Map<Uid, Part>([
+    this.descendents = new Map<Uid, RelationEnd>([
       [this.uid, this],
       ...this.components.flatMap((r) => [...r.descendents]),
     ])
@@ -328,7 +328,7 @@ class PrunedComponent extends Component {
   readonly label: string
   readonly relations: readonly Relation[]
   readonly inverseRelations: readonly Relation[]
-  readonly descendents: ReadonlyMap<Uid, Part>
+  readonly descendents: ReadonlyMap<Uid, Component>
   readonly resources: readonly Resource[]
 
   constructor(original: Component, parent: Module) {
@@ -340,7 +340,7 @@ class PrunedComponent extends Component {
     this.label = original.label
     this.relations = []
     this.inverseRelations = []
-    this.descendents = new Map<Uid, Part>([[this.uid, this]])
+    this.descendents = new Map<Uid, Component>([[this.uid, this]])
     this.resources = original.resources
   }
 }
