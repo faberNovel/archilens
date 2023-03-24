@@ -89,7 +89,9 @@ class RealPruneOpts implements PruneOpts {
     const isParentOpened = () =>
       part.parent !== undefined && this.open.includes(part.parent.uid)
     const containsComponent = () =>
-      isModule(part) && part.components.some((c) => this.isSelected(c, true))
+      this.hideComponents &&
+      isModule(part) &&
+      part.components.some((c) => this.isSelected(c, true))
 
     const result =
       isIncluded() ||
