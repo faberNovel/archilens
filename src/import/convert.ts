@@ -69,6 +69,7 @@ class ImportedModule extends Engine.Module {
   readonly relations: Engine.Relation[]
   readonly inverseRelations: Engine.Relation[]
   readonly descendents: Map<Uid, Engine.Module | Engine.Component>
+  readonly ownedResources: readonly Engine.Resource[]
   constructor(imported: Import.Module, parent: Engine.Domain) {
     super()
     this.parent = parent
@@ -81,6 +82,9 @@ class ImportedModule extends Engine.Module {
     )
     this.relations = []
     this.inverseRelations = []
+    this.ownedResources = imported.ownedResources.map(
+      (r) => new ImportedResource(r),
+    )
     this.descendents = new Map<Uid, Engine.Module | Engine.Component>([
       [this.uid, this],
       ...this.components.map(
@@ -98,6 +102,7 @@ class ImportedComponent extends Engine.Component {
   readonly relations: Engine.Relation[]
   readonly inverseRelations: Engine.Relation[]
   readonly descendents: Map<Uid, Engine.Component>
+  readonly resources: readonly Engine.Resource[]
 
   constructor(imported: Import.Component, readonly parent: Engine.Module) {
     super()
@@ -107,6 +112,7 @@ class ImportedComponent extends Engine.Component {
     this.label = imported.label ?? imported.uid
     this.relations = []
     this.inverseRelations = []
+    this.resources = imported.resources.map((r) => new ImportedResource(r))
     this.descendents = new Map([[this.uid, this]])
   }
 }
@@ -181,6 +187,7 @@ class ImportedRelation extends Engine.Relation {
   readonly target: Engine.RelationEnd
   readonly type: RelationType
   readonly description: string | undefined
+  readonly resources: readonly Engine.Resource[]
 
   constructor(
     imported: Import.Relation,
@@ -192,5 +199,17 @@ class ImportedRelation extends Engine.Relation {
     this.target = target
     this.type = imported.relationType
     this.description = imported.description
+    this.resources = imported.resources.map((r) => new ImportedResource(r))
+  }
+}
+
+class ImportedResource extends Engine.Resource {
+  readonly uid: Uid
+  readonly label: string
+
+  constructor(imported: Import.Resource) {
+    super()
+    this.uid = Uid(imported.uid.toString().toLocaleLowerCase())
+    this.label = imported.uid.toString()
   }
 }

@@ -20,6 +20,7 @@ export type Module = {
   readonly label: string
   readonly components: readonly Component[]
   readonly relations: readonly Relation[]
+  readonly ownedResources: readonly Resource[]
 }
 
 export type Component = {
@@ -28,10 +29,16 @@ export type Component = {
   readonly type: string
   readonly label: string | undefined
   readonly relations: readonly Relation[]
+  readonly resources: readonly Resource[]
 }
 
 export type Relation = {
   readonly targetUid: Uid
   readonly relationType: RelationType
   readonly description: string | undefined
+  readonly resources: readonly Resource[]
+}
+
+export type Resource = {
+  readonly uid: Uid
 }

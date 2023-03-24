@@ -9,50 +9,53 @@ domains:
           - uid: orders
             mtype: Service
             label: "Orders"
+            ownedResources: [Order]
             components:
               - uid: orders-apigw
                 ctype: APIGW
                 api:
                   prefix: "/orders"
-                  resources:
-                    - Order
+                  resources: [Order]
                 relations:
                   - target: orders-api
+                    resources: [Order]
               - uid: orders-api
                 ctype: ECS
                 api:
                   prefix: "/orders"
-                  resources:
-                    - Order
+                  resources: [Order]
                 relations:
                   - target: orders-db
+                    resources: [Order]
                   - target: orders-events
+                    resources: [Order]
               - uid: orders-db
                 ctype: RDS
-                resources:
-                  - Order
+                resources: [Order]
               - uid: orders-events
                 ctype: KDS
-                resources:
-                  - Order
+                resources: [Order]
           - uid: customers
             mtype: Service
             label: "Customers"
+            ownedResources: [Customer]
             components:
               - uid: customers-apigw
                 ctype: APIGW
                 api:
                   prefix: "/customers"
-                  resources:
-                    - Customer
+                  resources: [Customer]
                 relations:
                   - target: customers-api
+                    resources: [Customer]
               - uid: customers-api
                 ctype: ECS
                 relations:
                   - target: customers-db
+                    resources: [Customer]
               - uid: customers-db
                 ctype: RDS
+                resources: [Customer]
           - uid: sellers-app
             mtype: MobileApp
             label: "App Sellers"
@@ -69,41 +72,42 @@ domains:
           - uid: stocks
             mtype: Service
             label: "Stocks"
+            ownedResources:
+              - Stock
             components:
               - uid: stocks-apigw
                 ctype: APIGW
                 api:
                   prefix: "/stocks"
-                  resources:
-                    - Stock
+                  resources: [Stock]
                 relations:
                   - target: stocks-apigw
               - uid: stocks-api
                 ctype: ECS
                 relations:
                   - target: stocks-db
+                    resources: [Stock]
                   - target: stocks-events
+                    resources: [Stock]
               - uid: stocks-db
                 ctype: RDS
-                resources:
-                  - Stock
+                resources: [Stock]
               - uid: stocks-events
                 ctype: KDS
-                resources:
-                  - Stock
+                resources: [Stock]
           - uid: stockists-app
             mtype: MobileApp
             label: "App Stockists"
             relations:
               - target: stocks-apigw
-                resources:
-                  - Stocks
+                resources: [Stock]
   - uid: back-office
     label: "Back Office"
     modules:
       - uid: management
         mtype: Service
         label: "Management"
+        ownedResources: [Metrics]
         components:
           - uid: management-apigw
             ctype: APIGW
@@ -113,37 +117,46 @@ domains:
                 - Order
                 - Customer
                 - Stock
+                - Metrics
             relations:
               - target: management-api
+                resources: [Metrics]
           - uid: management-api
             ctype: ECS
             relations:
               - target: orders-apigw
+                resources: [Order]
               - target: customers-apigw
+                resources: [Customer]
               - target: stocks-apigw
+                resources: [Stock]
               - target: management-db
+                resources: [Metrics]
           - uid: management-db
             ctype: RDS
             resources:
-              - Order
-              - Customer
-              - Stock
+              - Metrics
           - uid: management-orders-listener
             ctype: Lambda
             relations:
               - target: orders-events
                 rtype: listen
                 description: "Watch for order updates"
+                resources: [Order]
               - target: management-db
+                resources: [Metrics]
           - uid: management-stocks-listener
             ctype: Lambda
             relations:
               - target: stocks-events
                 rtype: listen
                 description: "Watch for stock movements"
+                resources: [Stock]
               - target: management-db
+                resources: [Metrics]
       - uid: dashboard
         mtype: WebApp
         label: "Dashboard"
         relations:
           - target: management-apigw
+            resources: [Metrics]

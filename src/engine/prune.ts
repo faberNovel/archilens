@@ -5,13 +5,28 @@ import { asWritable } from "../utils/types"
 import {
   Component,
   Domain,
+  isComponent,
+  isModule,
   isRelationEnd,
   Module,
   Part,
   Relation,
   RelationEnd,
+  Resource,
   System,
 } from "./models"
+
+export type RelationInclusion = false | number | "all"
+
+export type PruneOpts = {
+  readonly include?: readonly (Uid | string)[] | undefined
+  readonly open?: readonly (Uid | string)[] | undefined
+  readonly followRelations?: RelationInclusion | undefined
+  readonly followInverseRelations?: RelationInclusion | undefined
+  readonly includeResources?: readonly (Uid | string)[] | undefined
+  readonly hideComponents?: boolean | undefined
+  readonly forceOnResources?: boolean | undefined
+}
 
 export function prune(
   system: System,
@@ -34,31 +49,63 @@ export class PruneError extends Error {
   }
 }
 
-export type RelationInclusion = false | number | "all"
-
-export type PruneOpts = {
-  readonly include?: undefined | readonly (Uid | string)[]
-  readonly open?: undefined | readonly (Uid | string)[]
-  readonly followRelations?: undefined | RelationInclusion
-  readonly followInverseRelations?: undefined | RelationInclusion
-}
-
 class RealPruneOpts implements PruneOpts {
   readonly include: readonly Uid[]
   readonly open: readonly Uid[]
   readonly followRelations: RelationInclusion
   readonly followInverseRelations: RelationInclusion
+  readonly includeResources: readonly Uid[]
+  readonly hideComponents: boolean
+  readonly forceOnResources: boolean
   constructor(opts: PruneOpts) {
     this.include = (opts.include ?? []).map((uid) => Uid(uid.toString()))
     this.open = (opts.open ?? []).map((uid) => Uid(uid.toString()))
     this.followRelations = opts.followRelations ?? 1
     this.followInverseRelations = opts.followInverseRelations ?? false
+    this.includeResources = (opts.includeResources ?? []).map((uid) =>
+      Uid(uid.toString()),
+    )
+    this.hideComponents = opts.hideComponents ?? false
+    this.forceOnResources = opts.forceOnResources ?? false
   }
-  isSelected(part: Part): boolean {
+  isSelected(part: Part, forceShowComponent: boolean = false): boolean {
+    if (this.hideComponents && isComponent(part) && !forceShowComponent) {
+      return false
+    }
+    const isIncluded = () => this.include.includes(part.uid)
+    const isOpened = () => this.open.includes(part.uid)
+    const containsIncludedResource = () =>
+      isComponent(part) &&
+      this.includeResources.some((rUid) =>
+        part.resources.some((r) => r.uid === rUid),
+      )
+    const containsIncludedRelationResource = () =>
+      isRelationEnd(part) &&
+      this.includeResources.some((rUid) =>
+        part.relations
+          .flatMap((rls) => rls.resources)
+          .some((r) => r.uid === rUid),
+      )
+    const isParentOpened = () =>
+      part.parent !== undefined && this.open.includes(part.parent.uid)
+    const containsComponent = () =>
+      isModule(part) && part.components.some((c) => this.isSelected(c, true))
+
+    const result =
+      isIncluded() ||
+      isOpened() ||
+      containsIncludedResource() ||
+      containsIncludedRelationResource() ||
+      isParentOpened() ||
+      containsComponent()
+    return result
+  }
+  isRelationExcluded(relation: Relation): boolean {
     return (
-      this.include.includes(part.uid) ||
-      this.open.includes(part.uid) ||
-      (part.parent !== undefined && this.open.includes(part.parent.uid))
+      this.forceOnResources &&
+      !this.includeResources.some((rUid) =>
+        relation.resources.some((r) => r.uid === rUid),
+      )
     )
   }
   #isRelationIncluded(config: RelationInclusion, value: number): boolean {
@@ -93,7 +140,7 @@ function computeDisplayedParts(
     const relations = [
       ...opts.includedRelations(part, depth),
       ...opts.includedInverseRelations(part, depth),
-    ]
+    ].filter((r) => !opts.isRelationExcluded(r))
     displayedRelations.addAll(relations)
     for (const relation of relations) {
       relationEnds.add(relation.source)
@@ -229,6 +276,7 @@ class PrunedModule extends Module {
   readonly inverseRelations: readonly Relation[]
   readonly components: readonly Component[]
   readonly descendents: ReadonlyMap<Uid, Part>
+  readonly ownedResources: readonly Resource[]
 
   constructor(
     original: Module,
@@ -244,6 +292,7 @@ class PrunedModule extends Module {
     this.relations = []
     this.inverseRelations = []
     this.components = components
+    this.ownedResources = original.ownedResources
     this.descendents = new Map<Uid, Part>([
       [this.uid, this],
       ...this.components.flatMap((r) => [...r.descendents]),
@@ -280,6 +329,7 @@ class PrunedComponent extends Component {
   readonly relations: readonly Relation[]
   readonly inverseRelations: readonly Relation[]
   readonly descendents: ReadonlyMap<Uid, Part>
+  readonly resources: readonly Resource[]
 
   constructor(original: Component, parent: Module) {
     super()
@@ -291,6 +341,7 @@ class PrunedComponent extends Component {
     this.relations = []
     this.inverseRelations = []
     this.descendents = new Map<Uid, Part>([[this.uid, this]])
+    this.resources = original.resources
   }
 }
 
@@ -385,6 +436,7 @@ class PrunedRelation extends Relation {
   readonly target: RelationEnd
   readonly type: RelationType
   readonly description: string | undefined
+  readonly resources: readonly Resource[]
 
   constructor(original: Relation, source: RelationEnd, target: RelationEnd) {
     super()
@@ -392,5 +444,6 @@ class PrunedRelation extends Relation {
     this.target = target
     this.type = original.type
     this.description = original.description
+    this.resources = original.resources
   }
 }

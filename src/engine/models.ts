@@ -26,6 +26,16 @@ export abstract class System {
   componentByUid(uid: Uid): Component | undefined {
     return this.partByUid(uid, isComponent)
   }
+
+  resources(): Resource[] {
+    return [
+      ...new Map(
+        this.domains
+          .flatMap((d) => d.descendentsResources())
+          .map((r) => [r.uid, r]),
+      ).values(),
+    ]
+  }
 }
 
 export type ParentPart = Domain | Module
@@ -75,6 +85,19 @@ export abstract class Part {
       }
     })
   }
+  descendentsResources(): Resource[] {
+    return [
+      ...new Set(
+        [this, ...this.descendents.values()].flatMap((part) => {
+          if (isComponent(part)) {
+            return part.resources
+          } else {
+            return []
+          }
+        }),
+      ),
+    ]
+  }
 }
 
 export abstract class Domain extends Part {
@@ -92,6 +115,7 @@ export abstract class Module extends Part {
   abstract readonly components: readonly Component[]
   abstract readonly relations: readonly Relation[]
   abstract readonly inverseRelations: readonly Relation[]
+  abstract readonly ownedResources: readonly Resource[]
 }
 export function isModule(value: unknown): value is Module {
   return value instanceof Module
@@ -102,6 +126,7 @@ export abstract class Component extends Part {
   abstract readonly type: string
   abstract readonly relations: readonly Relation[]
   abstract readonly inverseRelations: readonly Relation[]
+  abstract readonly resources: readonly Resource[]
 }
 export function isComponent(value: unknown): value is Component {
   return value instanceof Component
@@ -117,10 +142,18 @@ export abstract class Relation {
   abstract readonly target: RelationEnd
   abstract readonly type: RelationType
   abstract readonly description: string | undefined
-  get endsHash(): string {
-    return `${this.source.uid}-${this.target.uid}`
+  abstract readonly resources: readonly Resource[]
+
+  get label(): string | undefined {
+    return this.description
+      ? this.description
+      : this.resources.length > 0
+      ? this.resources.map((r) => r.label).join("\n")
+      : undefined
   }
-  get endsTypeHash(): string {
-    return `${this.source.uid}-${this.target.uid}-${this.type}`
-  }
+}
+
+export abstract class Resource {
+  abstract readonly uid: Uid
+  abstract readonly label: string
 }

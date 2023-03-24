@@ -151,13 +151,26 @@ export function generateD2(system: System, opts: D2Options): string {
 
 function generateHeader(opts: RealD2Options): string[] {
   return opts.header
-    ? [`__header: |||md\n${opts.header}\n||| { near: top-center }`]
+    ? [wrapInMd("__header", opts.header, { near: "top-center" })]
     : []
 }
 function generateFooter(opts: RealD2Options): string[] {
   return opts.footer
-    ? [`__footer: |||md\n${opts.footer}\n||| { near: bottom-center }`]
+    ? [wrapInMd("__footer", "#\n" + opts.footer, { near: "bottom-center" })]
     : []
+}
+
+export function wrapInMd(
+  id: string,
+  content: string,
+  opts?: Record<string, string> | undefined,
+): string {
+  const details = opts
+    ? ` { ${Object.entries(opts)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join("; ")} }`
+    : ""
+  return `__${id}: |||md\n${content}\n|||${details}`
 }
 
 function generateDomain(domain: Domain, opts: RealD2Options): string[] {
@@ -237,7 +250,7 @@ function generateRelation(relation: Relation, opts: RealD2Options): string[] {
         "{ style.border-radius: 5; style.stroke-dash: 3; style.animated: true }"
       break
   }
-  const description = relation.description ? `"${relation.description}" ` : ""
+  const description = relation.label ? `"${relation.label}" ` : ""
   return [
     `${source.path(".")} ${arrow} ${target.path(".")}: ${description}${custom}`,
   ]
