@@ -3,13 +3,16 @@ import { cleanParserError } from "./utils/parser-errors"
 import { D2GetDisplayInfo } from "./generate/d2/schema"
 import { generateHld } from "./generate/d2/hld"
 import { generateDependencies } from "./generate/yaml/dependencies"
+import { updateDependencies } from "./generate/notion/dependencies"
 
 async function main() {
   const model = importFromYaml({ file: "spec.yml", dir: "example" })
 
-  await generateDependencies("export/data/dependencies.yaml", model)
+  await updateDependencies("d928ff62ceae4dd8823e953d5dc44391", diagram)
 
-  await generateHld("export", model, {
+  await generateDependencies("export/data/dependencies.yaml", diagram)
+
+  await generateHld("export", diagram, {
     // followRelations: 1,
     // followInverseRelations: 1,
     getDisplayInfo: D2GetDisplayInfo(

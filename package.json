@@ -13,7 +13,7 @@
     "run:dev": "ts-node ./src"
   },
   "dependencies": {
-    "@notionhq/client": "^1.0.4",
+    "@notionhq/client": "^2.2.3",
     "commander": "^6.1.0",
     "dotenv": "^16.0.3",
     "js-yaml": "^3.14.0",
