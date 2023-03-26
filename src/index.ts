@@ -1,18 +1,19 @@
-import { importFromYaml } from "./import"
+import { importDiagramFromYaml } from "./import"
 import { cleanParserError } from "./utils/parser-errors"
+import { writeHldAsSvgFiles } from "./generate/d2/hld"
 import { D2GetDisplayInfo } from "./generate/d2/schema"
-import { generateHld } from "./generate/d2/hld"
-import { generateDependencies } from "./generate/yaml/dependencies"
-import { updateDependencies } from "./generate/notion/dependencies"
+import { writeDependenciesIntoNotion } from "./generate/notion/dependencies"
+import { writeDependenciesInYaml } from "./generate/yaml/dependencies"
+import { computeDependencies } from "./engine/dependencies"
 
 async function main() {
-  const model = importFromYaml({ file: "spec.yml", dir: "example" })
+  const diagram = importDiagramFromYaml({ file: "spec.yml", dir: "example" })
 
-  await updateDependencies("d928ff62ceae4dd8823e953d5dc44391", diagram)
+  const dependencies = computeDependencies(diagram)
+  await writeDependenciesInYaml("export/data/dependencies.yaml", dependencies)
+  await writeDependenciesIntoNotion("d928ff62ceae4dd8823e953d5dc44391", dependencies)
 
-  await generateDependencies("export/data/dependencies.yaml", diagram)
-
-  await generateHld("export", diagram, {
+  await writeHldAsSvgFiles("export", diagram, {
     // followRelations: 1,
     // followInverseRelations: 1,
     getDisplayInfo: D2GetDisplayInfo(

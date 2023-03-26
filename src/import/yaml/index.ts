@@ -6,7 +6,7 @@ import * as Import from "../models"
 
 import { parse } from "./parser"
 
-export function importFromYaml(input: YamlInput): Engine.System {
+export function importDiagramFromYaml(input: YamlInput): Engine.System {
   const raw = load(input)
   const imported: Import.System = parse(raw)
   return convert(imported)

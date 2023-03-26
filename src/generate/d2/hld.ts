@@ -9,7 +9,6 @@ import {
 import { Uid } from "../../shared/models"
 import { Part, Resource, System } from "../../engine/models"
 import { RelationInclusion } from "../../engine/prune"
-import { wrap } from "module"
 
 export type GenerateHldOpts = {
   readonly getDisplayInfo?: D2GetDisplayInfo
@@ -18,7 +17,7 @@ export type GenerateHldOpts = {
   readonly hideComponents?: boolean | undefined
   readonly forceOnResources?: boolean | undefined
 }
-export async function generateHld(
+export async function writeHldAsSvgFiles(
   outputDir: string,
   diagram: System,
   opts: GenerateHldOpts,

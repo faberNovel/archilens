@@ -1,26 +1,23 @@
 import { Client } from "@notionhq/client"
 
-import { Module, System } from "../../engine/models"
-import { computeDependencies, Dependencies } from "../../engine/dependencies"
-import { Writeable } from "utils/types"
+import { Module } from "../../engine/models"
+import { Dependencies } from "../../engine/dependencies"
 import { Uid } from "shared/models"
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN })
 
-export async function updateDependencies(parentPageId: string, diagram: System) {
-  console.log("Updating dependencies in Notion...")
+export async function writeDependenciesIntoNotion(parentPageId: string, dependencies: Dependencies[]) {
+  console.log("Writing dependencies in Notion...")
   const pageName = `Dependencies ${new Date().toISOString()}`
   const page = await notion.pages.create({
-    parent: { page_id: process.env.NOTION_PARENT_PAGE_ID! },
+    parent: { page_id: parentPageId },
     properties: {
       title: [
         { text: { content: pageName } },
       ],
     },
   })
-  console.log(`Created page ${pageName} (${page.id})`)
-
-  const dependencies = computeDependencies(diagram).sort(dependenciesSorter)
+  console.log(`  Created page ${pageName} (${page.id})`)
 
   const modulesBlocksIds = new Map<Uid, string>()
 
@@ -121,13 +118,6 @@ function Text(content: string, opts: { href?: string } = {}): Text {
       link: opts.href ? { url: opts.href } : undefined,
     },
   }
-}
-
-function dependenciesSorter(a: Dependencies, b: Dependencies) {
-  return moduleSort(a.module, b.module)
-}
-function moduleSort(a: Module, b: Module) {
-  return a.label.localeCompare(b.label)
 }
 
 function groups<T>(arr: T[], groupSize: number) {
