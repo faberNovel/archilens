@@ -12,11 +12,6 @@
     "moduleResolution": "Node",
     "declarationMap": true,
     "declaration": true,
-    "baseUrl": "src",
-    "paths": {
-      "~utils": [ "src/utils/*" ],
-      "~engine": [ "src/engine/*" ],
-      "~shared": [ "src/shared/*" ],
-    }
+    "baseUrl": "src"
   }
 }

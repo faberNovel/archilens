@@ -2,7 +2,7 @@ import { Client } from "@notionhq/client"
 
 import { Module } from "../../engine/models"
 import { Dependencies } from "../../engine/dependencies"
-import { Uid } from "shared/models"
+import { Uid } from "../../shared/models"
 
 export type NotionOpts = {
   readonly token: string
