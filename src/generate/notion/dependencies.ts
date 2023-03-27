@@ -4,13 +4,17 @@ import { Module } from "../../engine/models"
 import { Dependencies } from "../../engine/dependencies"
 import { Uid } from "shared/models"
 
-const notion = new Client({ auth: process.env.NOTION_TOKEN })
+export type NotionOpts = {
+  readonly token: string
+  readonly dependenciesPageId: string
+}
 
-export async function writeDependenciesIntoNotion(parentPageId: string, dependencies: Dependencies[]) {
+export async function writeDependenciesIntoNotion(dependencies: Dependencies[], opts: NotionOpts) {
   console.log("Writing dependencies in Notion...")
+  const notion = new Client({ auth: opts.token })
   const pageName = `Dependencies ${new Date().toISOString()}`
   const page = await notion.pages.create({
-    parent: { page_id: parentPageId },
+    parent: { page_id: opts.dependenciesPageId },
     properties: {
       title: [
         { text: { content: pageName } },

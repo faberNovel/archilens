@@ -2,7 +2,6 @@ import { importDiagramFromYaml } from "../src"
 import { cleanParserError } from "../src"
 import { writeHldAsSvgFiles } from "../src"
 import { D2GetDisplayInfo } from "../src"
-import { writeDependenciesIntoNotion } from "../src"
 import { writeDependenciesInYaml } from "../src"
 import { computeDependencies } from "../src"
 
@@ -11,7 +10,6 @@ async function main() {
 
   const dependencies = computeDependencies(diagram)
   await writeDependenciesInYaml("export/data/dependencies.yaml", dependencies)
-  // await writeDependenciesIntoNotion(process.env.NOTION_PAGE_DEPENDENCIES!, dependencies)
 
   await writeHldAsSvgFiles("export", diagram, {
     // followRelations: 1,
