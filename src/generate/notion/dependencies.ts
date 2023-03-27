@@ -37,7 +37,7 @@ export async function writeDependenciesIntoNotion(dependencies: Dependencies[], 
 
   function linkToModuleBlock(module: Module) {
     const moduleBlockId = modulesBlocksIds.get(module.uid)!
-    const href = `https://www.notion.so/${page.id}#${moduleBlockId}`.replaceAll("-", "")
+    const href = `https://www.notion.so/${page.id}#${moduleBlockId}`.replace(/-/g, "")
     return Bulletlistitem(module.label, [], { href })
   }
 
