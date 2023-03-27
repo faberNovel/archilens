@@ -6,25 +6,26 @@ export abstract class System {
   abstract readonly parts: ReadonlyMap<Uid, Part>
   abstract relations: readonly Relation[]
 
-  partByUid(uid: Uid): Part | undefined
-  partByUid<T extends Part>(
+  part(uid: Uid): Part | undefined
+  part<T extends Part>(
     uid: Uid,
     refine?: (p: Part) => p is T,
   ): T | undefined
-  partByUid(uid: Uid, filter?: (p: Part) => boolean) {
+  part(uid: Uid, filter?: (p: Part) => boolean) {
     const part = this.parts.get(uid)
     if (part && (!filter || filter(part))) {
       return part
     }
   }
-  domainByUid(uid: Uid): Domain | undefined {
-    return this.partByUid(uid, isDomain)
+
+  domain(id: Id): Part | undefined {
+    return this.domains.filter((d) => d.id === id)[0] || this.part(Uid(id.toString()), isDomain)
   }
-  moduleByUid(uid: Uid): Module | undefined {
-    return this.partByUid(uid, isModule)
+  module(uid: Uid): Module | undefined {
+    return this.part(uid, isModule)
   }
-  componentByUid(uid: Uid): Component | undefined {
-    return this.partByUid(uid, isComponent)
+  component(uid: Uid): Component | undefined {
+    return this.part(uid, isComponent)
   }
 
   resources(): Resource[] {
@@ -40,10 +41,12 @@ export abstract class System {
 export type ParentPart = Domain | Module
 
 export abstract class Part {
+  abstract readonly system: System
   abstract readonly parent: ParentPart | undefined
   abstract readonly uid: Uid
   abstract readonly id: Id
   abstract readonly label: string
+  abstract readonly children: ReadonlyMap<Id, Part>
   abstract readonly descendents: ReadonlyMap<Uid, Part>
 
   get isDomain(): boolean {
@@ -59,6 +62,40 @@ export abstract class Part {
   get ancestors(): Part[] {
     return this.parent ? this.parent.path() : []
   }
+
+  child(id: Id): Part | undefined
+  child<T extends Part>(id: Id, refine?: (p: Part) => p is T): T | undefined
+  child(uid: Id, refine?: (p: Part) => boolean) {
+    const part = this.children.get(uid)
+    if (part && (!refine || refine(part))) {
+      return part
+    }
+  }
+
+  descendent(uid: Uid): Part | undefined
+  descendent<T extends Part>(
+    uid: Uid,
+    refine?: (p: Part) => p is T,
+  ): T | undefined
+  descendent(uid: Uid, refine?: (p: Part) => boolean) {
+    const part = this.descendents.get(uid)
+    if (part && (!refine || refine(part))) {
+      return part
+    }
+  }
+
+  part(id: Id | Uid): Part | undefined
+  part<T extends Part>(
+    id: Id | Uid,
+    refine?: (p: Part) => p is T,
+  ): T | undefined
+  part<T extends Part>(
+    uid: Id | Uid,
+    refine?: (p: Part) => p is T,
+  ): T | undefined {
+    return this.child(uid as Id, refine) ?? this.descendent(uid as Uid, refine)
+  }
+
   path(): Part[]
   path(sep: string): string
   path(sep?: undefined | string) {
@@ -165,12 +202,30 @@ export abstract class Part {
   descendentRelationEnds(): RelationEnd[] {
     return [...this.descendents.values()].filter(isRelationEnd)
   }
+  domain(uid: Uid): Domain | undefined
+  domain(id: Id): Domain | undefined
+  domain(id: Id | Uid): Domain | undefined {
+    return this.part(id, isDomain)
+  }
+
+  module(uid: Uid): Module | undefined
+  module(id: Id): Module | undefined
+  module(id: Id | Uid): Module | undefined {
+    return this.part(id, isModule)
+  }
+
+  component(uid: Uid): Component | undefined
+  component(id: Id): Component | undefined
+  component(id: Id | Uid): Component | undefined {
+    return this.part(id, isComponent)
+  }
 }
 
 export abstract class Domain extends Part {
   abstract readonly parent: Domain | undefined
   abstract readonly domains: readonly Domain[]
   abstract readonly modules: readonly Module[]
+  abstract readonly children: ReadonlyMap<Id, Domain | Module>
 }
 export function isDomain(value: unknown): value is Domain {
   return value instanceof Domain

@@ -6,6 +6,7 @@ import {
   Component,
   Domain,
   isComponent,
+  isDomain,
   isModule,
   isRelationEnd,
   Module,
@@ -187,7 +188,7 @@ class PrunedSystem extends System {
   ) {
     super()
     this.lastUpdateAt = original.lastUpdateAt
-    this.domains = filterDomains(original.domains, undefined, displayedParts)
+    this.domains = filterDomains(original.domains, this, displayedParts)
     this.parts = new Map<Uid, Part>(
       this.domains.flatMap((d) => [...d.descendents]),
     )
@@ -197,7 +198,7 @@ class PrunedSystem extends System {
 
 function filterDomains(
   domains: readonly Domain[],
-  parent: Domain | undefined,
+  parent: Domain | System,
   displayedParts: ReadonlySet<Part>,
 ): Domain[] {
   return domains
@@ -207,7 +208,7 @@ function filterDomains(
 
 function filterDomain(
   domain: Domain,
-  parent: Domain | undefined,
+  parent: Domain | System,
   displayedParts: ReadonlySet<Part>,
 ): Domain | undefined {
   const domains = filterDomains(domain.domains, domain, displayedParts)
@@ -218,27 +219,34 @@ function filterDomain(
 }
 
 class PrunedDomain extends Domain {
+  readonly system: System
   readonly parent: Domain | undefined
   readonly uid: Uid
   readonly id: Id
   readonly label: string
   readonly domains: readonly Domain[]
   readonly modules: readonly Module[]
+  readonly children: ReadonlyMap<Id, Domain | Module>
   readonly descendents: ReadonlyMap<Uid, Part>
 
   constructor(
     original: Domain,
-    parent: Domain | undefined,
+    parent: Domain | System,
     domains: readonly Domain[],
     modules: readonly Module[],
   ) {
     super()
-    this.parent = parent
+    this.system = isDomain(parent) ? parent.system : parent
+    this.parent = isDomain(parent) ? parent : undefined
     this.uid = original.uid
     this.id = original.id
     this.label = original.label
     this.domains = domains
     this.modules = modules
+    this.children = new Map<Id, Domain | Module>([
+      ...this.domains.map((d) => [d.id, d] as const),
+      ...this.modules.map((m) => [m.id, m] as const),
+    ])
     this.descendents = new Map<Uid, Part>([
       [this.uid, this],
       ...this.domains.flatMap((d) => [...d.descendents]),
@@ -269,6 +277,9 @@ function filterModule(
 }
 
 class PrunedModule extends Module {
+  get system(): System {
+    return this.parent.system
+  }
   readonly parent: Domain
   readonly uid: Uid
   readonly id: Id
@@ -277,6 +288,7 @@ class PrunedModule extends Module {
   readonly relations: readonly Relation[]
   readonly inverseRelations: readonly Relation[]
   readonly components: readonly Component[]
+  readonly children: ReadonlyMap<Id, Component>
   readonly descendents: ReadonlyMap<Uid, RelationEnd>
   readonly ownedResources: readonly Resource[]
 
@@ -295,6 +307,7 @@ class PrunedModule extends Module {
     this.inverseRelations = []
     this.components = components
     this.ownedResources = original.ownedResources
+    this.children = new Map<Id, Component>(this.components.map((c) => [c.id, c]))
     this.descendents = new Map<Uid, RelationEnd>([
       [this.uid, this],
       ...this.components.flatMap((r) => [...r.descendents]),
@@ -323,6 +336,9 @@ function filterComponent(
 }
 
 class PrunedComponent extends Component {
+  get system(): System {
+    return this.parent.system
+  }
   readonly parent: Module
   readonly uid: Uid
   readonly id: Id
@@ -330,6 +346,7 @@ class PrunedComponent extends Component {
   readonly label: string
   readonly relations: readonly Relation[]
   readonly inverseRelations: readonly Relation[]
+  readonly children: ReadonlyMap<Id, Component> = new Map()
   readonly descendents: ReadonlyMap<Uid, Component>
   readonly resources: readonly Resource[]
 
@@ -405,7 +422,7 @@ function populateRelation(
   if (!displayedRelations.has(original)) {
     return undefined
   }
-  const source = system.partByUid(original.source.uid, isRelationEnd)
+  const source = system.part(original.source.uid, isRelationEnd)
   if (source === undefined) {
     throw new PruneError(
       `Source component ${original.source.uid} not found` +
@@ -416,7 +433,7 @@ function populateRelation(
         })})`,
     )
   }
-  const target = system.partByUid(original.target.uid, isRelationEnd)
+  const target = system.part(original.target.uid, isRelationEnd)
   if (target === undefined) {
     throw new PruneError(
       `Target component ${original.target.uid} not found` +

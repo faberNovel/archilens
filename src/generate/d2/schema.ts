@@ -49,8 +49,10 @@ export function D2GetDisplayInfo(
   }
 }
 
+export type D2GetDisplayInfoOpts = D2GetDisplayInfo | Record<string, string | undefined>
+
 export type D2Options = PruneOpts & {
-  readonly getDisplayInfo?: D2GetDisplayInfo | undefined
+  readonly getDisplayInfo?: D2GetDisplayInfoOpts | undefined
   readonly displayRelatedComponents?: boolean | undefined
   readonly d2Filepath?: string | undefined
   readonly getLink?: (part: Part) => string | undefined
@@ -58,7 +60,7 @@ export type D2Options = PruneOpts & {
   readonly footer?: string | undefined
 }
 
-export async function generateSVG(
+export async function generateSvgFile(
   svgFilepath: string,
   system: System,
   opts: D2Options,
@@ -69,23 +71,29 @@ export async function generateSVG(
   await fs.access(dirname).catch(() => fs.mkdir(dirname, { recursive: true }))
   const d2 = generateD2(system, opts)
   await fs.writeFile(d2Filepath, d2)
-  await generateSvgFromD2(d2Filepath, svgFilepath)
+  await convertD2FileIntoSvg(d2Filepath, svgFilepath)
 }
 
-export async function generateCustomSVG(
+export async function generateSvgString(
+  system: System,
+  opts: D2Options = {},
+): Promise<string> {
+  const d2 = generateD2(system, opts)
+  const svg = await pipeD2IntoSvg(d2)
+  return svg
+}
+
+export async function generateCustomSvg(
   svgFilepath: string,
   content: string,
-  opts: D2Options,
+  opts: D2Options = {},
 ): Promise<void> {
   const realOpts = new RealD2Options(
     opts,
     () => false,
     undefined as unknown as System,
   )
-  const d2Filepath = opts.d2Filepath ?? svgFilepath.replace(".svg", ".d2")
   console.log(`generating ${svgFilepath} using D2...`)
-  const dirname = path.dirname(d2Filepath)
-  await fs.access(dirname).catch(() => fs.mkdir(dirname, { recursive: true }))
   const d2 = [
     `# generated at ${new Date().toISOString()}`,
     "",
@@ -93,11 +101,13 @@ export async function generateCustomSVG(
     content,
     ...generateFooter(realOpts),
   ].join("\n")
-  await fs.writeFile(d2Filepath, d2)
-  await generateSvgFromD2(d2Filepath, svgFilepath)
+  const svg = await pipeD2IntoSvg(d2)
+  const dirname = path.dirname(svgFilepath)
+  await fs.access(dirname).catch(() => fs.mkdir(dirname, { recursive: true }))
+  await fs.writeFile(svgFilepath, svg)
 }
 
-export async function generateSvgFromD2(
+export async function convertD2FileIntoSvg(
   d2Filepath: string,
   svgFilepath: string,
 ): Promise<void> {
@@ -125,6 +135,20 @@ export async function generateSvgFromD2(
       } else {
         resolve(undefined)
       }
+    })
+  })
+}
+
+export function pipeD2IntoSvg(d2Content: string): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const d2 = spawn('d2', ['-'], { stdio: "pipe" })
+    d2.stdin.write(d2Content, () => { d2.stdin.end() })
+    d2.on('error', reject)
+    const output: string[] = []
+    d2.stdout.on('data', (data) => output.push(data.toString()))
+    d2.on('close', (code) => {
+      if (code !== 0) reject(new Error("d2 exited with code " + code))
+      resolve(output.join(''))
     })
   })
 }
@@ -277,8 +301,9 @@ class RealD2Options {
   readonly getLink: (part: Part) => string | undefined
   readonly header: string | undefined
   readonly footer: string | undefined
+
   constructor(
-    opts: Partial<RealD2Options> | undefined,
+    orig: RealD2Options | D2Options,
     isSelected: (part: Part) => boolean,
     system: System,
     depth: number = 0,
@@ -286,11 +311,11 @@ class RealD2Options {
     this.system = system
     this.depth = depth
     this.isSelected = isSelected
-    this.getDisplayInfo = opts?.getDisplayInfo ?? (() => undefined)
-    this.displayRelatedComponents = opts?.displayRelatedComponents ?? false
-    this.getLink = opts?.getLink ?? (() => undefined)
-    this.header = opts?.header
-    this.footer = opts?.footer
+    this.getDisplayInfo = (typeof orig?.getDisplayInfo === "function") ? orig?.getDisplayInfo : (orig?.getDisplayInfo ? D2GetDisplayInfo(orig?.getDisplayInfo) : (() => undefined))
+    this.displayRelatedComponents = orig?.displayRelatedComponents ?? false
+    this.getLink = orig?.getLink ?? (() => undefined)
+    this.header = orig?.header
+    this.footer = orig?.footer
   }
 
   uptoModule(part: Module): Module

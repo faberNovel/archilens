@@ -1,1 +1,1 @@
-export { importDiagramFromYaml } from "./yaml"
+export { importDiagramFromYaml, importDiagramFromYamlSync } from "./yaml"

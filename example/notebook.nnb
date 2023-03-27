@@ -1,0 +1,43 @@
+{
+    "cells": [
+        {
+            "language": "markdown",
+            "source": [
+                "# Playground"
+            ],
+            "outputs": []
+        },
+        {
+            "language": "typescript",
+            "source": [
+                "import { display } from 'node-kernel'\nimport archilens from '../src/notebook'\n\narchilens.init(display, {\n  MobileApp: \"https://icons.terrastruct.com/tech%2F052-smartphone-3.svg\",\n  WebApp: \"https://icons.terrastruct.com/tech%2Fbrowser-2.svg\",\n  APIGW:\n    \"https://icons.terrastruct.com/aws%2FMobile%2FAmazon-API-Gateway.svg\",\n  DB: \"https://icons.terrastruct.com/aws%2FDatabase%2FAmazon-RDS.svg\",\n  RDS: \"https://icons.terrastruct.com/aws%2FDatabase%2FAmazon-RDS.svg\",\n  ECS: \"https://icons.terrastruct.com/aws%2FCompute%2FAmazon-Elastic-Container-Service.svg\",\n  KDS: \"https://icons.terrastruct.com/aws%2FAnalytics%2FAmazon-Kinesis-Data-Streams.svg\",\n  Lambda: \"https://icons.terrastruct.com/aws%2FCompute%2FAWS-Lambda.svg\",\n  S3: \"https://icons.terrastruct.com/aws%2FStorage%2FAmazon-Simple-Storage-Service-S3.svg\",\n})\n\nconst diagram = await archilens.importDiagramFromYaml(\"spec.yml\")"
+            ],
+            "outputs": []
+        },
+        {
+            "language": "typescript",
+            "source": [
+                "diagram.part('orders').label"
+            ],
+            "outputs": [
+                {
+                    "items": [
+                        {
+                            "mime": "text/plain",
+                            "value": [
+                                "\u001b[32m'Orders'\u001b[39m"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "language": "typescript",
+            "source": [
+                "diagram.part('orders').display()"
+            ],
+            "outputs": []
+        }
+    ]
+}

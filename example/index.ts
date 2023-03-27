@@ -1,20 +1,22 @@
-import { importDiagramFromYaml } from "../src"
-import { cleanParserError } from "../src"
-import { writeHldAsSvgFiles } from "../src"
-import { D2GetDisplayInfo } from "../src"
-import { writeDependenciesInYaml } from "../src"
-import { computeDependencies } from "../src"
+import archilens from "../src"
 
 async function main() {
-  const diagram = importDiagramFromYaml({ file: "spec.yml", dir: "example" })
+  const diagram = await archilens.importDiagramFromYaml("example/spec.yml")
 
-  const dependencies = computeDependencies(diagram)
-  await writeDependenciesInYaml("export/data/dependencies.yaml", dependencies)
+  const exportDir = "export"
 
-  await writeHldAsSvgFiles("export", diagram, {
+  const deps = archilens.computeDependencies(diagram)
+  await archilens.writeDependenciesInYaml(`${exportDir}/deps.yaml`, deps)
+  // await archilens.writeDependenciesIntoNotion(deps, {
+  //   // of course, in a real project, real undefined checks are needed
+  //   token: process.env.NOTION_TOKEN!,
+  //   dependenciesPageId: process.env.NOTION_PAGE_DEPENDENCIES!,
+  // })
+
+  await archilens.writeHldAsSvgFiles(exportDir, diagram, {
     // followRelations: 1,
     // followInverseRelations: 1,
-    getDisplayInfo: D2GetDisplayInfo(
+    getDisplayInfo: archilens.D2GetDisplayInfo(
       {
         MobileApp: "https://icons.terrastruct.com/tech%2F052-smartphone-3.svg",
         WebApp: "https://icons.terrastruct.com/tech%2Fbrowser-2.svg",
@@ -32,4 +34,4 @@ async function main() {
     ),
   })
 }
-main().catch((e) => console.error(cleanParserError(e)))
+main().catch((e) => console.error(archilens.cleanParserError(e)))

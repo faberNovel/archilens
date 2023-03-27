@@ -1,13 +1,16 @@
 import { z } from "zod"
 
-import { RelationType } from "../../shared/models"
+import { RelationType, Uid } from "../../shared/models"
 import { zId, zRelationType, zUid } from "../../shared/parser"
 
 import * as Import from "../models"
 
 const zResource = (): z.ZodType<Import.Resource> =>
-  zUid().transform(
-    (data) => ({ uid: data } satisfies Import.Resource),
+  z.string().nonempty().transform(
+    (data) => ({
+      uid: Uid(data.toLocaleLowerCase()),
+      label: data,
+   } satisfies Import.Resource),
   ) as unknown as z.ZodType<Import.Resource>
 
 const zRelation = (): z.ZodType<Import.Relation> =>

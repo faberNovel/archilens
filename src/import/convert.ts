@@ -1,4 +1,5 @@
 import * as Engine from "../engine/models"
+import { isDomain } from "../engine/models"
 import { Id, RelationType, Uid } from "../shared/models"
 import { asWritable } from "../utils/types"
 
@@ -23,7 +24,7 @@ class ImportedSystem extends Engine.System {
   constructor(imported: Import.System) {
     super()
     this.lastUpdateAt = imported.lastUpdateAt
-    this.domains = imported.domains.map((d) => new ImportedDomain(d))
+    this.domains = imported.domains.map((d) => new ImportedDomain(d, this))
     this.parts = new Map<Uid, Engine.Part>(
       this.domains.flatMap((d) => [...d.descendents]),
     )
@@ -32,25 +33,32 @@ class ImportedSystem extends Engine.System {
 }
 
 class ImportedDomain extends Engine.Domain {
+  readonly system: Engine.System
   readonly parent: Engine.Domain | undefined
   readonly uid: Uid
   readonly id: Id
   readonly label: string
   readonly domains: Engine.Domain[]
   readonly modules: Engine.Module[]
+  readonly children: ReadonlyMap<Id, Engine.Domain | Engine.Module>
   readonly descendents: ReadonlyMap<Uid, Engine.Part>
 
   constructor(
     imported: Import.Domain,
-    parent: Engine.Domain | undefined = undefined,
+    parent: Engine.Domain | Engine.System,
   ) {
     super()
-    this.parent = parent
+    this.system = isDomain(parent) ? parent.system : parent
+    this.parent = isDomain(parent) ? parent : undefined
     this.uid = imported.uid
     this.id = imported.id ?? Id(imported.uid)
     this.label = imported.label
     this.domains = imported.domains.map((d) => new ImportedDomain(d, this))
     this.modules = imported.modules.map((m) => new ImportedModule(m, this))
+    this.children = new Map<Id, Engine.Domain | Engine.Module>([
+      ...this.domains.map((d) => [d.id, d] as const),
+      ...this.modules.map((m) => [m.id, m] as const),
+    ])
     this.descendents = new Map<Uid, Engine.Part>([
       [this.uid, this],
       ...this.domains.flatMap((d) => [...d.descendents]),
@@ -60,6 +68,9 @@ class ImportedDomain extends Engine.Domain {
 }
 
 class ImportedModule extends Engine.Module {
+  get system(): Engine.System {
+    return this.parent.system
+  }
   readonly parent: Engine.Domain
   readonly uid: Uid
   readonly id: Id
@@ -68,6 +79,7 @@ class ImportedModule extends Engine.Module {
   readonly components: Engine.Component[]
   readonly relations: Engine.Relation[]
   readonly inverseRelations: Engine.Relation[]
+  readonly children: ReadonlyMap<Id, Engine.Component>
   readonly descendents: Map<Uid, Engine.Module | Engine.Component>
   readonly ownedResources: readonly Engine.Resource[]
   constructor(imported: Import.Module, parent: Engine.Domain) {
@@ -85,6 +97,7 @@ class ImportedModule extends Engine.Module {
     this.ownedResources = imported.ownedResources.map(
       (r) => new ImportedResource(r),
     )
+    this.children = new Map<Id, Engine.Component>(this.components.map(c => [c.id, c]))
     this.descendents = new Map<Uid, Engine.Module | Engine.Component>([
       [this.uid, this],
       ...this.components.map(
@@ -95,12 +108,16 @@ class ImportedModule extends Engine.Module {
 }
 
 class ImportedComponent extends Engine.Component {
+  get system(): Engine.System {
+    return this.parent.system
+  }
   readonly uid: Uid
   readonly id: Id
   readonly type: string
   readonly label: string
   readonly relations: Engine.Relation[]
   readonly inverseRelations: Engine.Relation[]
+  readonly children: ReadonlyMap<Id, Engine.Component> = new Map()
   readonly descendents: Map<Uid, Engine.Component>
   readonly resources: readonly Engine.Resource[]
 
@@ -162,14 +179,14 @@ function populateRelation(
   imported: Import.Relation,
   system: Engine.System,
 ): Engine.Relation {
-  const source = system.partByUid(sourceUid, Engine.isRelationEnd)
+  const source = system.part(sourceUid, Engine.isRelationEnd)
   if (source === undefined) {
     throw new ConvertionError(
       `Source component ${sourceUid} not found` +
         ` (relation: ${JSON.stringify(imported)})`,
     )
   }
-  const target = system.partByUid(imported.targetUid, Engine.isRelationEnd)
+  const target = system.part(imported.targetUid, Engine.isRelationEnd)
   if (target === undefined) {
     throw new ConvertionError(
       `Target component ${imported.targetUid} not found` +
@@ -209,7 +226,7 @@ class ImportedResource extends Engine.Resource {
 
   constructor(imported: Import.Resource) {
     super()
-    this.uid = Uid(imported.uid.toString().toLocaleLowerCase())
-    this.label = imported.uid.toString()
+    this.uid = imported.uid
+    this.label = imported.label
   }
 }

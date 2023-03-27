@@ -1,5 +1,5 @@
 import * as Engine from "../../engine/models"
-import { load, YamlInput } from "../../utils/yaml"
+import { load, loadSync, YamlInput } from "../../utils/yaml"
 
 import { convert } from "../convert"
 import * as Import from "../models"
@@ -7,8 +7,14 @@ import * as Import from "../models"
 import { parse } from "./parser"
 export * from "./parser"
 
-export function importDiagramFromYaml(input: YamlInput): Engine.System {
-  const raw = load(input)
+export function importDiagramFromYamlSync(input: YamlInput): Engine.System {
+  const raw = loadSync(input)
+  const imported: Import.System = parse(raw)
+  return convert(imported)
+}
+
+export async function importDiagramFromYaml(input: string): Promise<Engine.System> {
+  const raw = await load(input)
   const imported: Import.System = parse(raw)
   return convert(imported)
 }

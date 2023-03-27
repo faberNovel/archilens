@@ -41,4 +41,5 @@ export type Relation = {
 
 export type Resource = {
   readonly uid: Uid
+  readonly label: string
 }

@@ -2,8 +2,8 @@ import path from "path"
 
 import {
   D2GetDisplayInfo,
-  generateCustomSVG,
-  generateSVG,
+  generateCustomSvg,
+  generateSvgFile,
   wrapInMd,
 } from "./schema"
 import { Uid } from "../../shared/models"
@@ -22,7 +22,7 @@ export async function writeHldAsSvgFiles(
   diagram: System,
   opts: GenerateHldOpts,
 ): Promise<void> {
-  await generateCustomSVG(
+  await generateCustomSvg(
     `${outputDir}/svg/index.svg`,
     wrapInMd("__body", "[HLD](hld/index.svg) | [LLD](lld/index.svg)"),
     {
@@ -33,7 +33,7 @@ export async function writeHldAsSvgFiles(
   )
 
   for (const kind of ["hld", "lld"]) {
-    await generateCustomSVG(
+    await generateCustomSvg(
       `${outputDir}/svg/${kind}/_resources/index.svg`,
       wrapInMd(
         "__body",
@@ -196,7 +196,7 @@ async function genDiagram(
       }
       return genRelLink(partPath)
     }
-  await generateSVG(svgFilepath, diagram, {
+  await generateSvgFile(svgFilepath, diagram, {
     ...target,
     getLink: getLink(alt),
     d2Filepath,

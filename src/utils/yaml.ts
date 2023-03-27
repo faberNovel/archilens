@@ -1,5 +1,6 @@
-import p from "path"
-import fs from "fs"
+import p from "node:path"
+import { readFileSync } from "node:fs"
+import { readFile } from "node:fs/promises"
 
 import * as YAML from "js-yaml"
 
@@ -12,7 +13,7 @@ function IncludeFileOpts(rootDir: string): IncludeFileOpts {
 }
 
 function parseInDir(opts: IncludeFileOpts, path: string): unknown {
-  const src = fs.readFileSync(p.join(opts.srcDir, path), "utf8")
+  const src = readFileSync(p.join(opts.srcDir, path), "utf8")
   return YAML.safeLoad(src, {
     schema: YAML.Schema.create(
       new YAML.Type("tag:yaml.org,2002:inc/file", {
@@ -32,11 +33,11 @@ function parseInDir(opts: IncludeFileOpts, path: string): unknown {
   })
 }
 
-export type YamlInput = "stdin" | string | { dir: string; file: string }
+export type YamlInput = string | { dir: string; file: string }
 
-export function load(input: YamlInput): unknown {
+export function loadSync(input: YamlInput): unknown {
   if (typeof input === "string") {
-    const src = fs.readFileSync(input === "stdin" ? 0 : input, "utf-8")
+    const src = readFileSync(input === "stdin" ? 0 : input, "utf-8")
     return YAML.safeLoad(src)
   } else {
     const parsed = parseInDir(IncludeFileOpts(input.dir), input.file)
@@ -45,4 +46,9 @@ export function load(input: YamlInput): unknown {
     }
     return parsed
   }
+}
+
+export async function load(input: string): Promise<unknown> {
+  const src = await readFile(input, { encoding: "utf-8" })
+  return YAML.safeLoad(src)
 }
