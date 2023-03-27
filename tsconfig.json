@@ -12,6 +12,5 @@
     "moduleResolution": "Node",
     "declarationMap": true,
     "declaration": true,
-    "baseUrl": "src"
   }
 }
