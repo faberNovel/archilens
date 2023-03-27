@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=14"
   },
   "scripts": {
     "format": "prettier --loglevel warn --write ./src",
@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@types/js-yaml": "^3.12.5",
-    "@types/node": "^18.13.0",
+    "@types/node": "^14.14.31",
     "prettier": "^2.1.2",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.2"
