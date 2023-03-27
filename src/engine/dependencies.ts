@@ -1,29 +1,29 @@
 import { isModule, Module, System } from "./models"
 
 export type TextDependencies = {
-  module: string
-  dependencies: {
-    direct: readonly string[]
-    indirect: readonly string[]
-    total: readonly string[]
+  readonly module: string
+  readonly dependencies: {
+    readonly direct: readonly string[]
+    readonly indirect: readonly string[]
+    readonly total: readonly string[]
   }
-  dependents: {
-    direct: readonly string[]
-    indirect: readonly string[]
-    total: readonly string[]
+  readonly dependents: {
+    readonly direct: readonly string[]
+    readonly indirect: readonly string[]
+    readonly total: readonly string[]
   }
 }
 export class Dependencies {
-  module: Module
-  dependencies: {
-    direct: readonly Module[]
-    indirect: readonly Module[]
-    total: readonly Module[]
+  readonly module: Module
+  readonly dependencies: {
+    readonly direct: readonly Module[]
+    readonly indirect: readonly Module[]
+    readonly total: readonly Module[]
   }
-  dependents: {
-    direct: readonly Module[]
-    indirect: readonly Module[]
-    total: readonly Module[]
+  readonly dependents: {
+    readonly direct: readonly Module[]
+    readonly indirect: readonly Module[]
+    readonly total: readonly Module[]
   }
   constructor(module: Module) {
     this.module = module

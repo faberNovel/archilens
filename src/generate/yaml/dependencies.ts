@@ -10,7 +10,10 @@ export async function writeDependenciesInYaml(
 ): Promise<void> {
   console.log("Writing dependencies in YAML files...")
   const dirname = path.dirname(outputFile)
-  const content = new Object(dependencies.map(d => d.asTextDependencies()))
+  const content = Object.fromEntries(dependencies.map(dep => {
+    const { module, ...fields } = dep.asTextDependencies()
+    return [module, fields]
+  }))
   await fs.access(dirname).catch(() => fs.mkdir(dirname, { recursive: true }))
   await fs.writeFile(outputFile, YAML.dump(content))
 }
