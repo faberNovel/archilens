@@ -23,7 +23,7 @@ declare module "./engine" {
   }
 
   interface Part {
-    display(lld?: DisplayGraphOptions | undefined): Promise<unknown>
+    display(opts?: DisplayGraphOptions | boolean | undefined): Promise<unknown>
     child(id: string): Part | undefined
     descendent(uid: string): Part | undefined
     part(id: string): Part | undefined
@@ -35,26 +35,27 @@ declare module "./engine" {
 }
 
 export function init(display: Display, getDisplayInfo: D2GetDisplayInfoOpts) {
-  Domain.prototype.display = async function(this: Domain, lld?: DisplayGraphOptions | undefined) {
-    display.html(await generateSchema(this, getDisplayInfo, lld))
+  Domain.prototype.display = async function(this: Domain, opts?: DisplayGraphOptions | boolean | undefined) {
+    display.html(await generateSchema(this, getDisplayInfo, opts))
   }
-  Module.prototype.display = async function(this: Module, lld?: DisplayGraphOptions | undefined) {
-    display.html(await generateSchema(this, getDisplayInfo, lld))
+  Module.prototype.display = async function(this: Module, opts?: DisplayGraphOptions | boolean | undefined) {
+    display.html(await generateSchema(this, getDisplayInfo, opts))
   }
-  Component.prototype.display = async function(this: Component, lld?: DisplayGraphOptions | undefined) {
-    display.html(await generateSchema(this, getDisplayInfo, lld))
+  Component.prototype.display = async function(this: Component, opts?: DisplayGraphOptions | boolean | undefined) {
+    display.html(await generateSchema(this, getDisplayInfo, opts))
   }
 }
 
-async function generateSchema(part: Part, getDisplayInfo: D2GetDisplayInfoOpts, opts: DisplayGraphOptions | undefined): Promise<string> {
-  const open: Uid[] | undefined = !isDomain(part) || opts?.lld ? [part.uid] : undefined
+async function generateSchema(part: Part, getDisplayInfo: D2GetDisplayInfoOpts, opts: DisplayGraphOptions | boolean | undefined): Promise<string> {
+  const lld = typeof opts === "boolean" ? opts : opts?.lld
+  const open: Uid[] | undefined = !isDomain(part) || lld ? [part.uid] : undefined
   const include: Uid[] | undefined = open ? undefined : [part.uid]
   const svg = await generateSvgString(part.system, {
     getDisplayInfo,
     followRelations: 1,
     followInverseRelations: 1,
-    hideComponents: !opts?.lld,
-    displayRelatedComponents: opts?.lld,
+    hideComponents: !lld,
+    displayRelatedComponents: lld,
     header: `# ${part.label}`,
     include,
     open,
