@@ -31,7 +31,6 @@ declare module "./engine" {
     module(uid: string): Module | undefined
     component(uid: string): Component | undefined
   }
-
 }
 
 export function init(display: Display, getDisplayInfo: D2GetDisplayInfoOpts) {
@@ -47,14 +46,13 @@ export function init(display: Display, getDisplayInfo: D2GetDisplayInfoOpts) {
 }
 
 async function generateSchema(part: Part, getDisplayInfo: D2GetDisplayInfoOpts, opts: DisplayGraphOptions | boolean | undefined): Promise<string> {
-  const lld = typeof opts === "boolean" ? opts : opts?.lld
-  const open: Uid[] | undefined = !isDomain(part) || lld ? [part.uid] : undefined
+  const lld: boolean = typeof opts === "boolean" ? opts : opts?.lld ?? false
+  const open: Uid[] | undefined = !isComponent(part) && (!isDomain(part) || lld) ? [part.uid] : undefined
   const include: Uid[] | undefined = open ? undefined : [part.uid]
   const svg = await generateSvgString(part.system, {
     getDisplayInfo,
     followRelations: 1,
     followInverseRelations: 1,
-    hideComponents: !lld,
     displayRelatedComponents: lld,
     header: `# ${part.label}`,
     include,
