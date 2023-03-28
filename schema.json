@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Archilens",
+  "description": "An Archilens specification",
+  "type": "object",
+  "properties": {
+    "lastUpdateAt": {
+      "description": "The date of the last update of the document",
+      "type": "string"
+    },
+    "domains": {
+      "description": "The list of domains",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/domain"
+      }
+    }
+  },
+  "$defs": {
+    "domain": {
+      "type": "object",
+      "properties": {
+        "uid": {
+          "description": "The unique identifier of the domain",
+          "type": "string"
+        },
+        "id": {
+          "description": "The identifier of the domain in its domain or at the root level",
+          "type": "string"
+        },
+        "label": {
+          "description": "The label of the domain",
+          "type": "string"
+        },
+        "domains": {
+          "description": "The list of sub-domains",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/domain"
+          }
+        },
+        "modules": {
+          "description": "The list of modules",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/module"
+          }
+        }
+      },
+      "required": [
+        "uid",
+        "label"
+      ]
+    },
+    "module": {
+      "type": "object",
+      "properties": {
+        "uid": {
+          "description": "The unique identifier of the module",
+          "type": "string"
+        },
+        "id": {
+          "description": "The identifier of the module in its domain",
+          "type": "string"
+        },
+        "mtype": {
+          "description": "The type of the module",
+          "type": "string"
+        },
+        "label": {
+          "description": "The label of the module",
+          "type": "string"
+        },
+        "ownedResources": {
+          "description": "The list of resources owned by the module",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resource"
+          }
+        },
+        "components": {
+          "description": "The list of components",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/component"
+          }
+        },
+        "relations": {
+          "description": "The list of relations between this module and other modules or components",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relation"
+          }
+        }
+      },
+      "required": [
+        "uid",
+        "mtype",
+        "label"
+      ]
+    },
+    "component": {
+      "type": "object",
+      "properties": {
+        "uid": {
+          "description": "The unique identifier of the component",
+          "type": "string"
+        },
+        "id": {
+          "description": "The identifier of the component in its module",
+          "type": "string"
+        },
+        "ctype": {
+          "description": "The type of the component",
+          "type": "string"
+        },
+        "label": {
+          "description": "The label of the component",
+          "type": "string"
+        },
+        "resources": {
+          "description": "The list of resources stored in the component",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resource"
+          }
+        },
+        "relations": {
+          "description": "The list of relations between this component and other modules or components",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relation"
+          }
+        }
+      },
+      "required": [
+        "uid",
+        "ctype"
+      ]
+    },
+    "relation": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "description": "The unique identifier of the target module or component",
+          "type": "string"
+        },
+        "description": {
+          "description": "The description of the relation",
+          "type": "string"
+        },
+        "rtype": {
+          "description": "The type of the relation",
+          "type": "string"
+        },
+        "resources": {
+          "description": "The list of resources shared between the component and the target component",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resource"
+          }
+        }
+      },
+      "required": [
+        "target"
+      ]
+    },
+    "resource": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "lastUpdateAt"
+  ]
+}
