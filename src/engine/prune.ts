@@ -307,7 +307,9 @@ class PrunedModule extends Module {
     this.inverseRelations = []
     this.components = components
     this.ownedResources = original.ownedResources
-    this.children = new Map<Id, Component>(this.components.map((c) => [c.id, c]))
+    this.children = new Map<Id, Component>(
+      this.components.map((c) => [c.id, c]),
+    )
     this.descendents = new Map<Uid, RelationEnd>([
       [this.uid, this],
       ...this.components.flatMap((r) => [...r.descendents]),

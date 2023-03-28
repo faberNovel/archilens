@@ -9,16 +9,17 @@ export type NotionOpts = {
   readonly dependenciesPageId: string
 }
 
-export async function writeDependenciesIntoNotion(dependencies: Dependencies[], opts: NotionOpts) {
+export async function writeDependenciesIntoNotion(
+  dependencies: Dependencies[],
+  opts: NotionOpts,
+) {
   console.log("Writing dependencies in Notion...")
   const notion = new Client({ auth: opts.token })
   const pageName = `Dependencies ${new Date().toISOString()}`
   const page = await notion.pages.create({
     parent: { page_id: opts.dependenciesPageId },
     properties: {
-      title: [
-        { text: { content: pageName } },
-      ],
+      title: [{ text: { content: pageName } }],
     },
   })
   console.log(`  Created page ${pageName} (${page.id})`)
@@ -28,7 +29,7 @@ export async function writeDependenciesIntoNotion(dependencies: Dependencies[], 
   for (const deps of groups(dependencies, 100)) {
     const blocks = await notion.blocks.children.append({
       block_id: page.id,
-      children: deps.map(d => Toggle(d.module.label)),
+      children: deps.map((d) => Toggle(d.module.label)),
     })
     for (const [idx, dep] of deps.entries()) {
       modulesBlocksIds.set(dep.module.uid, blocks.results[idx].id)
@@ -37,7 +38,10 @@ export async function writeDependenciesIntoNotion(dependencies: Dependencies[], 
 
   function linkToModuleBlock(module: Module) {
     const moduleBlockId = modulesBlocksIds.get(module.uid)!
-    const href = `https://www.notion.so/${page.id}#${moduleBlockId}`.replace(/-/g, "")
+    const href = `https://www.notion.so/${page.id}#${moduleBlockId}`.replace(
+      /-/g,
+      "",
+    )
     return Bulletlistitem(module.label, [], { href })
   }
 
@@ -133,5 +137,5 @@ function groups<T>(arr: T[], groupSize: number) {
 }
 
 function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }

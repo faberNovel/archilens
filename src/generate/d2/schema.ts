@@ -49,7 +49,9 @@ export function D2GetDisplayInfo(
   }
 }
 
-export type D2GetDisplayInfoOpts = D2GetDisplayInfo | Record<string, string | undefined>
+export type D2GetDisplayInfoOpts =
+  | D2GetDisplayInfo
+  | Record<string, string | undefined>
 
 export type D2Options = PruneOpts & {
   readonly getDisplayInfo?: D2GetDisplayInfoOpts | undefined
@@ -141,14 +143,16 @@ export async function convertD2FileIntoSvg(
 
 export function pipeD2IntoSvg(d2Content: string): Promise<string> {
   return new Promise<string>((resolve, reject) => {
-    const d2 = spawn('d2', ['-'], { stdio: "pipe" })
-    d2.stdin.write(d2Content, () => { d2.stdin.end() })
-    d2.on('error', reject)
+    const d2 = spawn("d2", ["-"], { stdio: "pipe" })
+    d2.stdin.write(d2Content, () => {
+      d2.stdin.end()
+    })
+    d2.on("error", reject)
     const output: string[] = []
-    d2.stdout.on('data', (data) => output.push(data.toString()))
-    d2.on('close', (code) => {
+    d2.stdout.on("data", (data) => output.push(data.toString()))
+    d2.on("close", (code) => {
       if (code !== 0) reject(new Error("d2 exited with code " + code))
-      resolve(output.join(''))
+      resolve(output.join(""))
     })
   })
 }
@@ -311,7 +315,12 @@ class RealD2Options {
     this.system = system
     this.depth = depth
     this.isSelected = isSelected
-    this.getDisplayInfo = (typeof orig?.getDisplayInfo === "function") ? orig?.getDisplayInfo : (orig?.getDisplayInfo ? D2GetDisplayInfo(orig?.getDisplayInfo) : (() => undefined))
+    this.getDisplayInfo =
+      typeof orig?.getDisplayInfo === "function"
+        ? orig?.getDisplayInfo
+        : orig?.getDisplayInfo
+        ? D2GetDisplayInfo(orig?.getDisplayInfo)
+        : () => undefined
     this.displayRelatedComponents = orig?.displayRelatedComponents ?? false
     this.getLink = orig?.getLink ?? (() => undefined)
     this.header = orig?.header

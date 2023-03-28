@@ -7,10 +7,7 @@ export abstract class System {
   abstract relations: readonly Relation[]
 
   part(uid: Uid): Part | undefined
-  part<T extends Part>(
-    uid: Uid,
-    refine?: (p: Part) => p is T,
-  ): T | undefined
+  part<T extends Part>(uid: Uid, refine?: (p: Part) => p is T): T | undefined
   part(uid: Uid, filter?: (p: Part) => boolean) {
     const part = this.parts.get(uid)
     if (part && (!filter || filter(part))) {
@@ -19,7 +16,10 @@ export abstract class System {
   }
 
   domain(id: Id): Part | undefined {
-    return this.domains.filter((d) => d.id === id)[0] || this.part(Uid(id.toString()), isDomain)
+    return (
+      this.domains.filter((d) => d.id === id)[0] ||
+      this.part(Uid(id.toString()), isDomain)
+    )
   }
   module(uid: Uid): Module | undefined {
     return this.part(uid, isModule)

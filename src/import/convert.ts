@@ -43,10 +43,7 @@ class ImportedDomain extends Engine.Domain {
   readonly children: ReadonlyMap<Id, Engine.Domain | Engine.Module>
   readonly descendents: ReadonlyMap<Uid, Engine.Part>
 
-  constructor(
-    imported: Import.Domain,
-    parent: Engine.Domain | Engine.System,
-  ) {
+  constructor(imported: Import.Domain, parent: Engine.Domain | Engine.System) {
     super()
     this.system = isDomain(parent) ? parent.system : parent
     this.parent = isDomain(parent) ? parent : undefined
@@ -97,7 +94,9 @@ class ImportedModule extends Engine.Module {
     this.ownedResources = imported.ownedResources.map(
       (r) => new ImportedResource(r),
     )
-    this.children = new Map<Id, Engine.Component>(this.components.map(c => [c.id, c]))
+    this.children = new Map<Id, Engine.Component>(
+      this.components.map((c) => [c.id, c]),
+    )
     this.descendents = new Map<Uid, Engine.Module | Engine.Component>([
       [this.uid, this],
       ...this.components.map(

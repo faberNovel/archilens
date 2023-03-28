@@ -28,18 +28,24 @@ export class Dependencies {
   constructor(module: Module) {
     this.module = module
     const directDependencies = this.module.directDependencies().sort(moduleSort)
-    const indirectDependencies = this.module.indirectDependencies().sort(moduleSort)
+    const indirectDependencies = this.module
+      .indirectDependencies()
+      .sort(moduleSort)
     this.dependencies = {
       direct: directDependencies,
       indirect: indirectDependencies,
-      total: [...new Set([...directDependencies, ...indirectDependencies])].sort(moduleSort),
+      total: [
+        ...new Set([...directDependencies, ...indirectDependencies]),
+      ].sort(moduleSort),
     }
     const directDependents = this.module.directDependents().sort(moduleSort)
     const indirectDependents = this.module.indirectDependents().sort(moduleSort)
     this.dependents = {
       direct: directDependents,
       indirect: indirectDependents,
-      total: [...new Set([...directDependents, ...indirectDependents])].sort(moduleSort),
+      total: [...new Set([...directDependents, ...indirectDependents])].sort(
+        moduleSort,
+      ),
     }
   }
   asTextDependencies(): TextDependencies {
@@ -60,7 +66,10 @@ export class Dependencies {
 }
 
 export function computeDependencies(diagram: System): Dependencies[] {
-  return [...diagram.parts.values()].filter(isModule).map((m) => new Dependencies(m)).sort(dependenciesSorter)
+  return [...diagram.parts.values()]
+    .filter(isModule)
+    .map((m) => new Dependencies(m))
+    .sort(dependenciesSorter)
 }
 
 export function computeTextDependencies(diagram: System): TextDependencies[] {

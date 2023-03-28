@@ -46,7 +46,11 @@ export async function writeHldAsSvgFiles(
         ...opts,
         d2Filepath: `${outputDir}/d2/_resources/index.d2`,
         header: "Resources",
-        footer: "[index](../index.svg) | " + (kind === "hld" ? "[LLD](../../lld/_resources/index.svg)" : "[HLD](../../hld/_resources/index.svg)"),
+        footer:
+          "[index](../index.svg) | " +
+          (kind === "hld"
+            ? "[LLD](../../lld/_resources/index.svg)"
+            : "[HLD](../../hld/_resources/index.svg)"),
       },
     )
   }

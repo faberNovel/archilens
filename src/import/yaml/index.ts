@@ -13,7 +13,9 @@ export function importDiagramFromYamlSync(input: YamlInput): Engine.System {
   return convert(imported)
 }
 
-export async function importDiagramFromYaml(input: string): Promise<Engine.System> {
+export async function importDiagramFromYaml(
+  input: string,
+): Promise<Engine.System> {
   const raw = await load(input)
   const imported: Import.System = parse(raw)
   return convert(imported)
