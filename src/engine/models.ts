@@ -141,18 +141,28 @@ export abstract class Part {
     ].filter((m) => m.uid !== this.uid)
   }
   indirectDependencies(): Module[] {
-    const seen = new Set<Module>()
-    function iter(part: Module) {
-      if (!seen.has(part)) {
+    const self = new Set<Part>(this.descendents.values())
+    const toSee = new Set<Part>(this.descendentsRelations().map((r) => r.target))
+    const seen = new Set<Part>(self)
+    while (toSee.size > 0) {
+      for (const part of [...toSee]) {
+        toSee.delete(part)
         seen.add(part)
-        part.directDependencies().forEach(iter)
+        for (const target of part.descendentsRelations().map((r) => r.target)) {
+          if (!seen.has(target)) {
+            toSee.add(target)
+          }
+        }
       }
     }
-    this.directDependencies().forEach(iter)
-    if (isModule(this)) {
-      seen.delete(this)
+    const result: Module[] = []
+    for (const part of seen) {
+      if (isModule(part) && !self.has(part)) {
+        result.push(part)
+      }
     }
-    return [...seen]
+
+    return result
   }
 
   directDependents(): Module[] {
