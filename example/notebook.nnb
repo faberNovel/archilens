@@ -35,7 +35,7 @@
         {
             "language": "typescript",
             "source": [
-                "diagram.part('orders').display()"
+                "diagram.part('orders-events').display({ lld: false, width: \"30%\" })"
             ],
             "outputs": []
         }
