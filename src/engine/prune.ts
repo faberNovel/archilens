@@ -25,7 +25,6 @@ export type PruneOpts = {
   readonly followRelations?: RelationInclusion | undefined
   readonly followInverseRelations?: RelationInclusion | undefined
   readonly includeResources?: readonly (Uid | string)[] | undefined
-  readonly hideComponents?: boolean | undefined
   readonly forceOnResources?: boolean | undefined
 }
 
@@ -56,7 +55,6 @@ class RealPruneOpts implements PruneOpts {
   readonly followRelations: RelationInclusion
   readonly followInverseRelations: RelationInclusion
   readonly includeResources: readonly Uid[]
-  readonly hideComponents: boolean
   readonly forceOnResources: boolean
   constructor(opts: PruneOpts) {
     this.include = (opts.include ?? []).map((uid) => Uid(uid.toString()))
@@ -66,13 +64,9 @@ class RealPruneOpts implements PruneOpts {
     this.includeResources = (opts.includeResources ?? []).map((uid) =>
       Uid(uid.toString()),
     )
-    this.hideComponents = opts.hideComponents ?? false
     this.forceOnResources = opts.forceOnResources ?? false
   }
   isSelected(part: Part, forceShowComponent: boolean = false): boolean {
-    if (this.hideComponents && isComponent(part) && !forceShowComponent) {
-      return false
-    }
     const isIncluded = () => this.include.includes(part.uid)
     const isOpened = () => this.open.includes(part.uid)
     const containsIncludedResource = () =>
@@ -89,18 +83,13 @@ class RealPruneOpts implements PruneOpts {
       )
     const isParentOpened = () =>
       part.parent !== undefined && this.open.includes(part.parent.uid)
-    const containsComponent = () =>
-      this.hideComponents &&
-      isModule(part) &&
-      part.components.some((c) => this.isSelected(c, true))
 
     const result =
       isIncluded() ||
       isOpened() ||
       containsIncludedResource() ||
       containsIncludedRelationResource() ||
-      isParentOpened() ||
-      containsComponent()
+      isParentOpened()
     return result
   }
   isRelationExcluded(relation: Relation): boolean {

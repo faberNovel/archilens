@@ -55,6 +55,7 @@ export type D2GetDisplayInfoOpts =
 
 export type D2Options = PruneOpts & {
   readonly getDisplayInfo?: D2GetDisplayInfoOpts | undefined
+  readonly hideComponents?: boolean | undefined
   readonly displayRelatedComponents?: boolean | undefined
   readonly d2Filepath?: string | undefined
   readonly getLink?: (part: Part) => string | undefined
@@ -238,7 +239,7 @@ function generateComponent(
   component: Component,
   opts: RealD2Options,
 ): string[] {
-  if (!opts.isSelected(component) && !opts.displayRelatedComponents) {
+  if (opts.doesUptoModule(component)) {
     return []
   }
   const displayInfo: D2DisplayInfo =
@@ -301,6 +302,7 @@ class RealD2Options {
   readonly depth: number
   readonly isSelected: (part: Part) => boolean
   readonly getDisplayInfo: D2GetDisplayInfo
+  readonly hideComponents: boolean
   readonly displayRelatedComponents: boolean
   readonly getLink: (part: Part) => string | undefined
   readonly header: string | undefined
@@ -316,15 +318,17 @@ class RealD2Options {
     this.depth = depth
     this.isSelected = isSelected
     this.getDisplayInfo =
-      typeof orig?.getDisplayInfo === "function"
-        ? orig?.getDisplayInfo
-        : orig?.getDisplayInfo
-        ? D2GetDisplayInfo(orig?.getDisplayInfo)
+      typeof orig.getDisplayInfo === "function"
+        ? orig.getDisplayInfo
+        : orig.getDisplayInfo
+        ? D2GetDisplayInfo(orig.getDisplayInfo)
         : () => undefined
-    this.displayRelatedComponents = orig?.displayRelatedComponents ?? false
-    this.getLink = orig?.getLink ?? (() => undefined)
-    this.header = orig?.header
-    this.footer = orig?.footer
+    this.hideComponents = orig.hideComponents ?? false
+    this.displayRelatedComponents =
+      !this.hideComponents && (orig.displayRelatedComponents ?? false)
+    this.getLink = orig.getLink ?? (() => undefined)
+    this.header = orig.header
+    this.footer = orig.footer
   }
 
   uptoModule(part: Module): Module
@@ -335,8 +339,10 @@ class RealD2Options {
   doesUptoModule(part: RelationEnd): boolean {
     return (
       isComponent(part) &&
-      !this.isSelected(part) &&
-      !this.displayRelatedComponents
+      (
+        this.hideComponents ||
+        (!this.isSelected(part) && !this.displayRelatedComponents)
+      )
     )
   }
   addDepth(): RealD2Options {
