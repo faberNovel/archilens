@@ -213,6 +213,9 @@ function generateDomain(domain: Domain, opts: RealD2Options): string[] {
     ...domain.modules
       .flatMap((m) => generateModule(m, opts.addDepth()))
       .map(indent),
+    ...domain.components
+      .flatMap((c) => generateComponent(c, opts.addDepth()))
+      .map(indent),
     "}",
   ]
 }
@@ -268,8 +271,8 @@ function generateRelation(relation: Relation, opts: RealD2Options): string[] {
   }
   if (
     // links between a container to its children
-    source.parent.uid === target.uid ||
-    target.parent.uid === source.uid
+    source.parent?.uid === target.uid ||
+    target.parent?.uid === source.uid
   ) {
     return []
   }
@@ -339,10 +342,8 @@ class RealD2Options {
   doesUptoModule(part: RelationEnd): boolean {
     return (
       isComponent(part) &&
-      (
-        this.hideComponents ||
-        (!this.isSelected(part) && !this.displayRelatedComponents)
-      )
+      (this.hideComponents ||
+        (!this.isSelected(part) && !this.displayRelatedComponents))
     )
   }
   addDepth(): RealD2Options {

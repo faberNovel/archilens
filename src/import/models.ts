@@ -11,6 +11,7 @@ export type Domain = {
   readonly label: string
   readonly domains: readonly Domain[]
   readonly modules: readonly Module[]
+  readonly components: readonly Component[]
 }
 
 export type Module = {

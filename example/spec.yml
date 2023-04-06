@@ -27,13 +27,10 @@ domains:
                 relations:
                   - target: orders-db
                     resources: [Order]
-                  - target: orders-events
+                  - target: changes
                     resources: [Order]
               - uid: orders-db
                 ctype: RDS
-                resources: [Order]
-              - uid: orders-events
-                ctype: KDS
                 resources: [Order]
           - uid: customers
             mtype: Service
@@ -87,13 +84,10 @@ domains:
                 relations:
                   - target: stocks-db
                     resources: [Stock]
-                  - target: stocks-events
+                  - target: changes
                     resources: [Stock]
               - uid: stocks-db
                 ctype: RDS
-                resources: [Stock]
-              - uid: stocks-events
-                ctype: KDS
                 resources: [Stock]
           - uid: stockists-app
             mtype: MobileApp
@@ -103,6 +97,15 @@ domains:
                 resources: [Stock]
   - uid: back-office
     label: "Back Office"
+    components:
+      - uid: changes
+        id: changes
+        async: true
+        ctype: KDS
+        resources:
+          - Order
+          - Customer
+          - Stock
     modules:
       - uid: management
         mtype: Service
@@ -136,22 +139,13 @@ domains:
             ctype: RDS
             resources:
               - Metrics
-          - uid: management-orders-listener
+          - uid: management-changes-listener
             ctype: Lambda
             relations:
-              - target: orders-events
+              - target: changes
                 rtype: listen
-                description: "Watch for order updates"
-                resources: [Order]
-              - target: management-db
-                resources: [Metrics]
-          - uid: management-stocks-listener
-            ctype: Lambda
-            relations:
-              - target: stocks-events
-                rtype: listen
-                description: "Watch for stock movements"
-                resources: [Stock]
+                description: "Watch for updates"
+                resources: [Order, Stock]
               - target: management-db
                 resources: [Metrics]
       - uid: dashboard

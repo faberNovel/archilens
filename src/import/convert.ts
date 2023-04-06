@@ -40,7 +40,8 @@ class ImportedDomain extends Engine.Domain {
   readonly label: string
   readonly domains: Engine.Domain[]
   readonly modules: Engine.Module[]
-  readonly children: ReadonlyMap<Id, Engine.Domain | Engine.Module>
+  readonly components: Engine.Component[]
+  readonly children: ReadonlyMap<Id, Engine.Part>
   readonly descendents: ReadonlyMap<Uid, Engine.Part>
 
   constructor(imported: Import.Domain, parent: Engine.Domain | Engine.System) {
@@ -52,14 +53,19 @@ class ImportedDomain extends Engine.Domain {
     this.label = imported.label
     this.domains = imported.domains.map((d) => new ImportedDomain(d, this))
     this.modules = imported.modules.map((m) => new ImportedModule(m, this))
-    this.children = new Map<Id, Engine.Domain | Engine.Module>([
+    this.components = imported.components.map(
+      (m) => new ImportedComponent(m, this),
+    )
+    this.children = new Map<Id, Engine.Part>([
       ...this.domains.map((d) => [d.id, d] as const),
       ...this.modules.map((m) => [m.id, m] as const),
+      ...this.components.map((c) => [c.id, c] as const),
     ])
     this.descendents = new Map<Uid, Engine.Part>([
       [this.uid, this],
       ...this.domains.flatMap((d) => [...d.descendents]),
       ...this.modules.flatMap((m) => [...m.descendents]),
+      ...this.components.flatMap((m) => [...m.descendents]),
     ])
   }
 }
@@ -120,7 +126,10 @@ class ImportedComponent extends Engine.Component {
   readonly descendents: Map<Uid, Engine.Component>
   readonly resources: readonly Engine.Resource[]
 
-  constructor(imported: Import.Component, readonly parent: Engine.Module) {
+  constructor(
+    imported: Import.Component,
+    readonly parent: Engine.Domain | Engine.Module,
+  ) {
     super()
     this.uid = imported.uid
     this.id = imported.id ?? Id(imported.uid)

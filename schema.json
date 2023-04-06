@@ -45,12 +45,16 @@
           "items": {
             "$ref": "#/$defs/module"
           }
+        },
+        "components": {
+          "description": "The list of components",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/component"
+          }
         }
       },
-      "required": [
-        "uid",
-        "label"
-      ]
+      "required": ["uid", "label"]
     },
     "module": {
       "type": "object",
@@ -93,11 +97,7 @@
           }
         }
       },
-      "required": [
-        "uid",
-        "mtype",
-        "label"
-      ]
+      "required": ["uid", "mtype", "label"]
     },
     "component": {
       "type": "object",
@@ -133,10 +133,7 @@
           }
         }
       },
-      "required": [
-        "uid",
-        "ctype"
-      ]
+      "required": ["uid", "ctype"]
     },
     "relation": {
       "type": "object",
@@ -161,15 +158,11 @@
           }
         }
       },
-      "required": [
-        "target"
-      ]
+      "required": ["target"]
     },
     "resource": {
       "type": "string"
     }
   },
-  "required": [
-    "lastUpdateAt"
-  ]
+  "required": ["lastUpdateAt"]
 }

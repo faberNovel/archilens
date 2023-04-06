@@ -129,12 +129,16 @@ export abstract class Part {
   directDependencies(): Module[] {
     return [
       ...new Set(
-        this.descendentsRelations().map((rel) => {
+        this.descendentsRelations().flatMap((rel) => {
           const target = rel.target
           if (isComponent(target)) {
-            return target.parent
+            if (isModule(target.parent)) {
+              return [target.parent]
+            } else {
+              return []
+            }
           } else {
-            return target
+            return [target]
           }
         }),
       ),
@@ -142,7 +146,9 @@ export abstract class Part {
   }
   indirectDependencies(): Module[] {
     const self = new Set<Part>(this.descendents.values())
-    const toSee = new Set<Part>(this.descendentsRelations().map((r) => r.target))
+    const toSee = new Set<Part>(
+      this.descendentsRelations().map((r) => r.target),
+    )
     const seen = new Set<Part>(self)
     while (toSee.size > 0) {
       for (const part of [...toSee]) {
@@ -168,12 +174,16 @@ export abstract class Part {
   directDependents(): Module[] {
     return [
       ...new Set(
-        this.descendentsInverseRelations().map((rel) => {
+        this.descendentsInverseRelations().flatMap((rel) => {
           const source = rel.source
           if (isComponent(source)) {
-            return source.parent
+            if (isModule(source.parent)) {
+              return [source.parent]
+            } else {
+              return []
+            }
           } else {
-            return source
+            return [source]
           }
         }),
       ),
@@ -235,7 +245,7 @@ export abstract class Domain extends Part {
   abstract readonly parent: Domain | undefined
   abstract readonly domains: readonly Domain[]
   abstract readonly modules: readonly Module[]
-  abstract readonly children: ReadonlyMap<Id, Domain | Module>
+  abstract readonly components: readonly Component[]
 }
 export function isDomain(value: unknown): value is Domain {
   return value instanceof Domain
@@ -255,7 +265,7 @@ export function isModule(value: unknown): value is Module {
 }
 
 export abstract class Component extends Part {
-  abstract readonly parent: Module
+  abstract readonly parent: Domain | Module
   abstract readonly descendents: ReadonlyMap<Uid, Component>
   abstract readonly type: string
   abstract readonly relations: readonly Relation[]

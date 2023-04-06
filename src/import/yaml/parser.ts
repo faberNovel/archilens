@@ -89,6 +89,7 @@ const zDomain = (): z.ZodType<Import.Domain> =>
       label: z.string().nonempty(),
       domains: z.lazy(() => z.array(zDomain()).default([])),
       modules: z.array(zModule()).default([]),
+      components: z.array(zComponent()).default([]),
     })
     .transform(
       (data) =>
@@ -98,6 +99,7 @@ const zDomain = (): z.ZodType<Import.Domain> =>
           label: data.label,
           domains: data.domains,
           modules: data.modules,
+          components: data.components,
         } satisfies Import.Domain),
     ) as unknown as z.ZodType<Import.Domain>
 

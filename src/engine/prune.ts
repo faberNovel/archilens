@@ -66,14 +66,18 @@ class RealPruneOpts implements PruneOpts {
     )
     this.forceOnResources = opts.forceOnResources ?? false
   }
-  isSelected(part: Part, forceShowComponent: boolean = false): boolean {
+  isSelected(part: Part): boolean {
     const isIncluded = () => this.include.includes(part.uid)
     const isOpened = () => this.open.includes(part.uid)
     const containsIncludedResource = () =>
-      isComponent(part) &&
-      this.includeResources.some((rUid) =>
-        part.resources.some((r) => r.uid === rUid),
-      )
+      (isComponent(part) &&
+        this.includeResources.some((rUid) =>
+          part.resources.some((r) => r.uid === rUid),
+        )) ||
+      (isModule(part) &&
+        this.includeResources.some((rUid) =>
+          part.ownedResources.some((r) => r.uid === rUid),
+        ))
     const containsIncludedRelationResource = () =>
       isRelationEnd(part) &&
       this.includeResources.some((rUid) =>
@@ -202,8 +206,14 @@ function filterDomain(
 ): Domain | undefined {
   const domains = filterDomains(domain.domains, domain, displayedParts)
   const modules = filterModules(domain.modules, domain, displayedParts)
-  if (displayedParts.has(domain) || domains.length > 0 || modules.length > 0) {
-    return new PrunedDomain(domain, parent, domains, modules)
+  const components = filterComponents(domain.components, domain, displayedParts)
+  if (
+    displayedParts.has(domain) ||
+    domains.length > 0 ||
+    modules.length > 0 ||
+    components.length > 0
+  ) {
+    return new PrunedDomain(domain, parent, domains, modules, components)
   }
 }
 
@@ -215,7 +225,8 @@ class PrunedDomain extends Domain {
   readonly label: string
   readonly domains: readonly Domain[]
   readonly modules: readonly Module[]
-  readonly children: ReadonlyMap<Id, Domain | Module>
+  readonly components: readonly Component[]
+  readonly children: ReadonlyMap<Id, Part>
   readonly descendents: ReadonlyMap<Uid, Part>
 
   constructor(
@@ -223,6 +234,7 @@ class PrunedDomain extends Domain {
     parent: Domain | System,
     domains: readonly Domain[],
     modules: readonly Module[],
+    components: readonly Component[],
   ) {
     super()
     this.system = isDomain(parent) ? parent.system : parent
@@ -232,14 +244,17 @@ class PrunedDomain extends Domain {
     this.label = original.label
     this.domains = domains
     this.modules = modules
-    this.children = new Map<Id, Domain | Module>([
+    this.components = components
+    this.children = new Map<Id, Part>([
       ...this.domains.map((d) => [d.id, d] as const),
       ...this.modules.map((m) => [m.id, m] as const),
+      ...this.components.map((c) => [c.id, c] as const),
     ])
     this.descendents = new Map<Uid, Part>([
       [this.uid, this],
       ...this.domains.flatMap((d) => [...d.descendents]),
       ...this.modules.flatMap((m) => [...m.descendents]),
+      ...this.components.flatMap((m) => [...m.descendents]),
     ])
   }
 }
@@ -308,7 +323,7 @@ class PrunedModule extends Module {
 
 function filterComponents(
   components: readonly Component[],
-  parent: Module,
+  parent: Domain | Module,
   displayedParts: ReadonlySet<Part>,
 ): Component[] {
   return components
@@ -318,7 +333,7 @@ function filterComponents(
 
 function filterComponent(
   component: Component,
-  parent: Module,
+  parent: Domain | Module,
   displayedParts: ReadonlySet<Part>,
 ): Component | undefined {
   if (displayedParts.has(component)) {
@@ -330,7 +345,7 @@ class PrunedComponent extends Component {
   get system(): System {
     return this.parent.system
   }
-  readonly parent: Module
+  readonly parent: Domain | Module
   readonly uid: Uid
   readonly id: Id
   readonly type: string
@@ -341,7 +356,7 @@ class PrunedComponent extends Component {
   readonly descendents: ReadonlyMap<Uid, Component>
   readonly resources: readonly Resource[]
 
-  constructor(original: Component, parent: Module) {
+  constructor(original: Component, parent: Domain | Module) {
     super()
     this.parent = parent
     this.uid = original.uid
