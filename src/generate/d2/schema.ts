@@ -288,6 +288,11 @@ function generateRelation(relation: Relation, opts: RealD2Options): string[] {
       custom =
         "{ style.border-radius: 5; style.stroke-dash: 3; style.animated: true }"
       break
+    case RelationType.Tell:
+      arrow = "->"
+      custom =
+        "{ style.border-radius: 5; style.stroke-dash: 3; style.animated: true }"
+      break
   }
   const description = relation.label ? `"${relation.label}" ` : ""
   return [

@@ -1,6 +1,7 @@
 export enum RelationType {
   Ask = "ask",
   Listen = "listen",
+  Tell = "tell",
 }
 
 export type Uid = string & { readonly _uid: unique symbol }
