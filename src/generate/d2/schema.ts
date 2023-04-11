@@ -277,7 +277,11 @@ function generateRelation(relation: Relation, opts: RealD2Options): string[] {
   ) {
     return []
   }
-  if (opts.doesUptoModule(relation.target) && isComponent(relation.target) && relation.target.mergeAsAsync) {
+  if (
+    opts.doesUptoModule(relation.target) &&
+    isComponent(relation.target) &&
+    relation.target.mergeAsAsync
+  ) {
     rtype = RelationType.Tell
   }
   let arrow: string

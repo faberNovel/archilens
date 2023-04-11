@@ -66,7 +66,7 @@ export async function writeDependenciesIntoNotion(
         ]),
       ],
     })
-    await sleep(300)
+    await sleep(500)
   }
 }
 
