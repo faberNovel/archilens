@@ -1,5 +1,4 @@
 import { Id, RelationType, Uid } from "../shared/models"
-import "../utils/set" // Set#addAll
 import { asWritable } from "../utils/types"
 
 import {
@@ -137,8 +136,8 @@ function computeDisplayedParts(
       ...opts.includedRelations(part, depth),
       ...opts.includedInverseRelations(part, depth),
     ].filter((r) => !opts.isRelationExcluded(r))
-    displayedRelations.addAll(relations)
     for (const relation of relations) {
+      displayedRelations.add(relation)
       relationEnds.add(relation.source)
       relationEnds.add(relation.target)
     }
