@@ -14,6 +14,7 @@ async function main() {
   // })
 
   await archilens.writeHldAsSvgFiles(exportDir, diagram, {
+    generateComponentsSchemas: false,
     // followRelations: 1,
     // followInverseRelations: 1,
     getDisplayInfo: archilens.D2GetDisplayInfo(

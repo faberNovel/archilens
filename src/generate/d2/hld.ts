@@ -16,6 +16,7 @@ export type GenerateHldOpts = {
   readonly followInverseRelations?: RelationInclusion | undefined
   readonly hideComponents?: boolean | undefined
   readonly forceOnResources?: boolean | undefined
+  readonly generateComponentsSchemas?: boolean | undefined
 }
 export async function writeHldAsSvgFiles(
   outputDir: string,
@@ -75,15 +76,17 @@ export async function writeHldAsSvgFiles(
     opts,
   )
   for (const [uid, part] of diagram.parts) {
-    await generatePart(
-      diagram,
-      part.label,
-      outputDir,
-      part.path(path.sep) + ".svg",
-      part.isDomain ? { open: [uid] } : [uid],
-      { index: "index.svg", Resources: "_resources/index.svg" },
-      opts,
-    )
+    if (opts.generateComponentsSchemas !== false || !part.isComponent) {
+      await generatePart(
+        diagram,
+        part.label,
+        outputDir,
+        part.path(path.sep) + ".svg",
+        part.isDomain ? { open: [uid] } : [uid],
+        { index: "index.svg", Resources: "_resources/index.svg" },
+        opts,
+      )
+    }
   }
 }
 
