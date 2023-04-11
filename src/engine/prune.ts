@@ -354,6 +354,7 @@ class PrunedComponent extends Component {
   readonly children: ReadonlyMap<Id, Component> = new Map()
   readonly descendents: ReadonlyMap<Uid, Component>
   readonly resources: readonly Resource[]
+  readonly mergeAsAsync: boolean
 
   constructor(original: Component, parent: Domain | Module) {
     super()
@@ -366,6 +367,7 @@ class PrunedComponent extends Component {
     this.inverseRelations = []
     this.descendents = new Map<Uid, Component>([[this.uid, this]])
     this.resources = original.resources
+    this.mergeAsAsync = original.mergeAsAsync
   }
 }
 

@@ -44,6 +44,7 @@ const zComponent = (): z.ZodType<Import.Component> =>
       label: z.string().nonempty().optional(),
       relations: z.array(zRelation()).default([]),
       resources: z.array(zResource()).default([]),
+      async: z.boolean().default(false),
     })
     .transform(
       (data) =>
@@ -54,6 +55,7 @@ const zComponent = (): z.ZodType<Import.Component> =>
           label: data.label,
           relations: data.relations,
           resources: data.resources,
+          mergeAsAsync: data.async,
         } satisfies Import.Component),
     ) as unknown as z.ZodType<Import.Component>
 

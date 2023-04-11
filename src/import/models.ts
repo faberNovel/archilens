@@ -31,6 +31,7 @@ export type Component = {
   readonly label: string | undefined
   readonly relations: readonly Relation[]
   readonly resources: readonly Resource[]
+  readonly mergeAsAsync: boolean
 }
 
 export type Relation = {

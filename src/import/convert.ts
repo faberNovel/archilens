@@ -125,6 +125,7 @@ class ImportedComponent extends Engine.Component {
   readonly children: ReadonlyMap<Id, Engine.Component> = new Map()
   readonly descendents: Map<Uid, Engine.Component>
   readonly resources: readonly Engine.Resource[]
+  readonly mergeAsAsync: boolean
 
   constructor(
     imported: Import.Component,
@@ -137,8 +138,9 @@ class ImportedComponent extends Engine.Component {
     this.label = imported.label ?? imported.uid
     this.relations = []
     this.inverseRelations = []
-    this.resources = imported.resources.map((r) => new ImportedResource(r))
     this.descendents = new Map([[this.uid, this]])
+    this.resources = imported.resources.map((r) => new ImportedResource(r))
+    this.mergeAsAsync = imported.mergeAsAsync
   }
 }
 

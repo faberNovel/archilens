@@ -262,6 +262,7 @@ function generateComponent(
 function generateRelation(relation: Relation, opts: RealD2Options): string[] {
   const source = opts.uptoModule(relation.source)
   const target = opts.uptoModule(relation.target)
+  let rtype = relation.type
   if (
     source === target &&
     (relation.source !== source || relation.target !== target) &&
@@ -276,9 +277,12 @@ function generateRelation(relation: Relation, opts: RealD2Options): string[] {
   ) {
     return []
   }
+  if (opts.doesUptoModule(relation.target) && isComponent(relation.target) && relation.target.mergeAsAsync) {
+    rtype = RelationType.Tell
+  }
   let arrow: string
   let custom: string
-  switch (relation.type) {
+  switch (rtype) {
     case RelationType.Ask:
       arrow = "->"
       custom = "{ style.border-radius: 5 }"

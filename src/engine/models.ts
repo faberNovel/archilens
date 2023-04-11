@@ -271,6 +271,7 @@ export abstract class Component extends Part {
   abstract readonly relations: readonly Relation[]
   abstract readonly inverseRelations: readonly Relation[]
   abstract readonly resources: readonly Resource[]
+  abstract readonly mergeAsAsync: boolean
 }
 export function isComponent(value: unknown): value is Component {
   return value instanceof Component
