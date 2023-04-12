@@ -19,11 +19,11 @@ import {
 export type RelationInclusion = false | number | "all"
 
 export type PruneOpts = {
-  readonly include?: readonly (Uid | string)[] | undefined
-  readonly open?: readonly (Uid | string)[] | undefined
+  readonly include?: readonly Uid[] | undefined
+  readonly open?: readonly Uid[] | undefined
   readonly followRelations?: RelationInclusion | undefined
   readonly followInverseRelations?: RelationInclusion | undefined
-  readonly includeResources?: readonly (Uid | string)[] | undefined
+  readonly includeResources?: readonly Uid[] | undefined
   readonly forceOnResources?: boolean | undefined
 }
 
@@ -56,13 +56,11 @@ class RealPruneOpts implements PruneOpts {
   readonly includeResources: readonly Uid[]
   readonly forceOnResources: boolean
   constructor(opts: PruneOpts) {
-    this.include = (opts.include ?? []).map((uid) => Uid(uid.toString()))
-    this.open = (opts.open ?? []).map((uid) => Uid(uid.toString()))
+    this.include = opts.include ?? []
+    this.open = opts.open ?? []
     this.followRelations = opts.followRelations ?? 1
     this.followInverseRelations = opts.followInverseRelations ?? false
-    this.includeResources = (opts.includeResources ?? []).map((uid) =>
-      Uid(uid.toString()),
-    )
+    this.includeResources = opts.includeResources ?? []
     this.forceOnResources = opts.forceOnResources ?? false
   }
   isSelected(part: Part): boolean {

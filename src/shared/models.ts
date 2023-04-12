@@ -4,12 +4,13 @@ export enum RelationType {
   Tell = "tell",
 }
 
-export type Uid = string & { readonly _uid: unique symbol }
-export function Uid(uid: string): Uid {
-  return uid as Uid
-}
+// Can't use objects since they will be used as Map keys
 
-export type Id = string & { readonly _id: unique symbol }
-export function Id(id: string): Id {
-  return id as Id
+export type Uid = string & { readonly _uid: unique symbol }
+export function Uid(value: string): Uid {
+  return value as Uid
+}
+export type Id = string & { readonly _uid: unique symbol }
+export function Id(value: string | Uid): Id {
+  return value as Id
 }
