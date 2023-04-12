@@ -1,6 +1,6 @@
 import * as Engine from "../engine/models"
 import { isDomain } from "../engine/models"
-import { Id, RelationType, Uid } from "../shared/models"
+import { Id, RelationType, Tag, Uid } from "../shared/models"
 import { asWritable } from "../utils/types"
 
 import * as Import from "./models"
@@ -41,6 +41,7 @@ class ImportedDomain extends Engine.Domain {
   readonly domains: Engine.Domain[]
   readonly modules: Engine.Module[]
   readonly components: Engine.Component[]
+  readonly ownTags: readonly Tag[]
   readonly children: ReadonlyMap<Id, Engine.Part>
   readonly descendents: ReadonlyMap<Uid, Engine.Part>
 
@@ -56,6 +57,7 @@ class ImportedDomain extends Engine.Domain {
     this.components = imported.components.map(
       (m) => new ImportedComponent(m, this),
     )
+    this.ownTags = imported.tags
     this.children = new Map<Id, Engine.Part>([
       ...this.domains.map((d) => [d.id, d] as const),
       ...this.modules.map((m) => [m.id, m] as const),
@@ -85,6 +87,7 @@ class ImportedModule extends Engine.Module {
   readonly children: ReadonlyMap<Id, Engine.Component>
   readonly descendents: Map<Uid, Engine.Module | Engine.Component>
   readonly ownedResources: readonly Engine.Resource[]
+  readonly ownTags: readonly Tag[]
   constructor(imported: Import.Module, parent: Engine.Domain) {
     super()
     this.parent = parent
@@ -100,6 +103,7 @@ class ImportedModule extends Engine.Module {
     this.ownedResources = imported.ownedResources.map(
       (r) => new ImportedResource(r),
     )
+    this.ownTags = imported.tags
     this.children = new Map<Id, Engine.Component>(
       this.components.map((c) => [c.id, c]),
     )
@@ -125,6 +129,7 @@ class ImportedComponent extends Engine.Component {
   readonly children: ReadonlyMap<Id, Engine.Component> = new Map()
   readonly descendents: Map<Uid, Engine.Component>
   readonly resources: readonly Engine.Resource[]
+  readonly ownTags: readonly Tag[]
   readonly mergeAsAsync: boolean
 
   constructor(
@@ -140,6 +145,7 @@ class ImportedComponent extends Engine.Component {
     this.inverseRelations = []
     this.descendents = new Map([[this.uid, this]])
     this.resources = imported.resources.map((r) => new ImportedResource(r))
+    this.ownTags = imported.tags
     this.mergeAsAsync = imported.mergeAsAsync
   }
 }
@@ -215,6 +221,7 @@ class ImportedRelation extends Engine.Relation {
   readonly type: RelationType
   readonly description: string | undefined
   readonly resources: readonly Engine.Resource[]
+  readonly tags: readonly Tag[]
 
   constructor(
     imported: Import.Relation,
@@ -227,6 +234,7 @@ class ImportedRelation extends Engine.Relation {
     this.type = imported.relationType
     this.description = imported.description
     this.resources = imported.resources.map((r) => new ImportedResource(r))
+    this.tags = imported.tags
   }
 }
 

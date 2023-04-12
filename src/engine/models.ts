@@ -1,4 +1,4 @@
-import { Id, RelationType, Uid } from "../shared/models"
+import { Id, RelationType, Tag, Uid } from "../shared/models"
 
 export abstract class System {
   abstract readonly lastUpdateAt: Date
@@ -36,6 +36,10 @@ export abstract class System {
     const resources = [...descendentsResources, ...relationsResources]
     return [...new Map(resources.map((r) => [r.uid, r])).values()]
   }
+
+  tags(): Tag[] {
+    return [...new Set([...this.parts.values()].flatMap((p) => p.ownTags))]
+  }
 }
 
 export type ParentPart = Domain | Module
@@ -48,6 +52,7 @@ export abstract class Part {
   abstract readonly label: string
   abstract readonly children: ReadonlyMap<Id, Part>
   abstract readonly descendents: ReadonlyMap<Uid, Part>
+  abstract readonly ownTags: readonly Tag[]
 
   get isDomain(): boolean {
     return isDomain(this)
@@ -61,6 +66,10 @@ export abstract class Part {
 
   get ancestors(): Part[] {
     return this.parent ? this.parent.path() : []
+  }
+
+  get tags(): Tag[] {
+    return [...new Set([...this.ownTags, ...this.ancestors.flatMap((p) => p.ownTags)])].sort()
   }
 
   child(id: Id): Part | undefined
@@ -288,6 +297,7 @@ export abstract class Relation {
   abstract readonly type: RelationType
   abstract readonly description: string | undefined
   abstract readonly resources: readonly Resource[]
+  abstract readonly tags: readonly Tag[]
 
   get label(): string | undefined {
     return this.description

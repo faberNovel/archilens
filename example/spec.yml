@@ -29,6 +29,7 @@ domains:
                     resources: [Order]
                   - target: changes
                     resources: [Order]
+                    tags: [BI]
               - uid: orders-db
                 ctype: RDS
                 resources: [Order]
@@ -86,6 +87,7 @@ domains:
                     resources: [Stock]
                   - target: changes
                     resources: [Stock]
+                    tags: [BI]
               - uid: stocks-db
                 ctype: RDS
                 resources: [Stock]
@@ -106,6 +108,7 @@ domains:
           - Order
           - Customer
           - Stock
+        tags: [BI]
     modules:
       - uid: management
         mtype: Service
@@ -148,6 +151,7 @@ domains:
                 resources: [Order, Stock]
               - target: management-db
                 resources: [Metrics]
+            tags: [BI]
       - uid: dashboard
         mtype: WebApp
         label: "Dashboard"

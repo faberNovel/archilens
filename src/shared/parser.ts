@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { Id, RelationType, Uid } from "./models"
+import { Id, RelationType, Tag, Uid } from "./models"
 
 export const zRelationType = (): z.ZodType<RelationType> =>
   z.union([
@@ -14,3 +14,6 @@ export const zUid = (): z.ZodEffects<z.ZodString, Uid, string> =>
 
 export const zId = (): z.ZodEffects<z.ZodString, Id, string> =>
   z.string().transform(Id)
+
+export const zTag = (): z.ZodEffects<z.ZodString, Tag, string> =>
+  z.string().transform(Tag)

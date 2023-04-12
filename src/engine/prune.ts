@@ -1,4 +1,4 @@
-import { Id, RelationType, Uid } from "../shared/models"
+import { Id, RelationType, Tag, Uid } from "../shared/models"
 import { asWritable } from "../utils/types"
 
 import {
@@ -19,8 +19,8 @@ import {
 export type RelationInclusion = false | number | "all"
 
 export type PruneOpts = {
-  readonly include?: readonly Uid[] | undefined
-  readonly open?: readonly Uid[] | undefined
+  readonly include?: readonly (Uid | Tag)[] | undefined
+  readonly open?: readonly (Uid | Tag)[] | undefined
   readonly followRelations?: RelationInclusion | undefined
   readonly followInverseRelations?: RelationInclusion | undefined
   readonly includeResources?: readonly Uid[] | undefined
@@ -49,8 +49,8 @@ export class PruneError extends Error {
 }
 
 class RealPruneOpts implements PruneOpts {
-  readonly include: readonly Uid[]
-  readonly open: readonly Uid[]
+  readonly include: readonly (Uid | Tag)[]
+  readonly open: readonly (Uid | Tag)[]
   readonly followRelations: RelationInclusion
   readonly followInverseRelations: RelationInclusion
   readonly includeResources: readonly Uid[]
@@ -64,8 +64,12 @@ class RealPruneOpts implements PruneOpts {
     this.forceOnResources = opts.forceOnResources ?? false
   }
   isSelected(part: Part): boolean {
-    const isIncluded = () => this.include.includes(part.uid)
-    const isOpened = () => this.open.includes(part.uid)
+    const isIncluded = () =>
+      this.include.includes(part.uid) ||
+      part.tags.some((tag) => this.include.includes(tag))
+    const isOpened = () =>
+      this.open.includes(part.uid) ||
+      part.tags.some((tag) => this.open.includes(tag))
     const containsIncludedResource = () =>
       (isComponent(part) &&
         this.includeResources.some((rUid) =>
@@ -223,6 +227,7 @@ class PrunedDomain extends Domain {
   readonly domains: readonly Domain[]
   readonly modules: readonly Module[]
   readonly components: readonly Component[]
+  readonly ownTags: readonly Tag[]
   readonly children: ReadonlyMap<Id, Part>
   readonly descendents: ReadonlyMap<Uid, Part>
 
@@ -242,6 +247,7 @@ class PrunedDomain extends Domain {
     this.domains = domains
     this.modules = modules
     this.components = components
+    this.ownTags = original.ownTags
     this.children = new Map<Id, Part>([
       ...this.domains.map((d) => [d.id, d] as const),
       ...this.modules.map((m) => [m.id, m] as const),
@@ -292,6 +298,7 @@ class PrunedModule extends Module {
   readonly children: ReadonlyMap<Id, Component>
   readonly descendents: ReadonlyMap<Uid, RelationEnd>
   readonly ownedResources: readonly Resource[]
+  readonly ownTags: readonly Tag[]
 
   constructor(
     original: Module,
@@ -308,6 +315,7 @@ class PrunedModule extends Module {
     this.inverseRelations = []
     this.components = components
     this.ownedResources = original.ownedResources
+    this.ownTags = original.ownTags
     this.children = new Map<Id, Component>(
       this.components.map((c) => [c.id, c]),
     )
@@ -352,6 +360,7 @@ class PrunedComponent extends Component {
   readonly children: ReadonlyMap<Id, Component> = new Map()
   readonly descendents: ReadonlyMap<Uid, Component>
   readonly resources: readonly Resource[]
+  readonly ownTags: readonly Tag[]
   readonly mergeAsAsync: boolean
 
   constructor(original: Component, parent: Domain | Module) {
@@ -365,6 +374,7 @@ class PrunedComponent extends Component {
     this.inverseRelations = []
     this.descendents = new Map<Uid, Component>([[this.uid, this]])
     this.resources = original.resources
+    this.ownTags = original.ownTags
     this.mergeAsAsync = original.mergeAsAsync
   }
 }
@@ -461,6 +471,7 @@ class PrunedRelation extends Relation {
   readonly type: RelationType
   readonly description: string | undefined
   readonly resources: readonly Resource[]
+  readonly tags: readonly Tag[]
 
   constructor(original: Relation, source: RelationEnd, target: RelationEnd) {
     super()
@@ -469,5 +480,6 @@ class PrunedRelation extends Relation {
     this.type = original.type
     this.description = original.description
     this.resources = original.resources
+    this.tags = original.tags
   }
 }

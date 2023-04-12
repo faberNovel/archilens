@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 import { RelationType, Uid } from "../../shared/models"
-import { zId, zRelationType, zUid } from "../../shared/parser"
+import { zId, zRelationType, zTag, zUid } from "../../shared/parser"
 
 import * as Import from "../models"
 
@@ -24,6 +24,7 @@ const zRelation = (): z.ZodType<Import.Relation> =>
       target: zUid(),
       rtype: zRelationType().optional(),
       resources: z.array(zResource()).default([]),
+      tags: z.array(zTag()).default([]),
     })
     .transform(
       (data) =>
@@ -32,6 +33,7 @@ const zRelation = (): z.ZodType<Import.Relation> =>
           targetUid: data.target,
           relationType: data.rtype ?? RelationType.Ask,
           resources: data.resources,
+          tags: data.tags,
         } satisfies Import.Relation),
     ) as unknown as z.ZodType<Import.Relation>
 
@@ -44,6 +46,7 @@ const zComponent = (): z.ZodType<Import.Component> =>
       label: z.string().nonempty().optional(),
       relations: z.array(zRelation()).default([]),
       resources: z.array(zResource()).default([]),
+      tags: z.array(zTag()).default([]),
       async: z.boolean().default(false),
     })
     .transform(
@@ -55,6 +58,7 @@ const zComponent = (): z.ZodType<Import.Component> =>
           label: data.label,
           relations: data.relations,
           resources: data.resources,
+          tags: data.tags,
           mergeAsAsync: data.async,
         } satisfies Import.Component),
     ) as unknown as z.ZodType<Import.Component>
@@ -69,6 +73,7 @@ const zModule = (): z.ZodType<Import.Module> =>
       components: z.array(zComponent()).default([]),
       relations: z.array(zRelation()).default([]),
       ownedResources: z.array(zResource()).default([]),
+      tags: z.array(zTag()).default([]),
     })
     .transform(
       (data) =>
@@ -80,6 +85,7 @@ const zModule = (): z.ZodType<Import.Module> =>
           components: data.components,
           relations: data.relations,
           ownedResources: data.ownedResources,
+          tags: data.tags,
         } satisfies Import.Module),
     ) as unknown as z.ZodType<Import.Module>
 
@@ -92,6 +98,7 @@ const zDomain = (): z.ZodType<Import.Domain> =>
       domains: z.lazy(() => z.array(zDomain()).default([])),
       modules: z.array(zModule()).default([]),
       components: z.array(zComponent()).default([]),
+      tags: z.array(zTag()).default([]),
     })
     .transform(
       (data) =>
@@ -102,6 +109,7 @@ const zDomain = (): z.ZodType<Import.Domain> =>
           domains: data.domains,
           modules: data.modules,
           components: data.components,
+          tags: data.tags,
         } satisfies Import.Domain),
     ) as unknown as z.ZodType<Import.Domain>
 

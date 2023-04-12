@@ -1,4 +1,4 @@
-import { Id, RelationType, Uid } from "../shared/models"
+import { Id, RelationType, Tag, Uid } from "../shared/models"
 
 export type System = {
   readonly lastUpdateAt: Date
@@ -12,6 +12,7 @@ export type Domain = {
   readonly domains: readonly Domain[]
   readonly modules: readonly Module[]
   readonly components: readonly Component[]
+  readonly tags: readonly Tag[]
 }
 
 export type Module = {
@@ -22,6 +23,7 @@ export type Module = {
   readonly components: readonly Component[]
   readonly relations: readonly Relation[]
   readonly ownedResources: readonly Resource[]
+  readonly tags: readonly Tag[]
 }
 
 export type Component = {
@@ -31,6 +33,7 @@ export type Component = {
   readonly label: string | undefined
   readonly relations: readonly Relation[]
   readonly resources: readonly Resource[]
+  readonly tags: readonly Tag[]
   readonly mergeAsAsync: boolean
 }
 
@@ -39,6 +42,7 @@ export type Relation = {
   readonly relationType: RelationType
   readonly description: string | undefined
   readonly resources: readonly Resource[]
+  readonly tags: readonly Tag[]
 }
 
 export type Resource = {
