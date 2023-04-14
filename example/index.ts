@@ -14,6 +14,12 @@ async function main() {
   // })
 
   await archilens.writeHldAsSvgFiles(exportDir, diagram, {
+    variations: [
+      { name: 'HLD', alt: 'LLD', path: 'hld', hideComponents: true, excludeTags: ["BI"] },
+      { name: 'HLD BI', alt: 'LLD BI', path: 'hld-bi', hideComponents: true },
+      { name: 'LLD', alt: 'HLD', path: 'lld', hideComponents: false, excludeTags: ["BI"] },
+      { name: 'LLD BI', alt: 'HLD BI', path: 'lld-bi', hideComponents: false },
+    ],
     generateComponentsSchemas: false,
     // followRelations: 1,
     // followInverseRelations: 1,
