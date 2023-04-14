@@ -79,7 +79,7 @@ domains:
                   prefix: "/stocks"
                   resources: [Stock]
                 relations:
-                  - target: stocks-apigw
+                  - target: stocks-api
               - uid: stocks-api
                 ctype: ECS
                 relations:
