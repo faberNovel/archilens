@@ -21,6 +21,7 @@ export type RelationInclusion = false | number | "all"
 export type PruneOpts = {
   readonly include?: readonly (Uid | Tag)[] | undefined
   readonly open?: readonly (Uid | Tag)[] | undefined
+  readonly exclude?: readonly (Uid | Tag)[] | undefined
   readonly followRelations?: RelationInclusion | undefined
   readonly followInverseRelations?: RelationInclusion | undefined
   readonly includeResources?: readonly Uid[] | undefined
@@ -51,6 +52,7 @@ export class PruneError extends Error {
 class RealPruneOpts implements PruneOpts {
   readonly include: readonly (Uid | Tag)[]
   readonly open: readonly (Uid | Tag)[]
+  readonly exclude: readonly (Uid | Tag)[]
   readonly followRelations: RelationInclusion
   readonly followInverseRelations: RelationInclusion
   readonly includeResources: readonly Uid[]
@@ -58,10 +60,17 @@ class RealPruneOpts implements PruneOpts {
   constructor(opts: PruneOpts) {
     this.include = opts.include ?? []
     this.open = opts.open ?? []
+    this.exclude = opts.exclude ?? []
     this.followRelations = opts.followRelations ?? 1
     this.followInverseRelations = opts.followInverseRelations ?? false
     this.includeResources = opts.includeResources ?? []
     this.forceOnResources = opts.forceOnResources ?? false
+  }
+  isExcluded(part: Part): boolean {
+    return (
+      this.exclude.includes(part.uid) ||
+      part.tags.some((tag) => this.exclude.includes(tag))
+    )
   }
   isSelected(part: Part): boolean {
     const isIncluded = () =>
@@ -89,20 +98,22 @@ class RealPruneOpts implements PruneOpts {
     const isParentOpened = () =>
       part.parent !== undefined && this.open.includes(part.parent.uid)
 
-    const result =
+    const result = () =>
       isIncluded() ||
       isOpened() ||
       containsIncludedResource() ||
       containsIncludedRelationResource() ||
       isParentOpened()
-    return result
+    return !this.isExcluded(part) && result()
   }
   isRelationExcluded(relation: Relation): boolean {
     return (
-      this.forceOnResources &&
-      !this.includeResources.some((rUid) =>
-        relation.resources.some((r) => r.uid === rUid),
-      )
+      this.isExcluded(relation.source) ||
+      this.isExcluded(relation.target) ||
+      (this.forceOnResources &&
+        !this.includeResources.some((rUid) =>
+          relation.resources.some((r) => r.uid === rUid),
+        ))
     )
   }
   #isRelationIncluded(config: RelationInclusion, value: number): boolean {
