@@ -34,7 +34,7 @@ export abstract class System {
     )
     const relationsResources = this.relations.flatMap((r) => r.resources)
     const resources = [...descendentsResources, ...relationsResources]
-    return [...new Map(resources.map((r) => [r.uid, r])).values()]
+    return [...new Map(resources.map((r) => [r.uid, r])).values()].sort()
   }
 
   tags(): Tag[] {
