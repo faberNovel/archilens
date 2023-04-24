@@ -26,6 +26,7 @@ export type PruneOpts = {
   readonly followInverseRelations?: RelationInclusion | undefined
   readonly includeResources?: readonly Uid[] | undefined
   readonly forceOnResources?: boolean | undefined
+  readonly forceOnTags?: boolean | undefined
 }
 
 export function prune(
@@ -57,6 +58,7 @@ class RealPruneOpts implements PruneOpts {
   readonly followInverseRelations: RelationInclusion
   readonly includeResources: readonly Uid[]
   readonly forceOnResources: boolean
+  readonly forceOnTags: boolean
   constructor(opts: PruneOpts) {
     this.include = opts.include ?? []
     this.open = opts.open ?? []
@@ -65,6 +67,7 @@ class RealPruneOpts implements PruneOpts {
     this.followInverseRelations = opts.followInverseRelations ?? false
     this.includeResources = opts.includeResources ?? []
     this.forceOnResources = opts.forceOnResources ?? false
+    this.forceOnTags = opts.forceOnTags ?? false
   }
   isExcluded(part: Part): boolean {
     return (
@@ -113,22 +116,34 @@ class RealPruneOpts implements PruneOpts {
       (this.forceOnResources &&
         !this.includeResources.some((rUid) =>
           relation.resources.some((r) => r.uid === rUid),
-        ))
+        )) ||
+      (this.forceOnTags &&
+        !relation.tags.some((tag) => this.include.includes(tag)))
     )
   }
   #isRelationIncluded(config: RelationInclusion, value: number): boolean {
     return config === "all" || (typeof config === "number" && config > value)
   }
   includedRelations(part: Part, depth: number): Relation[] {
-    return isRelationEnd(part) &&
-      this.#isRelationIncluded(this.followRelations, depth)
-      ? part.descendentsRelations()
+    return isRelationEnd(part)
+      ? part
+          .descendentsRelations()
+          .filter(
+            (rel) =>
+              rel.tags.some((t) => this.include.includes(t)) ||
+              this.#isRelationIncluded(this.followRelations, depth),
+          )
       : []
   }
   includedInverseRelations(part: Part, depth: number): Relation[] {
-    return isRelationEnd(part) &&
-      this.#isRelationIncluded(this.followInverseRelations, depth)
-      ? part.descendentsInverseRelations()
+    return isRelationEnd(part)
+      ? part
+          .descendentsInverseRelations()
+          .filter(
+            (rel) =>
+              rel.tags.some((t) => this.include.includes(t)) ||
+              this.#isRelationIncluded(this.followInverseRelations, depth),
+          )
       : []
   }
 }

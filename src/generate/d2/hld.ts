@@ -25,6 +25,7 @@ export type GenerateHldOpts = {
   readonly followInverseRelations?: RelationInclusion | undefined
   readonly hideComponents?: boolean | undefined
   readonly forceOnResources?: boolean | undefined
+  readonly forceOnTags?: boolean | undefined
   readonly generateComponentsSchemas?: boolean | undefined
   readonly variations?: Variation[]
 }
@@ -147,7 +148,7 @@ async function genDiagram(
   basePath: string,
   variation: Variation,
   svgRelativePath: string,
-  target: { include: Uid[] } | { open: Uid[] } | { includeResources: Uid[] },
+  target: { include: (Uid | Tag)[] } | { open: Uid[] } | { includeResources: Uid[] },
   alt: string | undefined,
   links: Record<string, string>,
   opts: GenerateHldOpts,
