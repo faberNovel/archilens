@@ -10,10 +10,11 @@ import {
   Part,
   Relation,
   RelationEnd,
+  Resource,
   System,
 } from "../../engine/models"
 import { prune, PruneOpts } from "../../engine/prune"
-import { RelationType } from "../../shared/models"
+import { RelationType, Tag } from "../../shared/models"
 
 export type D2DisplayInfo = {
   readonly type?: string | undefined
@@ -57,6 +58,7 @@ export type D2Options = PruneOpts & {
   readonly getDisplayInfo?: D2GetDisplayInfoOpts | undefined
   readonly hideComponents?: boolean | undefined
   readonly displayRelatedComponents?: boolean | undefined
+  readonly mergeRelations?: boolean | undefined
   readonly d2Filepath?: string | undefined
   readonly getLink?: (part: Part) => string | undefined
   readonly header?: string | undefined
@@ -170,11 +172,8 @@ export function generateD2(system: System, opts: D2Options): string {
     "",
     ...pruned.domains.flatMap((d) => generateDomain(d, realOpts)),
     "",
-    ...[
-      ...new Set(
-        pruned.relations.flatMap((r) => generateRelation(r, realOpts)),
-      ),
-    ],
+    ...generateRelations(pruned.relations, realOpts),
+
   ].join("\n")
 }
 
@@ -202,9 +201,15 @@ export function wrapInMd(
   return `__${id}: |||md\n${content}\n|||${details}`
 }
 
+function label(value: string): string {
+  if (!value) return ""
+  // we need to replace \n and ", we might as well do that properly
+  return JSON.stringify(value)
+}
+
 function generateDomain(domain: Domain, opts: RealD2Options): string[] {
   return [
-    `${domain.id}: "${domain.label}" {`,
+    `${domain.id}: ${label(domain.label)} {`,
     ...opts.selectedStyle(domain),
     ...generateLink(domain, opts),
     ...domain.domains
@@ -227,7 +232,7 @@ function generateModule(module: Module, opts: RealD2Options): string[] {
   const shape = icon && module.components.length === 0 ? ["shape: image"] : []
   const moduleType = displayInfo.type ? `«${module.type}»\\n` : ""
   return [
-    `${module.id}: "${moduleType}${module.label}" {`,
+    `${module.id}: ${label(`${moduleType}${module.label}`)} {`,
     ...opts.selectedStyle(module),
     ...generateLink(module, opts),
     ...(icon ? [...shape, icon].map(indent) : []),
@@ -251,12 +256,44 @@ function generateComponent(
   const shape = icon ? ["shape: image"] : []
   const componentType = displayInfo.type ? `«${component.type}»\\n` : ""
   return [
-    `${component.id}: "${componentType}${component.label}" {`,
+    `${component.id}: ${label(`${componentType}${component.label}`)} {`,
     ...opts.selectedStyle(component),
     ...generateLink(component, opts),
     ...(icon ? [...shape, icon] : []).map(indent),
     "}",
   ]
+}
+
+function generateRelations(relations: readonly Relation[], opts: RealD2Options): string[] {
+  const mergeable = new Map<string, Relation>()
+  for (const relation of relations) {
+    const key = `${relation.source.uid} ${relation.type} ${relation.target.uid}`
+    const existing = mergeable.get(key)
+    const merged = existing ? new MergedRelation(relation, existing) : relation
+    mergeable.set(key, merged)
+  }
+  return [...mergeable.values()].flatMap(rel => generateRelation(rel, opts))
+}
+
+class MergedRelation extends Relation {
+  readonly source: RelationEnd
+  readonly target: RelationEnd
+  readonly type: RelationType
+  readonly description: string | undefined
+  readonly resources: readonly Resource[]
+  readonly tags: readonly Tag[]
+  constructor (
+    rel1: Relation,
+    rel2: Relation,
+  ) {
+    super()
+    this.source = rel1.source
+    this.target = rel1.target
+    this.type = rel1.type
+    this.description = (rel1.description && rel2.description) ? rel1.description + "\n" + rel2.description : rel1.description || rel2.description
+    this.resources = [...new Set([...rel1.resources, ...rel2.resources])]
+    this.tags = [...new Set([...rel1.tags, ...rel2.tags])]
+  }
 }
 
 function generateRelation(relation: Relation, opts: RealD2Options): string[] {
@@ -302,7 +339,7 @@ function generateRelation(relation: Relation, opts: RealD2Options): string[] {
         "{ style.border-radius: 5; style.stroke-dash: 3; style.animated: true }"
       break
   }
-  const description = relation.label ? `"${relation.label}" ` : ""
+  const description = relation.label ? label(relation.label) + " " : ""
   return [
     `${source.path(".")} ${arrow} ${target.path(".")}: ${description}${custom}`,
   ]
@@ -320,6 +357,7 @@ class RealD2Options {
   readonly getDisplayInfo: D2GetDisplayInfo
   readonly hideComponents: boolean
   readonly displayRelatedComponents: boolean
+  readonly mergeRelations: boolean
   readonly getLink: (part: Part) => string | undefined
   readonly header: string | undefined
   readonly footer: string | undefined
@@ -342,6 +380,7 @@ class RealD2Options {
     this.hideComponents = orig.hideComponents ?? false
     this.displayRelatedComponents =
       !this.hideComponents && (orig.displayRelatedComponents ?? false)
+    this.mergeRelations = orig.mergeRelations ?? false
     this.getLink = orig.getLink ?? (() => undefined)
     this.header = orig.header
     this.footer = orig.footer

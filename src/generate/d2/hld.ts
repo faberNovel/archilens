@@ -24,6 +24,7 @@ export type GenerateHldOpts = {
   readonly followRelations?: RelationInclusion | undefined
   readonly followInverseRelations?: RelationInclusion | undefined
   readonly hideComponents?: boolean | undefined
+  readonly mergeRelations?: boolean | undefined
   readonly forceOnResources?: boolean | undefined
   readonly forceOnTags?: boolean | undefined
   readonly generateComponentsSchemas?: boolean | undefined
