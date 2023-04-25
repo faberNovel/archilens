@@ -19,6 +19,13 @@ export type Variation = {
   excludeTags?: (Tag | string)[]
 }
 
+export type Specific = {
+  name: string
+  path: string
+  hideComponents: boolean
+  includeTags: (Tag | string)[]
+}
+
 export type GenerateHldOpts = {
   readonly getDisplayInfo?: D2GetDisplayInfo
   readonly followRelations?: RelationInclusion | undefined
@@ -29,6 +36,7 @@ export type GenerateHldOpts = {
   readonly forceOnTags?: boolean | undefined
   readonly generateComponentsSchemas?: boolean | undefined
   readonly variations?: Variation[]
+  readonly specifics?: Specific[]
 }
 export async function writeHldAsSvgFiles(
   outputDir: string,
@@ -41,13 +49,76 @@ export async function writeHldAsSvgFiles(
 
   await generateCustomSvg(
     `${outputDir}/svg/index.svg`,
-    wrapInMd("__body", "[HLD](hld/index.svg) | [LLD](lld/index.svg)"),
+    wrapInMd(
+      "__body",
+      variations
+        .map((v) => [v.name, `${v.path}/index.svg`])
+        .map(([n, p]) => `[${n}](${p})`)
+        .join(" | "),
+    ),
     {
       ...opts,
       d2Filepath: `${outputDir}/d2/index.d2`,
       header: "Index",
     },
   )
+
+  await genVariations(
+    diagram,
+    "Index",
+    outputDir,
+    variations.map((v) => ({ ...v, hideComponents: true })),
+    "index.svg",
+    { include: diagram.domains.map((d) => d.uid) },
+    opts,
+  )
+
+  if (opts.specifics) {
+    for (const variation of variations) {
+      await generateCustomSvg(
+        `${outputDir}/svg/${variation.path}/_specifics/index.svg`,
+        wrapInMd(
+          "__body",
+          opts.specifics.map((s) => `[${s.name}](${s.path}.svg)`).join(" | "),
+        ),
+        {
+          ...opts,
+          d2Filepath: `${outputDir}/d2/${variation.path}/_specifics/index.d2`,
+          header: "Specifics",
+          footer: [
+            ["index", "index.svg"],
+            ...variations
+              .filter((v) => v.name !== variation.name)
+              .map((v) => [v.name, `../${v.path}/index.svg`]),
+          ]
+            .map(([n, p]) => `[${n}](../${p})`)
+            .join(" | "),
+        },
+      )
+      for (const specific of opts.specifics) {
+        await genDiagram(
+          diagram,
+          specific.name,
+          outputDir,
+          variation,
+          `_specifics/${specific.path}.svg`,
+          { include: specific.includeTags.map(Tag) },
+          undefined,
+          false,
+          [
+            ["index", "../index.svg"],
+            ...(opts.specifics
+              ? ([["Specifics", "index.svg"]] satisfies [string, string][])
+              : []),
+          ],
+          {
+            ...opts,
+            forceOnTags: true,
+          },
+        )
+      }
+    }
+  }
 
   for (const variation of variations) {
     await generateCustomSvg(
@@ -61,14 +132,17 @@ export async function writeHldAsSvgFiles(
       ),
       {
         ...opts,
-        d2Filepath: `${outputDir}/d2/_resources/index.d2`,
+        d2Filepath: `${outputDir}/d2/${variation.path}/_resources/index.d2`,
         header: "Resources",
-        footer:
-          "[index](../index.svg) | " +
-          variations
+        footer: [
+          ["index", "index.svg"],
+          ...(opts.specifics ? [["Specifics", "_specifics/index.svg"]] : []),
+          ...variations
             .filter((v) => v.name !== variation.name)
-            .map((v) => `[${v.name}](../${v.path}/index.svg)`)
-            .join(" | "),
+            .map((v) => [v.name, `${v.path}/index.svg`]),
+        ]
+          .map(([n, p]) => `[${n}](../${p})`)
+          .join(" | "),
       },
     )
   }
@@ -84,23 +158,16 @@ export async function writeHldAsSvgFiles(
     )
   }
 
-  await genVariations(
-    diagram,
-    "Index",
-    outputDir,
-    variations.map(v => ({...v, hideComponents: true})),
-    "index.svg",
-    { include: diagram.domains.map((d) => d.uid) },
-    opts,
-  )
-
   for (const [uid, part] of diagram.parts) {
     if (opts.generateComponentsSchemas !== false || !part.isComponent) {
       await genVariations(
         diagram,
         part.label,
         outputDir,
-        variations.map(v => ({...v, hideComponents: part.isDomain || v.hideComponents})),
+        variations.map((v) => ({
+          ...v,
+          hideComponents: part.isDomain || v.hideComponents,
+        })),
         part.path(path.sep) + ".svg",
         { open: [uid] },
         opts,
@@ -119,12 +186,11 @@ async function genVariations(
   opts: GenerateHldOpts,
 ) {
   for (const variation of variations) {
-    const others: Map<string, string> = new Map(
-      variations
-        .filter((v) => v.name !== variation.name)
-        .map((v) => [v.name, path.join("..", v.path, svgRelativePath)]),
-    )
-    const alt: string | undefined = variation.alt && others.get(variation.alt)
+    const others: [string, string][] = variations
+      .filter((v) => v.name !== variation.name)
+      .map((v) => [v.name, path.join("..", v.path, svgRelativePath)])
+    const alt: string | undefined =
+      variation.alt && new Map(others).get(variation.alt)
     await genDiagram(
       diagram,
       title,
@@ -133,12 +199,19 @@ async function genVariations(
       svgRelativePath,
       target,
       alt,
-      {
-        index: "index.svg",
-        Resources: "_resources/index.svg",
-        ...Object.fromEntries(others.entries()),
-      },
-      { ...opts },
+      true,
+      [
+        ["index", "index.svg"],
+        ...(opts.specifics
+          ? ([["Specifics", "_specifics/index.svg"]] satisfies [
+              string,
+              string,
+            ][])
+          : []),
+        ["Resources", "_resources/index.svg"],
+        ...others,
+      ],
+      opts,
     )
   }
 }
@@ -149,9 +222,13 @@ async function genDiagram(
   basePath: string,
   variation: Variation,
   svgRelativePath: string,
-  target: { include: (Uid | Tag)[] } | { open: Uid[] } | { includeResources: Uid[] },
+  target:
+    | { include: (Uid | Tag)[] }
+    | { open: Uid[] }
+    | { includeResources: Uid[] },
   alt: string | undefined,
-  links: Record<string, string>,
+  links: boolean,
+  footerLinks: [string, string][],
   opts: GenerateHldOpts,
 ) {
   const d2Filepath = path.join(
@@ -169,7 +246,9 @@ async function genDiagram(
   function genRelLink(target: string): string {
     return path.relative(path.dirname(svgRelativePath), target)
   }
-  function getLink(alt: string | undefined): ((part: Part) => string | undefined) {
+  function getLink(
+    alt: string | undefined,
+  ): (part: Part) => string | undefined {
     return (part: Part): string | undefined => {
       let partPath = `${part.path(path.sep)}.svg`
       if (svgRelativePath === partPath && alt) {
@@ -178,21 +257,23 @@ async function genDiagram(
       return genRelLink(partPath)
     }
   }
-  const exclude = [...(variation.exclude?.map(Uid) ?? []), ...(variation.excludeTags?.map(Tag) ?? [])]
+  const exclude = [
+    ...(variation.exclude?.map(Uid) ?? []),
+    ...(variation.excludeTags?.map(Tag) ?? []),
+  ]
   await generateSvgFile(svgFilepath, diagram, {
     ...target,
-    getLink: getLink(alt),
+    getLink: links ? getLink(alt) : undefined,
     d2Filepath,
     getDisplayInfo: opts.getDisplayInfo,
     followRelations: opts.followRelations ?? 1,
     followInverseRelations: opts.followInverseRelations ?? 1,
     forceOnResources: opts.forceOnResources,
+    forceOnTags: opts.forceOnTags,
     hideComponents: variation.hideComponents,
     displayRelatedComponents: !variation.hideComponents,
     exclude,
     header: `# ${title}`,
-    footer: Object.entries(links)
-      .map(([k, v]) => `[${k}](${genRelLink(v)})`)
-      .join(" | "),
+    footer: footerLinks.map(([k, v]) => `[${k}](${genRelLink(v)})`).join(" | "),
   })
 }
